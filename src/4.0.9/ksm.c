@@ -93,6 +93,16 @@
  */
 
 /**
+ * struct page_slot - ksm scanning basic unit change from mm(virtual memory) to page(physical memory)
+ * @page_list: link into priority list 
+ * @physical_page: point to struct page
+ */
+struct page_slot {
+	struct list_head page_list;
+	struct page *physical_page;
+}
+
+/**
  * struct mm_slot - ksm information per mm that is being scanned
  * @link: link to the mm_slots hash list
  * @mm_list: link into the mm_slots list, rooted in ksm_mm_head
@@ -104,6 +114,11 @@ struct mm_slot {
 	struct list_head mm_list;
 	struct rmap_item *rmap_list;
 	struct mm_struct *mm;
+};
+
+struct pksm_scan{
+	struct page_slot *page_slot;
+	unsigned long seqnr;
 };
 
 /**
@@ -194,6 +209,10 @@ static LIST_HEAD(migrate_nodes);
 #define MM_SLOTS_HASH_BITS 10
 static DEFINE_HASHTABLE(mm_slots_hash, MM_SLOTS_HASH_BITS);
 
+static struct page_slot pksm_page_head = {
+	.page_list = LIST_HEAD_INIT(pksm_page_head.page_list)
+}
+
 static struct mm_slot ksm_mm_head = {
 	.mm_list = LIST_HEAD_INIT(ksm_mm_head.mm_list),
 };
@@ -242,6 +261,8 @@ static void wait_while_offlining(void);
 static DECLARE_WAIT_QUEUE_HEAD(ksm_thread_wait);
 static DEFINE_MUTEX(ksm_thread_mutex);
 static DEFINE_SPINLOCK(ksm_mmlist_lock);
+static DEFINE_SPINLOCK(pksm_pagelist_lock);
+
 
 #define KSM_KMEM_CACHE(__struct, __flags) kmem_cache_create("ksm_"#__struct,\
 		sizeof(struct __struct), __alignof__(struct __struct),\
@@ -1530,6 +1551,54 @@ static struct rmap_item *get_next_rmap_item(struct mm_slot *mm_slot,
 		*rmap_list = rmap_item;
 	}
 	return rmap_item;
+}
+
+static struct page_slot *scan_get_next_page_slot()
+{
+	struct page_slot *slot;
+	struct page *cur_page;
+
+	if(list_empty(pksm_page_head)){
+		return NULL;
+	}
+
+	slot = pksm_scan.page_slot;
+
+	if(slot == pksm_page_head){
+		spin_lock(&pksm_pagelist_lock);
+		slot = list_entry(slot->page_list.next, struct page_slot, page_list);
+		pksm_scan.page_slot = slot;
+		spin_unlock(&pksm_pagelist_lock);
+
+		if(slot == &pksm_page_head){
+			return NULL;
+		}
+	}
+
+ next_page:
+
+	cur_page = slot->physical_page;
+
+	spin_lock(&pksm_pagelist_lock);
+	pksm_scan.page_slot = list_entry(slot->page_list.next, struct page_slot, page_list);
+	spin_unlock(&pksm_pagelist_lock);
+
+	if(pksm_test_exit(cur_page)){
+		// 这个page已经离开了
+		// 把它从当前pksm结构中移走
+	}else{
+		if(valid_pksm_page(cur_page)){
+			return slot;
+		} 
+	}
+
+	slot = pksm_scan.page_slot;
+	if(slot != &pksm_page_head){
+		goto next_page;
+	}
+
+	pksm_scan.seqnr++;
+	return NULL;
 }
 
 static struct rmap_item *scan_get_next_rmap_item(struct page **page)
