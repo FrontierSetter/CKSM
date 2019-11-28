@@ -100,6 +100,8 @@
 struct page_slot {
 	struct list_head page_list;
 	struct page *physical_page;
+	struct hlist_node *page_item;
+	bool invalid;
 }
 
 /**
@@ -209,6 +211,15 @@ static LIST_HEAD(migrate_nodes);
 #define MM_SLOTS_HASH_BITS 10
 static DEFINE_HASHTABLE(mm_slots_hash, MM_SLOTS_HASH_BITS);
 
+struct pksm_hash_node{
+    struct hlist_head hlist;
+};
+
+#define PAGE_HASH_BIT 18 // 256K
+#define PAGE_HASH_MASK 262143
+static DEFINE_HASHTABLE(stable_hash_table, PAGE_HASH_BIT);
+static DEFINE_HASHTABLE(unstable_hash_table, PAGE_HASH_BIT);
+
 static struct page_slot pksm_page_head = {
 	.page_list = LIST_HEAD_INIT(pksm_page_head.page_list)
 }
@@ -216,6 +227,11 @@ static struct page_slot pksm_page_head = {
 static struct mm_slot ksm_mm_head = {
 	.mm_list = LIST_HEAD_INIT(ksm_mm_head.mm_list),
 };
+
+static struct pksm_scan pksm_scan = {
+	.page_slot = &pksm_page_head,
+};
+
 static struct ksm_scan ksm_scan = {
 	.mm_slot = &ksm_mm_head,
 };
@@ -262,6 +278,63 @@ static DECLARE_WAIT_QUEUE_HEAD(ksm_thread_wait);
 static DEFINE_MUTEX(ksm_thread_mutex);
 static DEFINE_SPINLOCK(ksm_mmlist_lock);
 static DEFINE_SPINLOCK(pksm_pagelist_lock);
+
+static uint32_t super_fast_hash(const char * data, int len)
+{
+    uint32_t hash = len, tmp;
+    int rem;
+
+    if (len <= 0 || data == NULL) return 0;
+
+    rem = len & 3;
+    len >>= 2;
+
+    /* Main loop */
+    for (;len > 0; len--) {
+        hash  += get16bits (data);
+        tmp    = (get16bits (data+2) << 11) ^ hash;
+        hash   = (hash << 16) ^ tmp;
+        data  += 2*sizeof (uint16_t);
+        hash  += hash >> 11;
+    }
+
+    /* Handle end cases */
+    switch (rem) {
+        case 3: hash += get16bits (data);
+                hash ^= hash << 16;
+                hash ^= ((signed char)data[sizeof (uint16_t)]) << 18;
+                hash += hash >> 11;
+                break;
+        case 2: hash += get16bits (data);
+                hash ^= hash << 11;
+                hash += hash >> 17;
+                break;
+        case 1: hash += (signed char)*data;
+                hash ^= hash << 10;
+                hash += hash >> 1;
+    }
+
+    /* Force "avalanching" of final 127 bits */
+    hash ^= hash << 3;
+    hash += hash >> 5;
+    hash ^= hash << 4;
+    hash += hash >> 17;
+    hash ^= hash << 25;
+    hash += hash >> 6;
+
+    return hash;
+}
+
+static u32 cacl_superfasthash(struct page *page)
+{
+	char *addr;
+	u32 checksum;
+
+	addr = kmap_atomic(page);
+	checksum = super_fast_hash(addr, PAGE_SIZE);
+	kunmap_atomic(addr);
+	return checksum;
+}
 
 
 #define KSM_KMEM_CACHE(__struct, __flags) kmem_cache_create("ksm_"#__struct,\
@@ -1160,6 +1233,55 @@ static struct page *try_to_merge_two_pages(struct rmap_item *rmap_item,
 	return err ? NULL : page;
 }
 
+static struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, unsigned int entryIndex)
+{
+	struct pksm_hash_node *unstable_node;
+
+	hlist_for_each_entry(unstable_node, &(unstable_hash_table[entryIndex]), hlist){
+		hash_page = get_pksm_page(unstable_node, false);
+		if(!hash_page){
+			continue;
+		}
+		ret = memcmp_pages(page, hash_page);
+		if (ret == 0)
+			return hash_page;
+
+		put_page(hash_page);
+	}
+
+	if(page_slot->page_item == NULL){
+		// TODO:分配一个pksm_hash_node
+	}
+
+	hlist_add_head(page_slot->page_item->hlist, &(unstable_hash_table[entryIndex]))
+
+	return NULL;
+}
+
+static struct page *stable_hash_search(struct page *page, unsigned int entryIndex)
+{
+	struct pksm_hash_node *stable_node;
+
+	stable_node = page_stable_node(page);
+	if (stable_node) {			/* ksm page already */
+		get_page(page);
+		return page;
+	}
+
+	hlist_for_each_entry(stable_node, &(stable_hash_table[entryIndex]), hlist){
+		hash_page = get_pksm_page(stable_node, false);
+		if(!hash_page){
+			continue;
+		}
+		ret = memcmp_pages(page, hash_page);
+		if (ret == 0)
+			return hash_page;
+
+		put_page(hash_page);
+	}
+	return NULL;
+}
+
 /*
  * stable_tree_search - search for page inside the stable tree
  *
@@ -1422,6 +1544,80 @@ static void stable_tree_append(struct rmap_item *rmap_item,
 		ksm_pages_sharing++;
 	else
 		ksm_pages_shared++;
+}
+
+/*
+ * 针对当前的page_slot对象对应的page结构寻找可以归并的归宿
+ */
+static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
+{
+	struct page *cur_page = cur_page_slot->physical_page;
+	u32 cur_hash;
+	unsigned int entryIndex;
+	struct page *kpage;
+	struct page *unstable_page;
+
+	if(pksm_test_exit(page_slot)){	//当前page已经离开
+		if(cur_page_slot->page_item != NULL){	// 如果他在哈希表里有残留（不管是stable还是unstable）
+			hlist_del(cur_page_slot->page_item->hlist);	// 都将他删除
+		}
+		return;
+	}else if(PagePksm(cur_page)){	// 如果当前page是pksm页，直接跳过
+		return;
+	}else{
+		if(cur_page_slot->page_item != NULL){	// 如果他在哈希表里有残留（此时必然是unstable）
+			hlist_del(cur_page_slot->page_item->hlist);	// 将他删除，处于unstable表的临时性
+		}
+		cur_hash = cacl_superfasthash(cur_page);
+		entryIndex = cur_hash & PAGE_HASH_MASK;
+
+		// 在stable表中寻找归并页
+		kpage = stable_hash_search(cur_page, entryIndex);
+		if(kpage == cur_page){	// 已经是pksmpage了
+			put_page(kpage);
+			return;
+		}
+		// 去除残留这一步在之前已经做了，所以不用做了
+		// remove_node_from_tree(page_slot->page_item); 
+		if(kpage){
+			err = try_to_merge_with_ksm_page(cur_page, kpage);
+			if(!err){
+				// page 成功 merge 到一个pksmpage
+				cur_page_slot->invalid = true;
+			}
+			put_page(kpage);
+			return;
+		}
+
+		// 在unstable表中寻找归并页
+		unstable_page = unstable_hash_search_insert(cur_page_slot, cur_page, entryIndex);
+		if(unstable_page){
+			kpage = try_to_merge_two_pages(cur_page, unstable_page);
+			put_page(unstable_page);
+			if (kpage) {
+				/*
+				* The pages were successfully merged: insert new
+				* node in the stable tree and add both rmap_items.
+				*/
+				lock_page(kpage);
+				stable_node = stable_tree_insert(kpage);
+
+				unlock_page(kpage);
+
+				/*
+				* If we fail to insert the page into the stable tree,
+				* we will have 2 virtual addresses that are pointing
+				* to a ksm page left outside the stable tree,
+				* in which case we need to break_cow on both.
+				*/
+				if (!stable_node) {
+					// TODO:没有成功，break_cow
+				}
+			}
+
+		}
+
+	}
 }
 
 /*
