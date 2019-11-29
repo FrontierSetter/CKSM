@@ -586,6 +586,13 @@ static inline int get_kpfn_nid(unsigned long kpfn)
 	return ksm_merge_across_nodes ? 0 : NUMA(pfn_to_nid(kpfn));
 }
 
+static void remove_node_from_hashlist(struct page_slot *page_slot)
+{
+	if(page_slot->page_item != NULL){	// 如果他在哈希表里有残留（不管是stable还是unstable）
+		hlist_del(page_slot->page_item->hlist);	// 都将他删除
+	}
+}
+
 static void remove_node_from_stable_tree(struct stable_node *stable_node)
 {
 	struct rmap_item *rmap_item;
@@ -1098,17 +1105,14 @@ static int page_trans_compound_anon_split(struct page *page)
 }
 
 /*
- * try_to_merge_one_page - take two pages and merge them into one
- * @vma: the vma that holds the pte pointing to page
- * @page: the PageAnon page that we want to replace with kpage
- * @kpage: the PageKsm page that we want to map instead of page,
- *         or NULL the first time when we want to use page as kpage.
- *
- * This function returns 0 if the pages were merged, -EFAULT otherwise.
+ * pksm中将指向一个page的pte指向另一个kpage的函数
+ * 是pksm_try_to_merge_one_page在反向映射机制上调用的单体操作
  */
-static int try_to_merge_one_page(struct vm_area_struct *vma,
-				 struct page *page, struct page *kpage)
+static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
+		     unsigned long address, void *arg)
 {
+	struct page *kpage = (struct page*) arg;	
+
 	pte_t orig_pte = __pte(0);
 	int err = -EFAULT;
 
@@ -1164,64 +1168,111 @@ static int try_to_merge_one_page(struct vm_area_struct *vma,
 
 	unlock_page(page);
 out:
-	return err;
+	if(err == 0){
+		return SWAP_AGAIN;
+	}else{
+		return SWAP_FAIL;
+	}
 }
 
 /*
- * try_to_merge_with_ksm_page - like try_to_merge_two_pages,
- * but no new kernel page is allocated: kpage must already be a ksm page.
- *
- * This function returns 0 if the pages were merged, -EFAULT otherwise.
+ * pksm中实际merge两个page的函数
+ * 是try_to_merge_one_page的反向映射迭代入口
  */
-static int try_to_merge_with_ksm_page(struct rmap_item *rmap_item,
-				      struct page *page, struct page *kpage)
+static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage)
 {
-	struct mm_struct *mm = rmap_item->mm;
-	struct vm_area_struct *vma;
-	int err = -EFAULT;
+	if(kpage != NULL){	// 对应真实归并的情况
+		int ret;
+		// 因为这里的rmap处理逻辑和unmap基本相同
+		// 只是增加了释放映射后重映射的操作
+		// 因此基本上采用了try_to_unmap的结构
+		struct rmap_walk_control rwc = {
+			.rmap_one = try_to_merge_one_page,
+			.arg = (void *)kpage,
+			.done = page_not_mapped,
+			.anon_lock = page_lock_anon_vma_read,
+		};
+		
+	}else{	// 对应将page置为ksm的情况
+		/* TODO: 原则上这里只用对一个vma操作一下就可以了，但是我不会，所以就先这样
+		 * 使用反向映射机制主要是为了得到vma来调用write_protect  
+		 */
+		struct rmap_walk_control rwc = {
+			.rmap_one = try_to_merge_one_page,
+			.arg = (void *)kpage,
+			.done = PagePksm,
+			.anon_lock = page_lock_anon_vma_read,
+		};
+	}
 
-	down_read(&mm->mmap_sem);
-	if (ksm_test_exit(mm))
+	ret = rmap_walk(page, &rwc);
+
+	if (ret != SWAP_MLOCK && !page_mapped(page))
+		ret = SWAP_SUCCESS;
+	return ret;
+}
+
+static int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
+					  struct page *page, struct page *kpage)
+{
+	if(pksm_test_exit(page_slot)){
 		goto out;
-	vma = find_vma(mm, rmap_item->address);
-	if (!vma || vma->vm_start > rmap_item->address)
+	}
+
+	err = pksm_try_to_merge_one_page(page, kpage);
+	if(err){
 		goto out;
+	}
 
-	err = try_to_merge_one_page(vma, page, kpage);
-	if (err)
-		goto out;
+	remove_node_from_hashlist(page_slot);
 
-	/* Unstable nid is in union with stable anon_vma: remove first */
-	remove_rmap_item_from_tree(rmap_item);
-
-	/* Must get reference to anon_vma while still holding mmap_sem */
-	rmap_item->anon_vma = vma->anon_vma;
-	get_anon_vma(vma->anon_vma);
 out:
-	up_read(&mm->mmap_sem);
 	return err;
 }
 
-/*
- * try_to_merge_two_pages - take two identical pages and prepare them
- * to be merged into one page.
- *
- * This function returns the kpage if we successfully merged two identical
- * pages into one ksm page, NULL otherwise.
- *
- * Note that this function upgrades page to ksm page: if one of the pages
- * is already a ksm page, try_to_merge_with_ksm_page should be used.
- */
-static struct page *try_to_merge_two_pages(struct rmap_item *rmap_item,
-					   struct page *page,
-					   struct rmap_item *tree_rmap_item,
-					   struct page *tree_page)
+// /*
+//  * try_to_merge_with_ksm_page - like try_to_merge_two_pages,
+//  * but no new kernel page is allocated: kpage must already be a ksm page.
+//  *
+//  * This function returns 0 if the pages were merged, -EFAULT otherwise.
+//  */
+// static int try_to_merge_with_ksm_page(struct page_slot *page_slot,
+// 				      struct page *page, struct page *kpage)
+// {
+// 	struct mm_struct *mm = rmap_item->mm;
+// 	struct vm_area_struct *vma;
+// 	int err = -EFAULT;
+
+// 	down_read(&mm->mmap_sem);
+// 	if (ksm_test_exit(mm))
+// 		goto out;
+// 	vma = find_vma(mm, rmap_item->address);
+// 	if (!vma || vma->vm_start > rmap_item->address)
+// 		goto out;
+
+// 	err = try_to_merge_one_page(vma, page, kpage);
+// 	if (err)
+// 		goto out;
+
+// 	/* Unstable nid is in union with stable anon_vma: remove first */
+// 	remove_rmap_item_from_tree(rmap_item);
+
+// 	/* Must get reference to anon_vma while still holding mmap_sem */
+// 	rmap_item->anon_vma = vma->anon_vma;
+// 	get_anon_vma(vma->anon_vma);
+// out:
+// 	up_read(&mm->mmap_sem);
+// 	return err;
+// }
+
+static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot,
+					   struct page *page, struct page *tree_page)
 {
 	int err;
 
-	err = try_to_merge_with_ksm_page(rmap_item, page, NULL);
+	err = try_to_merge_with_pksm_page(page_slot, page, NULL);
 	if (!err) {
-		err = try_to_merge_with_ksm_page(tree_rmap_item,
+		err = try_to_merge_with_pksm_page(page_slot,
 							tree_page, page);
 		/*
 		 * If that fails, we have a ksm page with only one pte
@@ -1232,6 +1283,37 @@ static struct page *try_to_merge_two_pages(struct rmap_item *rmap_item,
 	}
 	return err ? NULL : page;
 }
+
+// /*
+//  * try_to_merge_two_pages - take two identical pages and prepare them
+//  * to be merged into one page.
+//  *
+//  * This function returns the kpage if we successfully merged two identical
+//  * pages into one ksm page, NULL otherwise.
+//  *
+//  * Note that this function upgrades page to ksm page: if one of the pages
+//  * is already a ksm page, try_to_merge_with_ksm_page should be used.
+//  */
+// static struct page *try_to_merge_two_pages(struct rmap_item *rmap_item,
+// 					   struct page *page,
+// 					   struct rmap_item *tree_rmap_item,
+// 					   struct page *tree_page)
+// {
+// 	int err;
+
+// 	err = try_to_merge_with_ksm_page(rmap_item, page, NULL);
+// 	if (!err) {
+// 		err = try_to_merge_with_ksm_page(tree_rmap_item,
+// 							tree_page, page);
+// 		/*
+// 		 * If that fails, we have a ksm page with only one pte
+// 		 * pointing to it: so break it.
+// 		 */
+// 		if (err)
+// 			break_cow(rmap_item);
+// 	}
+// 	return err ? NULL : page;
+// }
 
 static struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, unsigned int entryIndex)
 {
@@ -1557,17 +1639,14 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 	struct page *kpage;
 	struct page *unstable_page;
 
-	if(pksm_test_exit(page_slot)){	//当前page已经离开
-		if(cur_page_slot->page_item != NULL){	// 如果他在哈希表里有残留（不管是stable还是unstable）
-			hlist_del(cur_page_slot->page_item->hlist);	// 都将他删除
-		}
+	if(pksm_test_exit(cur_page_slot)){	//当前page已经离开
+		remove_node_from_hashlist(cur_page_slot);
 		return;
 	}else if(PagePksm(cur_page)){	// 如果当前page是pksm页，直接跳过
 		return;
 	}else{
-		if(cur_page_slot->page_item != NULL){	// 如果他在哈希表里有残留（此时必然是unstable）
-			hlist_del(cur_page_slot->page_item->hlist);	// 将他删除，处于unstable表的临时性
-		}
+		remove_node_from_hashlist(cur_page_slot);
+
 		cur_hash = cacl_superfasthash(cur_page);
 		entryIndex = cur_hash & PAGE_HASH_MASK;
 
@@ -1580,7 +1659,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		// 去除残留这一步在之前已经做了，所以不用做了
 		// remove_node_from_tree(page_slot->page_item); 
 		if(kpage){
-			err = try_to_merge_with_ksm_page(cur_page, kpage);
+			err = try_to_merge_with_pksm_page(cur_page_slot, cur_page, kpage);
 			if(!err){
 				// page 成功 merge 到一个pksmpage
 				cur_page_slot->invalid = true;
@@ -1592,7 +1671,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		// 在unstable表中寻找归并页
 		unstable_page = unstable_hash_search_insert(cur_page_slot, cur_page, entryIndex);
 		if(unstable_page){
-			kpage = try_to_merge_two_pages(cur_page, unstable_page);
+			kpage = pksm_try_to_merge_two_pages(cur_page_slot, cur_page, unstable_page);
 			put_page(unstable_page);
 			if (kpage) {
 				/*

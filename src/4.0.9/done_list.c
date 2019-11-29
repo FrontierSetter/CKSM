@@ -36,6 +36,17 @@ static DEFINE_HASHTABLE(unstable_hash_table, PAGE_HASH_BIT);
 static struct page *unstable_hash_search_insert(struct page *page, unsigned int entryIndex)
 static struct page *stable_hash_search(struct page *page, unsigned int entryIndex)
 
+static void remove_node_from_hashlist(struct page_slot *page_slot)
+
+static int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
+					  struct page *page, struct page *kpage)
+要不要加锁
+
+static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage)
+
+// 修改形参列表
+try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
+		     unsigned long address, void *arg)
 
 // TODO
 PagePksm()
@@ -44,12 +55,6 @@ free_stable_node()
 
 // 和ksm_page()一样直接删除stable_node
 get_pksm_page(pksm_hash_node*, bool)
-
-// 把page_item从树中移除
-remove_node_from_tree(hlist_node *)
-
-// 直接归并两个物理页，需要利用反向映射机制
-try_to_merge_with_ksm_page(struct page *page, struct page *kpage)
 
 try_to_merge_two_pages(struct page *page, struct page *kpage)
 
@@ -61,6 +66,7 @@ unstable_hash_search_insert()中的一部分,分配一个pksm_hash_node
 
 break_cow(??)
 
+int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
 
 // ! 注意
 
