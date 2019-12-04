@@ -100,7 +100,7 @@
 struct page_slot {
 	struct list_head page_list;
 	struct page *physical_page;
-	struct hlist_node *page_item;
+	struct pksm_hash_node *page_item;
 	bool invalid;
 }
 
@@ -212,7 +212,9 @@ static LIST_HEAD(migrate_nodes);
 static DEFINE_HASHTABLE(mm_slots_hash, MM_SLOTS_HASH_BITS);
 
 struct pksm_hash_node{
+	unsigned long kpfn;
     struct hlist_head hlist;
+	page_slot *page_slot;
 };
 
 #define PAGE_HASH_BIT 18 // 256K
@@ -1265,15 +1267,15 @@ out:
 // 	return err;
 // }
 
-static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot,
-					   struct page *page, struct page *tree_page)
+static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, struct page *page, 
+							struct *table_page_slot, struct page *table_page)
 {
 	int err;
 
 	err = try_to_merge_with_pksm_page(page_slot, page, NULL);
 	if (!err) {
-		err = try_to_merge_with_pksm_page(page_slot,
-							tree_page, page);
+		err = try_to_merge_with_pksm_page(table_page_slot,
+							table_page, page);
 		/*
 		 * If that fails, we have a ksm page with only one pte
 		 * pointing to it: so break it.
@@ -1315,7 +1317,8 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot,
 // 	return err ? NULL : page;
 // }
 
-static struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, unsigned int entryIndex)
+static struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, 
+								unsigned int entryIndex, struct page_slot **table_page_slot)
 {
 	struct pksm_hash_node *unstable_node;
 
@@ -1325,8 +1328,10 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 			continue;
 		}
 		ret = memcmp_pages(page, hash_page);
-		if (ret == 0)
+		if (ret == 0){
 			return hash_page;
+			*table_page_slot = unstable_node->page_slot;
+		}
 
 		put_page(hash_page);
 	}
@@ -1335,7 +1340,9 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		// TODO:分配一个pksm_hash_node
 	}
 
-	hlist_add_head(page_slot->page_item->hlist, &(unstable_hash_table[entryIndex]))
+	page_slot->page_item->page_slot = page_slot;
+
+	hlist_add_head(page_slot->page_item->hlist, &(unstable_hash_table[entryIndex]));
 
 	return NULL;
 }
@@ -1464,6 +1471,29 @@ replace:
 	stable_node->head = &migrate_nodes;
 	list_add(&stable_node->list, stable_node->head);
 	return page;
+}
+
+static struct pksm_hash_node *stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage){
+	u32 cur_hash;
+	unsigned int entryIndex;
+	struct pksm_hash_node *kpage_hash_node;
+
+
+	if(kpage_slot->page_item == NULL){
+		// TODO: 分配一个pksm_hash_node
+	}
+
+	kpage_hash_node = kpage_slot->page_item
+
+	// 重新计算当前页面的哈希值
+	cur_hash = cacl_superfasthash(kpage);
+	entryIndex = cur_hash & PAGE_HASH_MASK;
+
+	hlist_add_head(kpage_hash_node->hlist, &(unstable_hash_table[entryIndex]));
+	kpage_hash_node->kpfn = page_to_pfn(kpage);
+	set_page_stable_node(kpage, kpage_hash_node);
+
+
 }
 
 /*
@@ -1638,6 +1668,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 	unsigned int entryIndex;
 	struct page *kpage;
 	struct page *unstable_page;
+	struct page_slot *table_page_slot;
 
 	if(pksm_test_exit(cur_page_slot)){	//当前page已经离开
 		remove_node_from_hashlist(cur_page_slot);
@@ -1669,9 +1700,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		}
 
 		// 在unstable表中寻找归并页
-		unstable_page = unstable_hash_search_insert(cur_page_slot, cur_page, entryIndex);
+		unstable_page = unstable_hash_search_insert(cur_page_slot, cur_page, entryIndex, &table_page_slot);
 		if(unstable_page){
-			kpage = pksm_try_to_merge_two_pages(cur_page_slot, cur_page, unstable_page);
+			kpage = pksm_try_to_merge_two_pages(cur_page_slot, cur_page, table_page_slot, unstable_page);
 			put_page(unstable_page);
 			if (kpage) {
 				/*
@@ -1679,7 +1710,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 				* node in the stable tree and add both rmap_items.
 				*/
 				lock_page(kpage);
-				stable_node = stable_tree_insert(kpage);
+				stable_node = stable_hash_insert(cur_page_slot, kpage);
 
 				unlock_page(kpage);
 
@@ -1858,7 +1889,7 @@ static struct page_slot *scan_get_next_page_slot()
 	pksm_scan.page_slot = list_entry(slot->page_list.next, struct page_slot, page_list);
 	spin_unlock(&pksm_pagelist_lock);
 
-	if(pksm_test_exit(cur_page)){
+	if(pksm_test_exit(slot)){
 		// 这个page已经离开了
 		// 把它从当前pksm结构中移走
 	}else{
