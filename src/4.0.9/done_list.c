@@ -55,24 +55,49 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 
 static struct pksm_hash_node *stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage){
 
-// TODO
 PagePksm()
-pksm_test_exit(page_slot*)
-free_stable_node()
 
-// 和ksm_page()一样直接删除stable_node
+pksm_test_exit(page_slot*)	//? 暂时用的_mapcount，或许可以用_count，见mm.h/get_page_unless_zero
+
 get_pksm_page(pksm_hash_node*, bool)
 
-分配一个pksm_hash_node
+static struct kmem_cache *pksm_hash_node_cache;
+static struct kmem_cache *page_slot_cache;
 
-哈希表中删除用hash_del 还是另一个
+static int __init pksm_slab_init(void)
+static void __init pksm_slab_free(void)
+
+
+static inline struct stable_node *alloc_hash_node(void)
+
+static inline void free_hash_node(struct pksm_hash_node *pksm_hash_node)
+
+static inline struct page_slot *alloc_page_slot(void)
+
+static inline void free_page_slot(struct page_slot *page_slot)
+
+
+// TODO
+哈希表中删除用hash_del 还是另一个 -> 区别不大
 
 break_cow(??)
 
 int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
+
+pksm_scan_thread
+
+pksm_attr_group
+
+pksm_run及其相关宏
+
+hotplug_memory_notifier(pksm_memory_callback, 100);
+
+
 
 // ! 注意
 
 hlist_for_each_entry() 的参数不一样
 
 ksm建立的重映射是否要加入反向映射队列？
+
+// printk()要不要include头文件

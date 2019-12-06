@@ -41,6 +41,14 @@ static inline void ksm_exit(struct mm_struct *mm)
  * is found in VM_MERGEABLE vmas.  It's a PageAnon page, pointing not to any
  * anon_vma, but to that page's node of the stable tree.
  */
+
+// 这里改个名是为了模块内部命名的一致性，但是发现PageKsm在外部也被调用（毕竟是在.h文件里）
+// 所以两个都保留（很蠢，但是懒得改）
+static inline int PagePksm(struct page *page)
+{
+	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==
+				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
+}
 static inline int PageKsm(struct page *page)
 {
 	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==

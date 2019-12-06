@@ -38,6 +38,8 @@
 #include <linux/oom.h>
 #include <linux/numa.h>
 
+#include <linux/kernel.h> // printk
+
 #include <asm/tlbflush.h>
 #include "internal.h"
 
@@ -242,6 +244,9 @@ static struct kmem_cache *rmap_item_cache;
 static struct kmem_cache *stable_node_cache;
 static struct kmem_cache *mm_slot_cache;
 
+static struct kmem_cache *pksm_hash_node_cache;
+static struct kmem_cache *page_slot_cache;
+
 /* The number of nodes in the stable tree */
 static unsigned long ksm_pages_shared;
 
@@ -367,12 +372,38 @@ out:
 	return -ENOMEM;
 }
 
+static int __init pksm_slab_init(void)
+{
+	pksm_hash_node_cache = KSM_KMEM_CACHE(pksm_hash_node, 0);
+	if (!pksm_hash_node_cache)
+		goto out;
+
+	page_slot_cache = KSM_KMEM_CACHE(page_slot, 0);
+	if (!page_slot_cache)
+		goto out_free1;
+
+	return 0;
+
+out_free1:
+	kmem_cache_destroy(pksm_hash_node_cache);
+out:
+	return -ENOMEM;
+}
+
+
 static void __init ksm_slab_free(void)
 {
 	kmem_cache_destroy(mm_slot_cache);
 	kmem_cache_destroy(stable_node_cache);
 	kmem_cache_destroy(rmap_item_cache);
 	mm_slot_cache = NULL;
+}
+
+static void __init pksm_slab_free(void)
+{
+	kmem_cache_destroy(pksm_hash_node_cache);
+	kmem_cache_destroy(page_slot_cache);
+	page_slot_cache = NULL; // 为什么就他这么突出？
 }
 
 static inline struct rmap_item *alloc_rmap_item(void)
@@ -384,6 +415,32 @@ static inline struct rmap_item *alloc_rmap_item(void)
 		ksm_rmap_items++;
 	return rmap_item;
 }
+
+// * pksm begin
+
+static inline struct stable_node *alloc_hash_node(void)
+{
+	return kmem_cache_alloc(pksm_hash_node_cache, GFP_KERNEL);
+}
+
+static inline void free_hash_node(struct pksm_hash_node *pksm_hash_node)
+{
+	kmem_cache_free(pksm_hash_node_cache, pksm_hash_node);
+}
+
+static inline struct page_slot *alloc_page_slot(void)
+{
+	if (!page_slot_cache)	/* initialization failed */
+		return NULL;
+	return kmem_cache_zalloc(page_slot_cache, GFP_KERNEL);
+}
+
+static inline void free_page_slot(struct page_slot *page_slot)
+{
+	kmem_cache_free(page_slot_cache, page_slot);
+}
+
+// * pksm end
 
 static inline void free_rmap_item(struct rmap_item *rmap_item)
 {
@@ -443,6 +500,12 @@ static void insert_to_mm_slots_hash(struct mm_struct *mm,
 static inline bool ksm_test_exit(struct mm_struct *mm)
 {
 	return atomic_read(&mm->mm_users) == 0;
+}
+
+static inline bool pksm_test_exit(struct page_slot *page_slot)
+{
+	// 这里暂时使用page->_mapcount
+	return (page_slot->invalid) || (page_mapcount(page_slot->physical_page) == 0);
 }
 
 /*
@@ -518,24 +581,44 @@ static struct vm_area_struct *find_mergeable_vma(struct mm_struct *mm,
 	return vma;
 }
 
-static void break_cow(struct rmap_item *rmap_item)
+static void break_cow()
 {
-	struct mm_struct *mm = rmap_item->mm;
-	unsigned long addr = rmap_item->address;
-	struct vm_area_struct *vma;
+	printk("PKSM : break_cow called\n");
+	// struct mm_struct *mm = rmap_item->mm;
+	// unsigned long addr = rmap_item->address;
+	// struct vm_area_struct *vma;
 
-	/*
-	 * It is not an accident that whenever we want to break COW
-	 * to undo, we also need to drop a reference to the anon_vma.
-	 */
-	put_anon_vma(rmap_item->anon_vma);
+	// /*
+	//  * It is not an accident that whenever we want to break COW
+	//  * to undo, we also need to drop a reference to the anon_vma.
+	//  */
+	// put_anon_vma(rmap_item->anon_vma);
 
-	down_read(&mm->mmap_sem);
-	vma = find_mergeable_vma(mm, addr);
-	if (vma)
-		break_ksm(vma, addr);
-	up_read(&mm->mmap_sem);
+	// down_read(&mm->mmap_sem);
+	// vma = find_mergeable_vma(mm, addr);
+	// if (vma)
+	// 	break_ksm(vma, addr);
+	// up_read(&mm->mmap_sem);
 }
+
+// static void break_cow(struct rmap_item *rmap_item)
+// {
+// 	struct mm_struct *mm = rmap_item->mm;
+// 	unsigned long addr = rmap_item->address;
+// 	struct vm_area_struct *vma;
+
+// 	/*
+// 	 * It is not an accident that whenever we want to break COW
+// 	 * to undo, we also need to drop a reference to the anon_vma.
+// 	 */
+// 	put_anon_vma(rmap_item->anon_vma);
+
+// 	down_read(&mm->mmap_sem);
+// 	vma = find_mergeable_vma(mm, addr);
+// 	if (vma)
+// 		break_ksm(vma, addr);
+// 	up_read(&mm->mmap_sem);
+// }
 
 static struct page *page_trans_compound_anon(struct page *page)
 {
@@ -592,7 +675,11 @@ static void remove_node_from_hashlist(struct page_slot *page_slot)
 {
 	if(page_slot->page_item != NULL){	// 如果他在哈希表里有残留（不管是stable还是unstable）
 		hlist_del(page_slot->page_item->hlist);	// 都将他删除
+
+		free_hash_node(page_slot->page_item);
+		page_slot->page_item = NULL;
 	}
+
 }
 
 static void remove_node_from_stable_tree(struct stable_node *stable_node)
@@ -636,6 +723,79 @@ static void remove_node_from_stable_tree(struct stable_node *stable_node)
  * a page to put something that might look like our key in page->mapping.
  * is on its way to being freed; but it is an anomaly to bear in mind.
  */
+static struct page *get_pksm_page(struct pksm_hash_node *stable_node, bool lock_it)
+{
+	struct page *page;
+	void *expected_mapping;
+	unsigned long kpfn;
+
+	expected_mapping = (void *)stable_node +
+				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
+again:
+	kpfn = ACCESS_ONCE(stable_node->kpfn);
+	page = pfn_to_page(kpfn);
+
+	/*
+	 * page is computed from kpfn, so on most architectures reading
+	 * page->mapping is naturally ordered after reading node->kpfn,
+	 * but on Alpha we need to be more careful.
+	 */
+	smp_read_barrier_depends();
+	if (ACCESS_ONCE(page->mapping) != expected_mapping)
+		goto stale;
+
+	/*
+	 * We cannot do anything with the page while its refcount is 0.
+	 * Usually 0 means free, or tail of a higher-order page: in which
+	 * case this node is no longer referenced, and should be freed;
+	 * however, it might mean that the page is under page_freeze_refs().
+	 * The __remove_mapping() case is easy, again the node is now stale;
+	 * but if page is swapcache in migrate_page_move_mapping(), it might
+	 * still be our page, in which case it's essential to keep the node.
+	 */
+	while (!get_page_unless_zero(page)) {
+		/*
+		 * Another check for page->mapping != expected_mapping would
+		 * work here too.  We have chosen the !PageSwapCache test to
+		 * optimize the common case, when the page is or is about to
+		 * be freed: PageSwapCache is cleared (under spin_lock_irq)
+		 * in the freeze_refs section of __remove_mapping(); but Anon
+		 * page->mapping reset to NULL later, in free_pages_prepare().
+		 */
+		if (!PageSwapCache(page))
+			goto stale;
+		cpu_relax();
+	}
+
+	if (ACCESS_ONCE(page->mapping) != expected_mapping) {
+		put_page(page);
+		goto stale;
+	}
+
+	if (lock_it) {
+		lock_page(page);
+		if (ACCESS_ONCE(page->mapping) != expected_mapping) {
+			unlock_page(page);
+			put_page(page);
+			goto stale;
+		}
+	}
+	return page;
+
+stale:
+	/*
+	 * We come here from above when page->mapping or !PageSwapCache
+	 * suggests that the node is stale; but it might be under migration.
+	 * We need smp_rmb(), matching the smp_wmb() in ksm_migrate_page(),
+	 * before checking whether node->kpfn has been changed.
+	 */
+	smp_rmb();
+	if (ACCESS_ONCE(stable_node->kpfn) != kpfn)
+		goto again;
+	remove_node_from_hashlist(stable_node);
+	return NULL;
+}
+
 static struct page *get_ksm_page(struct stable_node *stable_node, bool lock_it)
 {
 	struct page *page;
@@ -1281,7 +1441,7 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 		 * pointing to it: so break it.
 		 */
 		if (err)
-			break_cow(rmap_item);
+			break_cow();
 	}
 	return err ? NULL : page;
 }
@@ -1337,7 +1497,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 	}
 
 	if(page_slot->page_item == NULL){
-		// TODO:分配一个pksm_hash_node
+		page_slot->page_item = alloc_hash_node();
 	}
 
 	page_slot->page_item->page_slot = page_slot;
@@ -1480,10 +1640,10 @@ static struct pksm_hash_node *stable_hash_insert(struct page_slot *kpage_slot, s
 
 
 	if(kpage_slot->page_item == NULL){
-		// TODO: 分配一个pksm_hash_node
+		kpage_slot->page_item = alloc_hash_node();
 	}
 
-	kpage_hash_node = kpage_slot->page_item
+	kpage_hash_node = kpage_slot->page_item;
 
 	// 重新计算当前页面的哈希值
 	cur_hash = cacl_superfasthash(kpage);
@@ -1721,7 +1881,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 				* in which case we need to break_cow on both.
 				*/
 				if (!stable_node) {
-					// TODO:没有成功，break_cow
+					break_cow();
 				}
 			}
 
@@ -2265,66 +2425,89 @@ struct page *ksm_might_need_to_copy(struct page *page,
 	return new_page;
 }
 
+
+/*
+ * 这个函数用来实现针对ksm页的反向映射机制，在rmap.c/rmap_walk中被调用主力pageKsm(page)为真的情况下被使用
+ * 这些函数的目的是为了实现：给定一个page结构，针对所有映射它的虚拟页面进行操作
+ * 众所周知，原则上多个pte映射一个page的情况并不自然存在
+ * 针对匿名页面，仅有fork和ksm
+ * 前者可以通过自然的反向映射进行组织，利用相应结构遍历所有虚拟页（见rmap.c/rmap_walk_anon）
+ * 后者则需要自行实现一套 物理->逻辑 的映射方式用于实现相同的功能
+ * 在原本的KSM中，通过 page->stable_node->rmap_item->vma 的方式实现
+ * 但是在PKSM中，这样的反向映射关系好像没法记录
+ * 
+ * 有一个方法：
+ * 继续使用rmap_item，但是创建时机不同
+ * 在merge_one_page那里针对每一个 待归并页面反向映射到的vma创建rmap_item 然后后面继续一致操作
+ * 
+ * 但是这样会增加额外的复杂度，而且我觉得（我猜）针对PKSM页进行反向映射的机会并不多（应该）
+ * 因为首先在PKSM系统中，不会对一个已经是PKSM页面的页进行处理
+ * 然后再内存规整和swap的时候应该（好像、大概，我没看过）会避免对PKSM页面的操作
+ * 所以暂时先把这个函数挂着，如果到时候出了问题再加入
+ */
+
 int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
 {
-	struct stable_node *stable_node;
-	struct rmap_item *rmap_item;
-	int ret = SWAP_AGAIN;
-	int search_new_forks = 0;
 
-	VM_BUG_ON_PAGE(!PageKsm(page), page);
+	printk("PKSM : rmap_walk_ksm called\n");
+// 	struct stable_node *stable_node;
+// 	struct rmap_item *rmap_item;
+// 	int ret = SWAP_AGAIN;
+// 	int search_new_forks = 0;
 
-	/*
-	 * Rely on the page lock to protect against concurrent modifications
-	 * to that page's node of the stable tree.
-	 */
-	VM_BUG_ON_PAGE(!PageLocked(page), page);
+// 	VM_BUG_ON_PAGE(!PageKsm(page), page);
 
-	stable_node = page_stable_node(page);
-	if (!stable_node)
-		return ret;
-again:
-	hlist_for_each_entry(rmap_item, &stable_node->hlist, hlist) {
-		struct anon_vma *anon_vma = rmap_item->anon_vma;
-		struct anon_vma_chain *vmac;
-		struct vm_area_struct *vma;
+// 	/*
+// 	 * Rely on the page lock to protect against concurrent modifications
+// 	 * to that page's node of the stable tree.
+// 	 */
+// 	VM_BUG_ON_PAGE(!PageLocked(page), page);
 
-		anon_vma_lock_read(anon_vma);
-		anon_vma_interval_tree_foreach(vmac, &anon_vma->rb_root,
-					       0, ULONG_MAX) {
-			vma = vmac->vma;
-			if (rmap_item->address < vma->vm_start ||
-			    rmap_item->address >= vma->vm_end)
-				continue;
-			/*
-			 * Initially we examine only the vma which covers this
-			 * rmap_item; but later, if there is still work to do,
-			 * we examine covering vmas in other mms: in case they
-			 * were forked from the original since ksmd passed.
-			 */
-			if ((rmap_item->mm == vma->vm_mm) == search_new_forks)
-				continue;
+// 	stable_node = page_stable_node(page);
+// 	if (!stable_node)
+// 		return ret;
+// again:
+// 	hlist_for_each_entry(rmap_item, &stable_node->hlist, hlist) {
+// 		struct anon_vma *anon_vma = rmap_item->anon_vma;
+// 		struct anon_vma_chain *vmac;
+// 		struct vm_area_struct *vma;
 
-			if (rwc->invalid_vma && rwc->invalid_vma(vma, rwc->arg))
-				continue;
+// 		anon_vma_lock_read(anon_vma);
+// 		anon_vma_interval_tree_foreach(vmac, &anon_vma->rb_root,
+// 					       0, ULONG_MAX) {
+// 			vma = vmac->vma;
+// 			if (rmap_item->address < vma->vm_start ||
+// 			    rmap_item->address >= vma->vm_end)
+// 				continue;
+// 			/*
+// 			 * Initially we examine only the vma which covers this
+// 			 * rmap_item; but later, if there is still work to do,
+// 			 * we examine covering vmas in other mms: in case they
+// 			 * were forked from the original since ksmd passed.
+// 			 */
+// 			if ((rmap_item->mm == vma->vm_mm) == search_new_forks)
+// 				continue;
 
-			ret = rwc->rmap_one(page, vma,
-					rmap_item->address, rwc->arg);
-			if (ret != SWAP_AGAIN) {
-				anon_vma_unlock_read(anon_vma);
-				goto out;
-			}
-			if (rwc->done && rwc->done(page)) {
-				anon_vma_unlock_read(anon_vma);
-				goto out;
-			}
-		}
-		anon_vma_unlock_read(anon_vma);
-	}
-	if (!search_new_forks++)
-		goto again;
-out:
-	return ret;
+// 			if (rwc->invalid_vma && rwc->invalid_vma(vma, rwc->arg))
+// 				continue;
+
+// 			ret = rwc->rmap_one(page, vma,
+// 					rmap_item->address, rwc->arg);
+// 			if (ret != SWAP_AGAIN) {
+// 				anon_vma_unlock_read(anon_vma);
+// 				goto out;
+// 			}
+// 			if (rwc->done && rwc->done(page)) {
+// 				anon_vma_unlock_read(anon_vma);
+// 				goto out;
+// 			}
+// 		}
+// 		anon_vma_unlock_read(anon_vma);
+// 	}
+// 	if (!search_new_forks++)
+// 		goto again;
+// out:
+// 	return ret;
 }
 
 #ifdef CONFIG_MIGRATION
@@ -2713,4 +2896,45 @@ out_free:
 out:
 	return err;
 }
-subsys_initcall(ksm_init);
+
+static int __init pksm_init(void)
+{
+	struct task_struct *pksm_thread;
+	int err;
+
+	err = pksm_slab_init();
+	if (err)
+		goto out;
+
+	pksm_thread = kthread_run(pksm_scan_thread, NULL, "pksmd");
+	if (IS_ERR(pksm_thread)) {
+		pr_err("PKSM : creating kthread failed\n");
+		err = PTR_ERR(pksm_thread);
+		goto out_free;
+	}
+
+#ifdef CONFIG_SYSFS
+	err = sysfs_create_group(mm_kobj, &pksm_attr_group);
+	if (err) {
+		pr_err("PKSM : register sysfs failed\n");
+		kthread_stop(pksm_thread);
+		goto out_free;
+	}
+#else
+	pksm_run = PKSM_RUN_MERGE;	/* no way for user to start it */
+
+#endif /* CONFIG_SYSFS */
+
+#ifdef CONFIG_MEMORY_HOTREMOVE
+	/* There is no significance to this priority 100 */
+	hotplug_memory_notifier(pksm_memory_callback, 100);
+#endif
+	return 0;
+
+out_free:
+	pksm_slab_free();
+out:
+	return err;
+}
+
+subsys_initcall(pksm_init);
