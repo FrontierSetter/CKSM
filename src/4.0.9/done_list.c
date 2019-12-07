@@ -23,12 +23,26 @@ static DEFINE_SPINLOCK(pksm_pagelist_lock);
 // 获取下一个page
 static struct page_slot *scan_get_next_page_slot()
 
+
 struct pksm_hash_node{
 	unsigned long kpfn;
     struct hlist_node hlist;
 	page_slot *page_slot;	//反向映射到对应的slot
 							//是为了在unstable table中找到后可以在merge时从table中移除
+	struct hlist_head rmap_list;
 };
+
+struct pksm_rmap_item{
+	struct hlist_node hlist;
+	struct anon_vma *anon_vma;
+	struct mm_struct *mm;
+	unsigned long address;
+}
+
+struct rmap_process_wrapper{
+	struct pksm_hash_node *pksm_hash_node;
+	struct page *kpage; 
+}
 
 #define PAGE_HASH_BIT 18 // 256K
 #define PAGE_HASH_MASK 262143
@@ -76,6 +90,12 @@ static inline struct page_slot *alloc_page_slot(void)
 
 static inline void free_page_slot(struct page_slot *page_slot)
 
+static inline struct pksm_rmap_item *alloc_pksm_rmap_item(void)
+
+static inline void free_pksm_rmap_item(struct pksm_rmap_item *pksm_rmap_item)
+
+int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
+
 
 // TODO
 哈希表中删除用hash_del 还是另一个 -> 区别不大
@@ -92,6 +112,7 @@ pksm_run及其相关宏
 
 hotplug_memory_notifier(pksm_memory_callback, 100);
 
+暂时没有区分stable_node和普通的hash_node 
 
 
 // ! 注意
@@ -101,3 +122,30 @@ hlist_for_each_entry() 的参数不一样
 ksm建立的重映射是否要加入反向映射队列？
 
 // printk()要不要include头文件
+
+
+
+// ? 关于pksm之后反向映射机制的兼容性
+在merge_with_pksm_page()的层次看不到vma
+在merge操作的层次都看不到hash_node
+
+ksm中rmap_item作为操作对象（虚拟页）的代表穿插在操作的每个阶段中，穿针引线
+在merge阶段获得对应的anon_vma，在stable_node插入阶段挂载上对应的节点
+
+但是在pksm中没有rmap_item这一单元，直接的操作对象就是page（page_slot）
+通过page_slot来穿针引线
+page_slot->page_item获得hash_node，在merge阶段可以看到vma，直接创造rmap_item挂上对应的hash_node
+
+
+ksm中 
+	1、rmap_item的创建
+	2、anon_vma对象的指派
+	3、rmap_item向node的挂载
+之分离的
+
+pksm中全部集中在try_merge_one_page()中
+
+这就需要在进入merge_one_page()之前page_slot就已经有了一个合法的hash_node
+
+如果是和一个pksm页面合并，则它必然有一个hash_node，只要把新页面的每个vma都封装成rmap_item然后挂载上去就行
+如果是把一个页面升级成pksm页面，则分配一个hash_node，再通过anon_walk遍历它的vma作为rmap_item挂载上去
