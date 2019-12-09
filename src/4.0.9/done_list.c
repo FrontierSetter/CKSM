@@ -23,6 +23,9 @@ static DEFINE_SPINLOCK(pksm_pagelist_lock);
 // 获取下一个page
 static struct page_slot *scan_get_next_page_slot()
 
+static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
+
+
 
 struct pksm_hash_node{
 	unsigned long kpfn;
@@ -96,23 +99,46 @@ static inline void free_pksm_rmap_item(struct pksm_rmap_item *pksm_rmap_item)
 
 int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
 
+pksm_run及其相关宏{
+	#define PKSM_RUN_STOP	0
+	#define PKSM_RUN_MERGE	1
+	#define PKSM_RUN_UNMERGE	2
+	#define PKSM_RUN_OFFLINE	4
+
+	static unsigned long pksm_run = PKSM_RUN_STOP;
+}
+
+pksm_scan_thread
+
+pksmd_should_run()
+
+pksm_do_scan
+
+wait_while_offlining(); // 不用改（应该）
+
+pksm_thread_mutex
+
+pksm_thread_wait	//这是个等待队列头
+
 
 // TODO
 哈希表中删除用hash_del 还是另一个 -> 区别不大
 
 break_cow(??)
 
-int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
-
-pksm_scan_thread
-
-pksm_attr_group
-
-pksm_run及其相关宏
-
 hotplug_memory_notifier(pksm_memory_callback, 100);
 
 暂时没有区分stable_node和普通的hash_node 
+
+int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
+
+__ksm_enter
+
+static int ksm_memory_callback(struct notifier_block *self,
+			       unsigned long action, void *arg)
+
+static void ksm_check_stable_tree(unsigned long start_pfn,
+				  unsigned long end_pfn)
 
 
 // ! 注意
@@ -149,3 +175,11 @@ pksm中全部集中在try_merge_one_page()中
 
 如果是和一个pksm页面合并，则它必然有一个hash_node，只要把新页面的每个vma都封装成rmap_item然后挂载上去就行
 如果是把一个页面升级成pksm页面，则分配一个hash_node，再通过anon_walk遍历它的vma作为rmap_item挂载上去
+
+
+// ? 关于ksm中的参数设置与输出
+暂时不知道改名会不会对文件绑定产生影响，因此不改名
+pksm_attr_group 利用 struct attribute 结构进行控制属性向用户的开放与绑定
+https://blog.csdn.net/qq_16777851/article/details/81396047
+// 但是一开始的xxx_attr.attr变量不知道怎么产生
+通过 KSM_ATTR_RO宏产生只读的属性绑定

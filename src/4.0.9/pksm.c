@@ -294,16 +294,18 @@ static int ksm_nr_node_ids = 1;
 #define ksm_nr_node_ids		1
 #endif
 
-#define KSM_RUN_STOP	0
-#define KSM_RUN_MERGE	1
-#define KSM_RUN_UNMERGE	2
-#define KSM_RUN_OFFLINE	4
-static unsigned long ksm_run = KSM_RUN_STOP;
+#define PKSM_RUN_STOP	0
+#define PKSM_RUN_MERGE	1
+#define PKSM_RUN_UNMERGE	2
+#define PKSM_RUN_OFFLINE	4
+static unsigned long pksm_run = PKSM_RUN_STOP;
 static void wait_while_offlining(void);
 
 static DECLARE_WAIT_QUEUE_HEAD(ksm_thread_wait);
-static DEFINE_MUTEX(ksm_thread_mutex);
-static DEFINE_SPINLOCK(ksm_mmlist_lock);
+static DECLARE_WAIT_QUEUE_HEAD(pksm_thread_mutex);
+// static DEFINE_MUTEX(ksm_thread_mutex);
+static DEFINE_MUTEX(pksm_thread_mutex);
+// static DEFINE_SPINLOCK(ksm_mmlist_lock);
 static DEFINE_SPINLOCK(pksm_pagelist_lock);
 
 static uint32_t super_fast_hash(const char * data, int len)
@@ -2317,54 +2319,100 @@ next_mm:
 	return NULL;
 }
 
+static void pksm_do_scan(unsigned int scan_npages)
+{
+	struct page_slot *page_slot;
+
+	while (scan_npages-- && likely(!freezing(current))) {
+		cond_resched();
+		page_slot = scan_get_next_page_slot();
+		if (!page_slot)
+			return;
+		pksm_cmp_and_merge_page(page_slot);
+
+		//? 下面这句不知道对不对
+		put_page(page_slot->physical_page);
+	}
+}
+
 /**
  * ksm_do_scan  - the ksm scanner main worker function.
  * @scan_npages - number of pages we want to scan before we return.
  */
-static void ksm_do_scan(unsigned int scan_npages)
-{
-	struct rmap_item *rmap_item;
-	struct page *uninitialized_var(page);
+// static void ksm_do_scan(unsigned int scan_npages)
+// {
+// 	struct rmap_item *rmap_item;
+// 	struct page *uninitialized_var(page);
 
-	while (scan_npages-- && likely(!freezing(current))) {
-		cond_resched();
-		rmap_item = scan_get_next_rmap_item(&page);
-		if (!rmap_item)
-			return;
-		cmp_and_merge_page(page, rmap_item);
-		put_page(page);
-	}
+// 	while (scan_npages-- && likely(!freezing(current))) {
+// 		cond_resched();
+// 		rmap_item = scan_get_next_rmap_item(&page);
+// 		if (!rmap_item)
+// 			return;
+// 		cmp_and_merge_page(page, rmap_item);
+// 		put_page(page);
+// 	}
+// }
+
+static int pksmd_should_run(void)
+{
+	return (pksm_run & PKSM_RUN_MERGE) && !list_empty(&pksm_page_head.page_list);
 }
 
-static int ksmd_should_run(void)
-{
-	return (ksm_run & KSM_RUN_MERGE) && !list_empty(&ksm_mm_head.mm_list);
-}
+// static int ksmd_should_run(void)
+// {
+// 	return (pksm_run & PKSM_RUN_MERGE) && !list_empty(&ksm_mm_head.mm_list);
+// }
 
-static int ksm_scan_thread(void *nothing)
+static int pksm_scan_thread(void *nothing)
 {
 	set_freezable();
 	set_user_nice(current, 5);
 
 	while (!kthread_should_stop()) {
-		mutex_lock(&ksm_thread_mutex);
+		mutex_lock(&pksm_thread_mutex);
 		wait_while_offlining();
-		if (ksmd_should_run())
-			ksm_do_scan(ksm_thread_pages_to_scan);
-		mutex_unlock(&ksm_thread_mutex);
+		if (pksmd_should_run())
+			pksm_do_scan(ksm_thread_pages_to_scan);
+		mutex_unlock(&pksm_thread_mutex);
 
 		try_to_freeze();
 
-		if (ksmd_should_run()) {
+		if (pksmd_should_run()) {
 			schedule_timeout_interruptible(
 				msecs_to_jiffies(ksm_thread_sleep_millisecs));
 		} else {
-			wait_event_freezable(ksm_thread_wait,
-				ksmd_should_run() || kthread_should_stop());
+			wait_event_freezable(pksm_thread_wait,
+				pksmd_should_run() || kthread_should_stop());
 		}
 	}
 	return 0;
 }
+
+// static int ksm_scan_thread(void *nothing)
+// {
+// 	set_freezable();
+// 	set_user_nice(current, 5);
+
+// 	while (!kthread_should_stop()) {
+// 		mutex_lock(&ksm_thread_mutex);
+// 		wait_while_offlining();
+// 		if (ksmd_should_run())
+// 			ksm_do_scan(ksm_thread_pages_to_scan);
+// 		mutex_unlock(&ksm_thread_mutex);
+
+// 		try_to_freeze();
+
+// 		if (ksmd_should_run()) {
+// 			schedule_timeout_interruptible(
+// 				msecs_to_jiffies(ksm_thread_sleep_millisecs));
+// 		} else {
+// 			wait_event_freezable(ksm_thread_wait,
+// 				ksmd_should_run() || kthread_should_stop());
+// 		}
+// 	}
+// 	return 0;
+// }
 
 int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
 		unsigned long end, int advice, unsigned long *vm_flags)
@@ -2422,22 +2470,22 @@ int __ksm_enter(struct mm_struct *mm)
 	if (!mm_slot)
 		return -ENOMEM;
 
-	/* Check ksm_run too?  Would need tighter locking */
+	/* Check pksm_run too?  Would need tighter locking */
 	needs_wakeup = list_empty(&ksm_mm_head.mm_list);
 
 	spin_lock(&ksm_mmlist_lock);
 	insert_to_mm_slots_hash(mm, mm_slot);
 	/*
-	 * When KSM_RUN_MERGE (or KSM_RUN_STOP),
+	 * When PKSM_RUN_MERGE (or PKSM_RUN_STOP),
 	 * insert just behind the scanning cursor, to let the area settle
 	 * down a little; when fork is followed by immediate exec, we don't
 	 * want ksmd to waste time setting up and tearing down an rmap_list.
 	 *
-	 * But when KSM_RUN_UNMERGE, it's important to insert ahead of its
+	 * But when PKSM_RUN_UNMERGE, it's important to insert ahead of its
 	 * scanning cursor, otherwise KSM pages in newly forked mms will be
 	 * missed: then we might as well insert at the end of the list.
 	 */
-	if (ksm_run & KSM_RUN_UNMERGE)
+	if (pksm_run & PKSM_RUN_UNMERGE)
 		list_add_tail(&mm_slot->mm_list, &ksm_mm_head.mm_list);
 	else
 		list_add_tail(&mm_slot->mm_list, &ksm_scan.mm_slot->mm_list);
@@ -2447,7 +2495,7 @@ int __ksm_enter(struct mm_struct *mm)
 	atomic_inc(&mm->mm_count);
 
 	if (needs_wakeup)
-		wake_up_interruptible(&ksm_thread_wait);
+		wake_up_interruptible(&pksm_thread_mutex);
 
 	return 0;
 }
@@ -2498,7 +2546,7 @@ struct page *ksm_might_need_to_copy(struct page *page,
 
 	if (PageKsm(page)) {
 		if (page_stable_node(page) &&
-		    !(ksm_run & KSM_RUN_UNMERGE))
+		    !(pksm_run & PKSM_RUN_UNMERGE))
 			return page;	/* no need to copy it */
 	} else if (!anon_vma) {
 		return page;		/* no need to copy it */
@@ -2638,11 +2686,11 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 #ifdef CONFIG_MEMORY_HOTREMOVE
 static void wait_while_offlining(void)
 {
-	while (ksm_run & KSM_RUN_OFFLINE) {
-		mutex_unlock(&ksm_thread_mutex);
-		wait_on_bit(&ksm_run, ilog2(KSM_RUN_OFFLINE),
+	while (pksm_run & PKSM_RUN_OFFLINE) {
+		mutex_unlock(&pksm_thread_mutex);
+		wait_on_bit(&pksm_run, ilog2(PKSM_RUN_OFFLINE),
 			    TASK_UNINTERRUPTIBLE);
-		mutex_lock(&ksm_thread_mutex);
+		mutex_lock(&pksm_thread_mutex);
 	}
 }
 
@@ -2694,9 +2742,9 @@ static int ksm_memory_callback(struct notifier_block *self,
 		 * But unmerge_ksm_pages(), rmap lookups and other entry points
 		 * which do not need the ksm_thread_mutex are all safe.
 		 */
-		mutex_lock(&ksm_thread_mutex);
-		ksm_run |= KSM_RUN_OFFLINE;
-		mutex_unlock(&ksm_thread_mutex);
+		mutex_lock(&pksm_thread_mutex);
+		pksm_run |= PKSM_RUN_OFFLINE;
+		mutex_unlock(&pksm_thread_mutex);
 		break;
 
 	case MEM_OFFLINE:
@@ -2712,12 +2760,12 @@ static int ksm_memory_callback(struct notifier_block *self,
 		/* fallthrough */
 
 	case MEM_CANCEL_OFFLINE:
-		mutex_lock(&ksm_thread_mutex);
-		ksm_run &= ~KSM_RUN_OFFLINE;
-		mutex_unlock(&ksm_thread_mutex);
+		mutex_lock(&pksm_thread_mutex);
+		pksm_run &= ~PKSM_RUN_OFFLINE;
+		mutex_unlock(&pksm_thread_mutex);
 
 		smp_mb();	/* wake_up_bit advises this */
-		wake_up_bit(&ksm_run, ilog2(KSM_RUN_OFFLINE));
+		wake_up_bit(&pksm_run, ilog2(PKSM_RUN_OFFLINE));
 		break;
 	}
 	return NOTIFY_OK;
@@ -2788,7 +2836,7 @@ KSM_ATTR(pages_to_scan);
 static ssize_t run_show(struct kobject *kobj, struct kobj_attribute *attr,
 			char *buf)
 {
-	return sprintf(buf, "%lu\n", ksm_run);
+	return sprintf(buf, "%lu\n", pksm_run);
 }
 
 static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -2800,34 +2848,34 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 	err = kstrtoul(buf, 10, &flags);
 	if (err || flags > UINT_MAX)
 		return -EINVAL;
-	if (flags > KSM_RUN_UNMERGE)
+	if (flags > PKSM_RUN_UNMERGE)
 		return -EINVAL;
 
 	/*
-	 * KSM_RUN_MERGE sets ksmd running, and 0 stops it running.
-	 * KSM_RUN_UNMERGE stops it running and unmerges all rmap_items,
+	 * PKSM_RUN_MERGE sets ksmd running, and 0 stops it running.
+	 * PKSM_RUN_UNMERGE stops it running and unmerges all rmap_items,
 	 * breaking COW to free the pages_shared (but leaves mm_slots
 	 * on the list for when ksmd may be set running again).
 	 */
 
-	mutex_lock(&ksm_thread_mutex);
+	mutex_lock(&pksm_thread_mutex);
 	wait_while_offlining();
-	if (ksm_run != flags) {
-		ksm_run = flags;
-		if (flags & KSM_RUN_UNMERGE) {
+	if (pksm_run != flags) {
+		pksm_run = flags;
+		if (flags & PKSM_RUN_UNMERGE) {
 			set_current_oom_origin();
 			err = unmerge_and_remove_all_rmap_items();
 			clear_current_oom_origin();
 			if (err) {
-				ksm_run = KSM_RUN_STOP;
+				pksm_run = PKSM_RUN_STOP;
 				count = err;
 			}
 		}
 	}
-	mutex_unlock(&ksm_thread_mutex);
+	mutex_unlock(&pksm_thread_mutex);
 
-	if (flags & KSM_RUN_MERGE)
-		wake_up_interruptible(&ksm_thread_wait);
+	if (flags & PKSM_RUN_MERGE)
+		wake_up_interruptible(&pksm_thread_mutex);
 
 	return count;
 }
@@ -2853,7 +2901,7 @@ static ssize_t merge_across_nodes_store(struct kobject *kobj,
 	if (knob > 1)
 		return -EINVAL;
 
-	mutex_lock(&ksm_thread_mutex);
+	mutex_lock(&pksm_thread_mutex);
 	wait_while_offlining();
 	if (ksm_merge_across_nodes != knob) {
 		if (ksm_pages_shared || remove_all_stable_nodes())
@@ -2884,7 +2932,7 @@ static ssize_t merge_across_nodes_store(struct kobject *kobj,
 			ksm_nr_node_ids = knob ? 1 : nr_node_ids;
 		}
 	}
-	mutex_unlock(&ksm_thread_mutex);
+	mutex_unlock(&pksm_thread_mutex);
 
 	return err ? err : count;
 }
@@ -2981,7 +3029,7 @@ static int __init ksm_init(void)
 		goto out_free;
 	}
 #else
-	ksm_run = KSM_RUN_MERGE;	/* no way for user to start it */
+	pksm_run = PKSM_RUN_MERGE;	/* no way for user to start it */
 
 #endif /* CONFIG_SYSFS */
 
