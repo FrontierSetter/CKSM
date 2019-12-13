@@ -6,7 +6,7 @@
  */  
 #include <unistd.h>  
 #include <stdio.h>  
-#include <delay.h>
+// #include <delay.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 
@@ -37,10 +37,10 @@ int main (int argc,char *argv[])
         }  
     }
 
-    for(int j < 0; j < wait_time; ++j){   
+    for(int j = 0; j < wait_time; ++j){   
         for(int i = 0; i < 1024*page_num; ++i){
             int tem = result[i];
-            mdelay(2);
+            // mdelay(2);
         }
     }
 
