@@ -1,1 +1,8 @@
 legacy/**
+UKSM-4.2/**
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
