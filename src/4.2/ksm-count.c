@@ -1047,6 +1047,13 @@ static int try_to_merge_one_page(struct vm_area_struct *vma,
 	 */
 	if (!trylock_page(page))
 		goto out;
+
+	++ksm_pages_merge_cnt;
+	if(page_mapcount(page) == 1){
+		++ksm_pages_truly_reduced;
+	}else{
+		++ksm_pages_not_reduced;
+	}
 	/*
 	 * If this anonymous page is mapped only here, its pte may need
 	 * to be write-protected.  If it's mapped elsewhere, all of its
@@ -1064,12 +1071,7 @@ static int try_to_merge_one_page(struct vm_area_struct *vma,
 			mark_page_accessed(page);
 			err = 0;
 		} else if (pages_identical(page, kpage)){
-			++ksm_pages_merge_cnt;
-			if(page_mapcount(page) == 1){
-				++ksm_pages_truly_reduced;
-			}else{
-				++ksm_pages_not_reduced;
-			}
+			
 			err = replace_page(vma, page, kpage, orig_pte);
 			
 		}

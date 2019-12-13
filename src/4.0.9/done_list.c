@@ -126,13 +126,12 @@ pksm_thread_wait	//这是个等待队列头
 
 break_cow(??)
 
+// 涉及到 memory_hotplug特性，再说
 hotplug_memory_notifier(pksm_memory_callback, 100);
 
 暂时没有区分stable_node和普通的hash_node 
 
-int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
-
-__ksm_enter
+madvise->ksm_madvise->__ksm_enter
 
 static int ksm_memory_callback(struct notifier_block *self,
 			       unsigned long action, void *arg)
