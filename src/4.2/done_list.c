@@ -182,3 +182,14 @@ pksm_attr_group 利用 struct attribute 结构进行控制属性向用户的开�
 https://blog.csdn.net/qq_16777851/article/details/81396047
 // 但是一开始的xxx_attr.attr变量不知道怎么产生
 通过 KSM_ATTR_RO宏产生只读的属性绑定
+
+
+// ? 用于统计page-pte映射数量
+/* 真正可以减少内存使用的归并操作个数，即归并时页面只被一个pte指向的情况 */
+static unsigned long ksm_pages_truly_reduced;
+
+static unsigned long ksm_pages_not_reduced;
+
+
+/* 执行merge操作的次数 */
+static unsigned long ksm_pages_merge_cnt;
