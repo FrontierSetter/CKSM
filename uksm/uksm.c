@@ -461,13 +461,12 @@ static struct kmem_cache *tree_node_cache;
 #define SCAN_LADDER_SIZE 4
 static struct scan_rung uksm_scan_ladder[SCAN_LADDER_SIZE];
 
-/* 真正可以减少内存使用的归并操作个数，即归并时页面只被一个pte指向的情况 */
+static unsigned long uksm_zero_pages_truly_reduced;
+static unsigned long uksm_zero_pages_not_reduced;
+static unsigned long uksm_zero_pages_merge_cnt;
+
 static unsigned long uksm_pages_truly_reduced;
-
 static unsigned long uksm_pages_not_reduced;
-
-
-/* 执行merge操作的次数 */
 static unsigned long uksm_pages_merge_cnt;
 
 
@@ -1758,6 +1757,14 @@ static int try_to_merge_with_uksm_page(struct rmap_item *rmap_item,
 	 * ptes are necessarily already write-protected.  But in either
 	 * case, we need to lock and check page_count is not raised.
 	 */
+
+	++uksm_pages_merge_cnt;
+	if(page_mapcount(page) == 1){
+		++uksm_pages_truly_reduced;
+	}else{
+		++uksm_pages_not_reduced;
+	}
+
 	if (write_protect_page(vma, page, &orig_pte, NULL) == 0) {
 		if (pages_identical(page, kpage))
 			err = replace_page(vma, page, kpage, orig_pte);
@@ -1902,6 +1909,13 @@ static int try_to_merge_two_pages(struct rmap_item *rmap_item,
 	}
 
 	if (pages_identical(page, tree_page)) {
+
+		++uksm_pages_merge_cnt;
+		if(page_mapcount(tree_page) == 1){
+			++uksm_pages_truly_reduced;
+		}else{
+			++uksm_pages_not_reduced;
+		}
 		err = replace_page(vma2, tree_page, page, wprt_pte2);
 		if (err) {
 			unlock_page(tree_page);
@@ -2805,6 +2819,13 @@ int cmp_and_merge_zero_page(struct vm_area_struct *vma, struct page *page)
 
 	if (!trylock_page(page))
 		goto out;
+
+	++uksm_zero_pages_merge_cnt;
+	if(page_mapcount(page) == 1){
+		++uksm_zero_pages_truly_reduced;
+	}else{
+		++uksm_zero_pages_not_reduced;
+	}
 
 	if (write_protect_page(vma, page, &orig_pte, 0) == 0) {
 		if (is_page_full_zero(page))
@@ -5171,6 +5192,27 @@ out:
 }
 UKSM_ATTR(eval_intervals);
 
+static ssize_t zero_pages_truly_reduced_show(struct kobject *kobj,
+				 struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", uksm_zero_pages_truly_reduced);
+}
+UKSM_ATTR_RO(zero_pages_truly_reduced);
+
+static ssize_t zero_pages_not_reduced_show(struct kobject *kobj,
+				 struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", uksm_zero_pages_not_reduced);
+}
+UKSM_ATTR_RO(zero_pages_not_reduced);
+
+static ssize_t zero_pages_merge_cnt_show(struct kobject *kobj,
+				 struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", uksm_zero_pages_merge_cnt);
+}
+UKSM_ATTR_RO(zero_pages_merge_cnt);
+
 static ssize_t pages_truly_reduced_show(struct kobject *kobj,
 				 struct kobj_attribute *attr, char *buf)
 {
@@ -5275,6 +5317,12 @@ UKSM_ATTR_RO(sleep_times);
 
 
 static struct attribute *uksm_attrs[] = {
+	&zero_pages_truly_reduced_attr.attr,
+	&zero_pages_not_reduced_attr.attr,
+	&zero_pages_merge_cnt_attr.attr,
+	&pages_truly_reduced_attr.attr,
+	&pages_not_reduced_attr.attr,
+	&pages_merge_cnt_attr.attr,
 	&max_cpu_percentage_attr.attr,
 	&sleep_millisecs_attr.attr,
 	&cpu_governor_attr.attr,
