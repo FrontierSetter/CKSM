@@ -6,3 +6,4 @@ UKSM-4.2/**
 Session.vim
 .netrwhist
 *~
+.vscode/**
