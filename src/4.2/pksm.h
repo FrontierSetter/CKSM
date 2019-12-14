@@ -63,7 +63,7 @@ static inline struct pksm_hash_node *page_stable_node(struct page *page)
 static inline void set_page_stable_node(struct page *page,
 					struct pksm_hash_node *pksm_hash_node)
 {
-	page->mapping = (void *)stable_node +
+	page->mapping = (void *)pksm_hash_node +
 				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
 }
 

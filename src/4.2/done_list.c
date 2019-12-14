@@ -120,9 +120,14 @@ pksm_thread_mutex
 
 pksm_thread_wait	//这是个等待队列头
 
+static int remove_stable_node(struct pksm_hash_node *pksm_hash_node)
+
+// ? 桩 static int remove_all_stable_nodes(void)
+
+
 
 // TODO
-哈希表中删除用hash_del 还是另一个 -> 区别不大
+// ? 哈希表中删除用hash_del 还是另一个 -> 区别不大
 
 break_cow(??)
 
@@ -131,13 +136,21 @@ hotplug_memory_notifier(pksm_memory_callback, 100);
 
 暂时没有区分stable_node和普通的hash_node 
 
-madvise->ksm_madvise->__ksm_enter
+// ? madvise->ksm_madvise->__ksm_enter
 
 static int ksm_memory_callback(struct notifier_block *self,
 			       unsigned long action, void *arg)
 
 static void ksm_check_stable_tree(unsigned long start_pfn,
 				  unsigned long end_pfn)
+
+
+migrate_nodes
+
+// ? 这个东西只在OKSM_RUN)UNMERGE的时候被调用，先不搞
+// ? static int unmerge_and_remove_all_rmap_items(void)
+
+set_current_oom_origin();
 
 
 // ! 注意

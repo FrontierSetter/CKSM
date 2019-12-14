@@ -835,78 +835,78 @@ stale:
 	return NULL;
 }
 
-static struct page *get_ksm_page(struct stable_node *stable_node, bool lock_it)
-{
-	struct page *page;
-	void *expected_mapping;
-	unsigned long kpfn;
+// static struct page *get_ksm_page(struct stable_node *stable_node, bool lock_it)
+// {
+// 	struct page *page;
+// 	void *expected_mapping;
+// 	unsigned long kpfn;
 
-	expected_mapping = (void *)stable_node +
-				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
-again:
-	kpfn = READ_ONCE(stable_node->kpfn);
-	page = pfn_to_page(kpfn);
+// 	expected_mapping = (void *)stable_node +
+// 				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
+// again:
+// 	kpfn = READ_ONCE(stable_node->kpfn);
+// 	page = pfn_to_page(kpfn);
 
-	/*
-	 * page is computed from kpfn, so on most architectures reading
-	 * page->mapping is naturally ordered after reading node->kpfn,
-	 * but on Alpha we need to be more careful.
-	 */
-	smp_read_barrier_depends();
-	if (READ_ONCE(page->mapping) != expected_mapping)
-		goto stale;
+// 	/*
+// 	 * page is computed from kpfn, so on most architectures reading
+// 	 * page->mapping is naturally ordered after reading node->kpfn,
+// 	 * but on Alpha we need to be more careful.
+// 	 */
+// 	smp_read_barrier_depends();
+// 	if (READ_ONCE(page->mapping) != expected_mapping)
+// 		goto stale;
 
-	/*
-	 * We cannot do anything with the page while its refcount is 0.
-	 * Usually 0 means free, or tail of a higher-order page: in which
-	 * case this node is no longer referenced, and should be freed;
-	 * however, it might mean that the page is under page_freeze_refs().
-	 * The __remove_mapping() case is easy, again the node is now stale;
-	 * but if page is swapcache in migrate_page_move_mapping(), it might
-	 * still be our page, in which case it's essential to keep the node.
-	 */
-	while (!get_page_unless_zero(page)) {
-		/*
-		 * Another check for page->mapping != expected_mapping would
-		 * work here too.  We have chosen the !PageSwapCache test to
-		 * optimize the common case, when the page is or is about to
-		 * be freed: PageSwapCache is cleared (under spin_lock_irq)
-		 * in the freeze_refs section of __remove_mapping(); but Anon
-		 * page->mapping reset to NULL later, in free_pages_prepare().
-		 */
-		if (!PageSwapCache(page))
-			goto stale;
-		cpu_relax();
-	}
+// 	/*
+// 	 * We cannot do anything with the page while its refcount is 0.
+// 	 * Usually 0 means free, or tail of a higher-order page: in which
+// 	 * case this node is no longer referenced, and should be freed;
+// 	 * however, it might mean that the page is under page_freeze_refs().
+// 	 * The __remove_mapping() case is easy, again the node is now stale;
+// 	 * but if page is swapcache in migrate_page_move_mapping(), it might
+// 	 * still be our page, in which case it's essential to keep the node.
+// 	 */
+// 	while (!get_page_unless_zero(page)) {
+// 		/*
+// 		 * Another check for page->mapping != expected_mapping would
+// 		 * work here too.  We have chosen the !PageSwapCache test to
+// 		 * optimize the common case, when the page is or is about to
+// 		 * be freed: PageSwapCache is cleared (under spin_lock_irq)
+// 		 * in the freeze_refs section of __remove_mapping(); but Anon
+// 		 * page->mapping reset to NULL later, in free_pages_prepare().
+// 		 */
+// 		if (!PageSwapCache(page))
+// 			goto stale;
+// 		cpu_relax();
+// 	}
 
-	if (READ_ONCE(page->mapping) != expected_mapping) {
-		put_page(page);
-		goto stale;
-	}
+// 	if (READ_ONCE(page->mapping) != expected_mapping) {
+// 		put_page(page);
+// 		goto stale;
+// 	}
 
-	if (lock_it) {
-		lock_page(page);
-		if (READ_ONCE(page->mapping) != expected_mapping) {
-			unlock_page(page);
-			put_page(page);
-			goto stale;
-		}
-	}
-	return page;
+// 	if (lock_it) {
+// 		lock_page(page);
+// 		if (READ_ONCE(page->mapping) != expected_mapping) {
+// 			unlock_page(page);
+// 			put_page(page);
+// 			goto stale;
+// 		}
+// 	}
+// 	return page;
 
-stale:
-	/*
-	 * We come here from above when page->mapping or !PageSwapCache
-	 * suggests that the node is stale; but it might be under migration.
-	 * We need smp_rmb(), matching the smp_wmb() in ksm_migrate_page(),
-	 * before checking whether node->kpfn has been changed.
-	 */
-	smp_rmb();
-	if (READ_ONCE(stable_node->kpfn) != kpfn)
-		goto again;
-	remove_node_from_stable_tree(stable_node);
-	return NULL;
-}
+// stale:
+// 	/*
+// 	 * We come here from above when page->mapping or !PageSwapCache
+// 	 * suggests that the node is stale; but it might be under migration.
+// 	 * We need smp_rmb(), matching the smp_wmb() in ksm_migrate_page(),
+// 	 * before checking whether node->kpfn has been changed.
+// 	 */
+// 	smp_rmb();
+// 	if (READ_ONCE(stable_node->kpfn) != kpfn)
+// 		goto again;
+// 	remove_node_from_stable_tree(stable_node);
+// 	return NULL;
+// }
 
 /*
  * Removing rmap_item from stable or unstable tree.
@@ -1001,12 +1001,14 @@ static int unmerge_ksm_pages(struct vm_area_struct *vma,
 /*
  * Only called through the sysfs control interface:
  */
-static int remove_stable_node(struct stable_node *stable_node)
+
+// 把一个stable_table的节点移除
+static int remove_stable_node(struct pksm_hash_node *pksm_hash_node)
 {
 	struct page *page;
 	int err;
 
-	page = get_ksm_page(stable_node, true);
+	page = get_pksm_page(pksm_hash_node, true);
 	if (!page) {
 		/*
 		 * get_ksm_page did remove_node_from_stable_tree itself.
@@ -1030,7 +1032,7 @@ static int remove_stable_node(struct stable_node *stable_node)
 		 * or it might have been removed from swapcache a moment ago.
 		 */
 		set_page_stable_node(page, NULL);
-		remove_node_from_stable_tree(stable_node);
+		remove_node_from_hashlist(pksm_hash_node);
 		err = 0;
 	}
 
@@ -1039,91 +1041,36 @@ static int remove_stable_node(struct stable_node *stable_node)
 	return err;
 }
 
+// 遍历stable_table删除里面node
 static int remove_all_stable_nodes(void)
 {
-	struct stable_node *stable_node;
-	struct list_head *this, *next;
-	int nid;
-	int err = 0;
+	printk("PKSM : remove_all_stable_nodes evoked\n");
+	
+	return 0;
 
-	for (nid = 0; nid < ksm_nr_node_ids; nid++) {
-		while (root_stable_tree[nid].rb_node) {
-			stable_node = rb_entry(root_stable_tree[nid].rb_node,
-						struct stable_node, node);
-			if (remove_stable_node(stable_node)) {
-				err = -EBUSY;
-				break;	/* proceed to next nid */
-			}
-			cond_resched();
-		}
-	}
-	list_for_each_safe(this, next, &migrate_nodes) {
-		stable_node = list_entry(this, struct stable_node, list);
-		if (remove_stable_node(stable_node))
-			err = -EBUSY;
-		cond_resched();
-	}
-	return err;
+	// struct pksm_hash_node *stable_node;
+	// struct list_head *this, *next;
+	// int err = 0;
+	// int idx;
+
+	// for(idx = 0; idx < PAGE_HASH_MASK; ++idx){
+	// 	hlist_for_each_entry(stable_node, &(stable_hash_table[idx]), hlist){
+	// 		if (remove_stable_node(stable_node)) {
+	// 			err = -EBUSY;
+	// 			break;	/* proceed to next nid */
+	// 		}
+	// 		cond_resched();
+	// 	}
+	// }
+
+	// return err;
 }
 
 static int unmerge_and_remove_all_rmap_items(void)
 {
-	struct mm_slot *mm_slot;
-	struct mm_struct *mm;
-	struct vm_area_struct *vma;
-	int err = 0;
+	printk("PKSM : unmerge_and_remove_all_rmap_items evoked\n");
 
-	spin_lock(&ksm_mmlist_lock);
-	ksm_scan.mm_slot = list_entry(ksm_mm_head.mm_list.next,
-						struct mm_slot, mm_list);
-	spin_unlock(&ksm_mmlist_lock);
-
-	for (mm_slot = ksm_scan.mm_slot;
-			mm_slot != &ksm_mm_head; mm_slot = ksm_scan.mm_slot) {
-		mm = mm_slot->mm;
-		down_read(&mm->mmap_sem);
-		for (vma = mm->mmap; vma; vma = vma->vm_next) {
-			if (ksm_test_exit(mm))
-				break;
-			if (!(vma->vm_flags & VM_MERGEABLE) || !vma->anon_vma)
-				continue;
-			err = unmerge_ksm_pages(vma,
-						vma->vm_start, vma->vm_end);
-			if (err)
-				goto error;
-		}
-
-		remove_trailing_rmap_items(mm_slot, &mm_slot->rmap_list);
-
-		spin_lock(&ksm_mmlist_lock);
-		ksm_scan.mm_slot = list_entry(mm_slot->mm_list.next,
-						struct mm_slot, mm_list);
-		if (ksm_test_exit(mm)) {
-			hash_del(&mm_slot->link);
-			list_del(&mm_slot->mm_list);
-			spin_unlock(&ksm_mmlist_lock);
-
-			free_mm_slot(mm_slot);
-			clear_bit(MMF_VM_MERGEABLE, &mm->flags);
-			up_read(&mm->mmap_sem);
-			mmdrop(mm);
-		} else {
-			spin_unlock(&ksm_mmlist_lock);
-			up_read(&mm->mmap_sem);
-		}
-	}
-
-	/* Clean up stable nodes, but don't worry if some are still busy */
-	remove_all_stable_nodes();
-	ksm_scan.seqnr = 0;
 	return 0;
-
-error:
-	up_read(&mm->mmap_sem);
-	spin_lock(&ksm_mmlist_lock);
-	ksm_scan.mm_slot = &ksm_mm_head;
-	spin_unlock(&ksm_mmlist_lock);
-	return err;
 }
 #endif /* CONFIG_SYSFS */
 
