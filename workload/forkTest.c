@@ -20,6 +20,7 @@ int main (int argc,char *argv[])
 
     int* result = (int*)malloc(1024*page_num*sizeof(int));
     int tem;
+    int fpid;
 
     for(int i = 0; i < 1024*page_num; ++i){
         result[i] = 65536;
