@@ -19,11 +19,14 @@ x_data = []
 truly_merged = []
 not_merged = []
 
+idx = 0
+
 while True:
     curLine = curFile.readline()
     if curLine == '':
         break
-    x_data.append(curLine)
+    x_data.append(idx)
+    idx += 1
     curFile.readline()
     cur_merged = int(curFile.readline())
     cur_notmerged = int(curFile.readline())
@@ -36,6 +39,7 @@ while True:
 
 
 print(len(truly_merged))
+print(idx)
 
 
 (
