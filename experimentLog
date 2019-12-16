@@ -41,3 +41,22 @@ redis是单进程单线程内存数据库，不行
 -------------------------------------------------------------------------------------
 
 elasticsearch基于filecache，不是匿名页面
+
+------------------------------------------------------------------------------------
+2019年12月16日 13点36分
+
+测试pytorch dataloader
+感觉可以，从windows来看应该确实是多线程读取
+只不过需要先把数据集读到内存里再对内存数组进行loader封装，涉及两个问题：
+1、python的list变量是否是分配了匿名页存储
+2、loader是否共享映射（虽然python3-multiprocess的文档说是利用fork调用，但是其中细节并不了解）
+
+----------------------------------------------------------------------------------------------------------------------
+数据集记录
+
+https://www.cnblogs.com/lifuyun/p/lifuyun2019060601.html NPL数据集
+https://blog.csdn.net/qq_25819827/article/details/79048068 CV数据集
+
+
+train-images.idx3-ubyte 和 train-labels.idx1-ubyte 来自 http://yann.lecun.com/exdb/mnist/ 手写字体图像识别数据集
+training-parallel.tgz 来自 http://statmt.org/wmt11/translation-task.html#download 欧洲语言npl数据集
