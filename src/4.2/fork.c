@@ -695,7 +695,7 @@ void mmput(struct mm_struct *mm)
 	if (atomic_dec_and_test(&mm->mm_users)) {
 		uprobe_clear_state(mm);
 		exit_aio(mm);
-		ksm_exit(mm);
+		// ksm_exit(mm);	//不用了，pksm的管理力度下降（上升？）到page了
 		khugepaged_exit(mm); /* must run before exit_mmap */
 		exit_mmap(mm);
 		set_mm_exe_file(mm, NULL);

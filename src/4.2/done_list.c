@@ -4,6 +4,7 @@ struct page_slot {
 	struct page *physical_page;
 	struct pksm_hash_node *page_item;
     bool invalid;	// page被merge到一个pksmpage之后会被置为true
+	struct hlist_node link;
 }
 
 // 下一个要被扫描的slot
@@ -46,6 +47,9 @@ struct rmap_process_wrapper{
 	struct pksm_hash_node *pksm_hash_node;
 	struct page *kpage; 
 }
+
+#define PAGE_SLOTS_HASH_BITS 10
+static DEFINE_HASHTABLE(page_slots_hash, PAGE_SLOTS_HASH_BITS);
 
 #define PAGE_HASH_BIT 18 // 256K
 #define PAGE_HASH_MASK 262143
@@ -122,14 +126,29 @@ pksm_thread_wait	//这是个等待队列头
 
 static int remove_stable_node(struct pksm_hash_node *pksm_hash_node)
 
-// ? 桩 static int remove_all_stable_nodes(void)
+int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
+		unsigned long end, int advice, unsigned long *vm_flags)
+
+void __ksm_exit(struct page *page)
 
 
 
 // TODO
+需要确保page_slot再加入stable/unstable table之前的其page_item为NULL
+alloc的时候确保
+
+
+匿名页面产生时的enter
+匿名页面生命周期结束时的exit
+
+ksm_fork()
+
 // ? 哈希表中删除用hash_del 还是另一个 -> 区别不大
 
-break_cow(??)
+break_cow(??) -> brak_ksm()
+
+static struct vm_area_struct *find_mergeable_vma(struct mm_struct *mm,
+
 
 // 涉及到 memory_hotplug特性，再说
 hotplug_memory_notifier(pksm_memory_callback, 100);
@@ -160,6 +179,24 @@ hlist_for_each_entry() 的参数不一样
 ksm建立的重映射是否要加入反向映射队列？
 
 // printk()要不要include头文件
+
+/ // ! 调用不到的函数，没有修改（打了个桩）
+static void remove_rmap_item_from_tree(struct rmap_item *rmap_item)
+
+static void remove_trailing_rmap_items(struct mm_slot *mm_slot,
+				       struct rmap_item **rmap_list)
+
+static int remove_all_stable_nodes(void)
+
+static int remove_stable_node(struct pksm_hash_node *pksm_hash_node)
+
+static int unmerge_and_remove_all_rmap_items(void)
+
+static int unmerge_ksm_pages(struct vm_area_struct *vma,
+			     unsigned long start, unsigned long end)
+
+static u32 calc_checksum(struct page *page)
+
 
 
 
