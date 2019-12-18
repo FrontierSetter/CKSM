@@ -2475,43 +2475,68 @@ int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
 // 	return 0;
 // }
 
-int __ksm_enter(struct mm_struct *mm)
-{
-	struct mm_slot *mm_slot;
-	int needs_wakeup;
+// int __ksm_enter(struct mm_struct *mm)
+// {
+// 	struct mm_slot *mm_slot;
+// 	int needs_wakeup;
 
-	mm_slot = alloc_mm_slot();
-	if (!mm_slot)
-		return -ENOMEM;
+// 	mm_slot = alloc_mm_slot();
+// 	if (!mm_slot)
+// 		return -ENOMEM;
 
-	/* Check pksm_run too?  Would need tighter locking */
-	needs_wakeup = list_empty(&ksm_mm_head.mm_list);
+// 	/* Check pksm_run too?  Would need tighter locking */
+// 	needs_wakeup = list_empty(&ksm_mm_head.mm_list);
 
-	spin_lock(&ksm_mmlist_lock);
-	insert_to_mm_slots_hash(mm, mm_slot);
-	/*
-	 * When PKSM_RUN_MERGE (or PKSM_RUN_STOP),
-	 * insert just behind the scanning cursor, to let the area settle
-	 * down a little; when fork is followed by immediate exec, we don't
-	 * want ksmd to waste time setting up and tearing down an rmap_list.
-	 *
-	 * But when PKSM_RUN_UNMERGE, it's important to insert ahead of its
-	 * scanning cursor, otherwise KSM pages in newly forked mms will be
-	 * missed: then we might as well insert at the end of the list.
-	 */
+// 	spin_lock(&ksm_mmlist_lock);
+// 	insert_to_mm_slots_hash(mm, mm_slot);
+// 	/*
+// 	 * When PKSM_RUN_MERGE (or PKSM_RUN_STOP),
+// 	 * insert just behind the scanning cursor, to let the area settle
+// 	 * down a little; when fork is followed by immediate exec, we don't
+// 	 * want ksmd to waste time setting up and tearing down an rmap_list.
+// 	 *
+// 	 * But when PKSM_RUN_UNMERGE, it's important to insert ahead of its
+// 	 * scanning cursor, otherwise KSM pages in newly forked mms will be
+// 	 * missed: then we might as well insert at the end of the list.
+// 	 */
+// 	if (pksm_run & PKSM_RUN_UNMERGE)
+// 		list_add_tail(&mm_slot->mm_list, &ksm_mm_head.mm_list);
+// 	else
+// 		list_add_tail(&mm_slot->mm_list, &ksm_scan.mm_slot->mm_list);
+// 	spin_unlock(&ksm_mmlist_lock);
+
+// 	set_bit(MMF_VM_MERGEABLE, &mm->flags);
+// 	atomic_inc(&mm->mm_count);
+
+// 	if (needs_wakeup)
+// 		wake_up_interruptible(&pksm_thread_mutex);
+
+// 	return 0;
+// }
+
+void pksm_new_anon_page(struct page *page){
+	printk("PKSM : pksm_new_anon_page evoked\n");
+	struct page_slot *page_slot = alloc_page_slot();
+
+	page_slot->physical_page = page;
+	page_slot->invalid = false;
+	page_slot->page_item = NULL;	// 这个字段是否为NULL代表了这个page是否已经纳入pksm系统
+									// 所以在初始化的时候确保他时NULL很重要
+	
+	spin_lock(&pksm_pagelist_lock);
+	insert_to_page_slots_hash(page, page_slot);
+
 	if (pksm_run & PKSM_RUN_UNMERGE)
-		list_add_tail(&mm_slot->mm_list, &ksm_mm_head.mm_list);
+		list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 	else
-		list_add_tail(&mm_slot->mm_list, &ksm_scan.mm_slot->mm_list);
-	spin_unlock(&ksm_mmlist_lock);
+		list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+		
+	spin_unlock(&pksm_pagelist_lock);
 
-	set_bit(MMF_VM_MERGEABLE, &mm->flags);
-	atomic_inc(&mm->mm_count);
+	// ? 在ksm里把一个进程加入ksm系统之后会增加其引用计数
+	// 在pksm中是否需要同步增加其引用计数
+	// atomic_inc(&mm->mm_count);
 
-	if (needs_wakeup)
-		wake_up_interruptible(&pksm_thread_mutex);
-
-	return 0;
 }
 
 void __pksm_exit(struct page *page)

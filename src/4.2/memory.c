@@ -2724,6 +2724,9 @@ setpte:
 	update_mmu_cache(vma, address, page_table);
 unlock:
 	pte_unmap_unlock(page_table, ptl);
+
+	pksm_new_anon_page(page);
+
 	return 0;
 release:
 	mem_cgroup_cancel_charge(page, memcg);

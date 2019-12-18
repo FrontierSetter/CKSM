@@ -97,6 +97,11 @@ static inline struct page_slot *alloc_page_slot(void)
 
 static inline void free_page_slot(struct page_slot *page_slot)
 
+static struct page_slot *get_page_slot(struct page *page)
+
+static void insert_to_page_slots_hash(struct page *page,
+				    struct page_slot *page_slot)
+
 static inline struct pksm_rmap_item *alloc_pksm_rmap_item(void)
 
 static inline void free_pksm_rmap_item(struct pksm_rmap_item *pksm_rmap_item)
@@ -131,16 +136,16 @@ int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
 
 void __ksm_exit(struct page *page)
 
+void pksm_new_anon_page(struct page *page);
+
 
 
 // TODO
-需要确保page_slot再加入stable/unstable table之前的其page_item为NULL
-alloc的时候确保
 
-
-匿名页面产生时的enter
+// 匿名页面产生时的enter -> mm/memory.c/do_anonymous_page()s
 匿名页面生命周期结束时的exit
 
+// ksm_fork和fork关系不大，是为在进程fork的时候把他的子进程也一起加入ksm系统而已
 ksm_fork()
 
 // ? 哈希表中删除用hash_del 还是另一个 -> 区别不大
@@ -166,7 +171,7 @@ static void ksm_check_stable_tree(unsigned long start_pfn,
 
 migrate_nodes
 
-// ? 这个东西只在OKSM_RUN)UNMERGE的时候被调用，先不搞
+// ? 这个东西只在PKSM_RUN_UNMERGE的时候被调用，先不搞
 // ? static int unmerge_and_remove_all_rmap_items(void)
 
 set_current_oom_origin();
@@ -243,3 +248,15 @@ static unsigned long ksm_pages_not_reduced;
 
 /* 执行merge操作的次数 */
 static unsigned long ksm_pages_merge_cnt;
+
+static unsigned long ksm_vir_pages_scaned;
+
+// ? ksm机制和rmap机制如何协同工作
+在正常情况下page->mapping指向的用于进行反向映射的结构
+也存在于mm->vma->anon_vma中，即也可以通过进程来获得
+所以在父进程fork子进程的时候通过vma可以复制
+
+但是在ksm情况下page->mapping和进程已经完全无关
+fork的时候怎么把这个关系搞过来？
+
+不就是vma吗？？？搞不明白了，再说吧
