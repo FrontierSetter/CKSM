@@ -305,6 +305,7 @@ static int ksm_nr_node_ids = 1;
 static unsigned long pksm_run = PKSM_RUN_STOP;
 static void wait_while_offlining(void);
 
+// ksm_thread_wait不改了
 static DECLARE_WAIT_QUEUE_HEAD(ksm_thread_wait);
 static DECLARE_WAIT_QUEUE_HEAD(pksm_thread_mutex);
 // static DEFINE_MUTEX(ksm_thread_mutex);
@@ -742,10 +743,21 @@ static struct page *get_mergeable_page(struct rmap_item *rmap_item)
 // 	return ksm_merge_across_nodes ? 0 : NUMA(pfn_to_nid(kpfn));
 // }
 
+static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_node){
+	struct pksm_rmap_item* pksm_rmap_item;
+	struct hlist_node *nxt;
+	hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
+		free_pksm_rmap_item(pksm_rmap_item);
+	}
+}
+
 static void remove_node_from_hashlist(struct page_slot *page_slot)
 {
 	if(page_slot->page_item != NULL){	// 如果他在哈希表里有残留（不管是stable还是unstable）
 		hlist_del(page_slot->page_item->hlist);	// 都将他删除
+
+		// 递归释放所有的rmap_item对象
+		free_all_rmap_item_of_node(page_slot->page_item);
 
 		free_hash_node(page_slot->page_item);
 		page_slot->page_item = NULL;
@@ -1577,7 +1589,10 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 
 	if(page_slot->page_item == NULL){
 		page_slot->page_item = alloc_hash_node();
+
 	}
+
+	INIT_HLIST_HEAD(&(page_slot->page_item->rmap_list));
 
 	page_slot->page_item->page_slot = page_slot;
 
@@ -1949,6 +1964,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		unstable_page = unstable_hash_search_insert(cur_page_slot, cur_page, entryIndex, &table_page_slot);
 		if(unstable_page){
 			hash_node = alloc_hash_node();
+			INIT_HLIST_HEAD(&(hash_node->rmap_list));
 
 			kpage = pksm_try_to_merge_two_pages(cur_page_slot, cur_page, table_page_slot, unstable_page, hash_node);
 			put_page(unstable_page);
@@ -2148,14 +2164,13 @@ static struct page_slot *scan_get_next_page_slot()
 	pksm_scan.page_slot = list_entry(slot->page_list.next, struct page_slot, page_list);
 
 	if(pksm_test_exit(slot)){
-		remove_node_from_hashlist(slot);
-
 		hash_del(&page_slot->link);			//从page -> page_slot映射表中删除
 		list_del(&page_slot->page_list);
 		spin_unlock(&pksm_pagelist_lock);
 
-		// 这个page已经离开了
-		// 把它从当前pksm结构中移走
+		remove_node_from_hashlist(slot);
+		free_page_slot(slot);
+
 	}else{
 		spin_unlock(&pksm_pagelist_lock);
 
@@ -2390,7 +2405,7 @@ static int pksm_scan_thread(void *nothing)
 			schedule_timeout_interruptible(
 				msecs_to_jiffies(ksm_thread_sleep_millisecs));
 		} else {
-			wait_event_freezable(pksm_thread_wait,
+			wait_event_freezable(ksm_thread_wait,
 				pksmd_should_run() || kthread_should_stop());
 		}
 	}
@@ -2615,6 +2630,11 @@ struct page *ksm_might_need_to_copy(struct page *page,
 	return new_page;
 }
 
+static inline bool mm_test_exit(struct mm_struct *mm)
+{
+	return atomic_read(&mm->mm_users) == 0;
+}
+
 
 /*
  * 这个函数用来实现针对ksm页的反向映射机制，在rmap.c/rmap_walk中被调用主力pageKsm(page)为真的情况下被使用
@@ -2670,6 +2690,11 @@ again:
 		anon_vma_interval_tree_foreach(vmac, &anon_vma->rb_root,
 					       0, ULONG_MAX) {
 			vma = vmac->vma;
+
+			// ! 这里处理在反向映射的时候某个进程已经退出的情况，作为pksm的页和反向映射的进程力度不一致的权宜之计
+			if(mm_test_exit(vma->vm_mm))
+				continue;
+
 			if (pksm_rmap_item->address < vma->vm_start ||
 			    pksm_rmap_item->address >= vma->vm_end)
 				continue;
@@ -2930,7 +2955,7 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 	mutex_unlock(&pksm_thread_mutex);
 
 	if (flags & PKSM_RUN_MERGE)
-		wake_up_interruptible(&pksm_thread_mutex);
+		wake_up_interruptible(&ksm_thread_wait);
 
 	return count;
 }
@@ -3060,46 +3085,46 @@ static struct attribute_group ksm_attr_group = {
 };
 #endif /* CONFIG_SYSFS */
 
-static int __init ksm_init(void)
-{
-	struct task_struct *ksm_thread;
-	int err;
+// static int __init ksm_init(void)
+// {
+// 	struct task_struct *ksm_thread;
+// 	int err;
 
-	err = ksm_slab_init();
-	if (err)
-		goto out;
+// 	err = ksm_slab_init();
+// 	if (err)
+// 		goto out;
 
-	ksm_thread = kthread_run(ksm_scan_thread, NULL, "ksmd");
-	if (IS_ERR(ksm_thread)) {
-		pr_err("ksm: creating kthread failed\n");
-		err = PTR_ERR(ksm_thread);
-		goto out_free;
-	}
+// 	ksm_thread = kthread_run(ksm_scan_thread, NULL, "ksmd");
+// 	if (IS_ERR(ksm_thread)) {
+// 		pr_err("ksm: creating kthread failed\n");
+// 		err = PTR_ERR(ksm_thread);
+// 		goto out_free;
+// 	}
 
-#ifdef CONFIG_SYSFS
-	err = sysfs_create_group(mm_kobj, &ksm_attr_group);
-	if (err) {
-		pr_err("ksm: register sysfs failed\n");
-		kthread_stop(ksm_thread);
-		goto out_free;
-	}
-#else
-	pksm_run = PKSM_RUN_MERGE;	/* no way for user to start it */
+// #ifdef CONFIG_SYSFS
+// 	err = sysfs_create_group(mm_kobj, &ksm_attr_group);
+// 	if (err) {
+// 		pr_err("ksm: register sysfs failed\n");
+// 		kthread_stop(ksm_thread);
+// 		goto out_free;
+// 	}
+// #else
+// 	pksm_run = PKSM_RUN_MERGE;	/* no way for user to start it */
 
-#endif /* CONFIG_SYSFS */
+// #endif /* CONFIG_SYSFS */
 
-#ifdef CONFIG_MEMORY_HOTREMOVE
-	/* There is no significance to this priority 100 */
-	printf("PKSM : CONFIG_MEMORY_HOTREMOVE defined\n");
-	// hotplug_memory_notifier(ksm_memory_callback, 100);
-#endif
-	return 0;
+// #ifdef CONFIG_MEMORY_HOTREMOVE
+// 	/* There is no significance to this priority 100 */
+// 	printf("PKSM : CONFIG_MEMORY_HOTREMOVE defined\n");
+// 	// hotplug_memory_notifier(ksm_memory_callback, 100);
+// #endif
+// 	return 0;
 
-out_free:
-	ksm_slab_free();
-out:
-	return err;
-}
+// out_free:
+// 	ksm_slab_free();
+// out:
+// 	return err;
+// }
 
 static int __init pksm_init(void)
 {
@@ -3131,7 +3156,9 @@ static int __init pksm_init(void)
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
 	/* There is no significance to this priority 100 */
-	hotplug_memory_notifier(pksm_memory_callback, 100);
+	printf("PKSM : CONFIG_MEMORY_HOTREMOVE defined\n");
+
+	// hotplug_memory_notifier(pksm_memory_callback, 100);
 #endif
 	return 0;
 

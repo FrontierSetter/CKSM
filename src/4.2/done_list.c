@@ -144,9 +144,12 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 
 // TODO
 
+	// ! 关于page引用计数
+ksm中scan_get_next_rmap_item()释放无效的mm_slot之后会mmdrop()释放对应mm的一个引用
+pksm中释放page之后是否需要对应的释放page的引用？
+是否会导致pksm系统一直占用一个page而无法触发page_put到零
 
-
-// ? 暂时可以先不管
+	// ? 暂时可以先不管
 struct page *ksm_might_need_to_copy(struct page *page,
 			struct vm_area_struct *vma, unsigned long address)
 
@@ -275,3 +278,18 @@ static unsigned long ksm_vir_pages_scaned;
 fork的时候怎么把这个关系搞过来？
 
 不就是vma吗？？？搞不明白了，再说吧
+
+// ? 关于页面pksm和进程退出
+维护pksm的反向映射需要进程级别的生死鉴别
+原本ksm本来就是基于进程粒度进行控制，因此在进程退出时就自动吧rmap移除
+但是pksm是基于页粒度来控制
+不过考虑到ksm中进程的退出（exit()）和测试进程是否已经退出（test_exit()）是两个完全无关的过程（虽然名字相似）
+所以在pksm的反向映射机制中利用与ksm_test_exit()相同的方法进行vma的测试，开销应该不会太大
+
+同时ksm中的退出，本质上是当mm不再被指向是触发
+pksm同理
+但是注意一点：
+	原本我认为应该是在mmput()->exit_mmap()过程中释放进程占用的地址空间的vma时调用
+	但是这是完全不对的，因为此时释放的是进程的虚拟地址空间
+	而我们应该是当物理页被释放时才调用
+所以在put_page()->_put_single_page()->free_hot_cold_page()（page_alloc.c）中调用
