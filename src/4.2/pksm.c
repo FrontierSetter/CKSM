@@ -687,16 +687,18 @@ static void break_cow()
 
 static struct page *page_trans_compound_anon(struct page *page)
 {
-	if (PageTransCompound(page)) {
-		struct page *head = compound_head(page);
-		/*
-		 * head may actually be splitted and freed from under
-		 * us but it's ok here.
-		 */
-		if (PageAnon(head))
-			return head;
-	}
+	printk("PKSM : page_trans_compound_anon evoked\n");
 	return NULL;
+	// if (PageTransCompound(page)) {
+	// 	struct page *head = compound_head(page);
+	// 	/*
+	// 	 * head may actually be splitted and freed from under
+	// 	 * us but it's ok here.
+	// 	 */
+	// 	if (PageAnon(head))
+	// 		return head;
+	// }
+	// return NULL;
 }
 
 
@@ -728,16 +730,16 @@ static struct page *get_mergeable_page(struct rmap_item *rmap_item)
 // 	return page;
 }
 
-/*
- * This helper is used for getting right index into array of tree roots.
- * When merge_across_nodes knob is set to 1, there are only two rb-trees for
- * stable and unstable pages from all nodes with roots in index 0. Otherwise,
- * every node has its own stable and unstable tree.
- */
-static inline int get_kpfn_nid(unsigned long kpfn)
-{
-	return ksm_merge_across_nodes ? 0 : NUMA(pfn_to_nid(kpfn));
-}
+// /*
+//  * This helper is used for getting right index into array of tree roots.
+//  * When merge_across_nodes knob is set to 1, there are only two rb-trees for
+//  * stable and unstable pages from all nodes with roots in index 0. Otherwise,
+//  * every node has its own stable and unstable tree.
+//  */
+// static inline int get_kpfn_nid(unsigned long kpfn)
+// {
+// 	return ksm_merge_across_nodes ? 0 : NUMA(pfn_to_nid(kpfn));
+// }
 
 static void remove_node_from_hashlist(struct page_slot *page_slot)
 {
@@ -1266,8 +1268,12 @@ out:
 	return err;
 }
 
+
+// TODO: 这个函数虽然没有用（因为我们不考虑大页），但是会被用到，所以不删
 static int page_trans_compound_anon_split(struct page *page)
 {
+	printk("PKSM : page_trans_compound_anon_split evoked\n");
+
 	int ret = 0;
 	struct page *transhuge_head = page_trans_compound_anon(page);
 	if (transhuge_head) {
@@ -1602,107 +1608,107 @@ static struct page *stable_hash_search(struct page *page, unsigned int entryInde
 	return NULL;
 }
 
-/*
- * stable_tree_search - search for page inside the stable tree
- *
- * This function checks if there is a page inside the stable tree
- * with identical content to the page that we are scanning right now.
- *
- * This function returns the stable tree node of identical content if found,
- * NULL otherwise.
- */
-static struct page *stable_tree_search(struct page *page)
-{
-	int nid;
-	struct rb_root *root;
-	struct rb_node **new;
-	struct rb_node *parent;
-	struct stable_node *stable_node;
-	struct stable_node *page_node;
+// /*
+//  * stable_tree_search - search for page inside the stable tree
+//  *
+//  * This function checks if there is a page inside the stable tree
+//  * with identical content to the page that we are scanning right now.
+//  *
+//  * This function returns the stable tree node of identical content if found,
+//  * NULL otherwise.
+//  */
+// static struct page *stable_tree_search(struct page *page)
+// {
+// 	int nid;
+// 	struct rb_root *root;
+// 	struct rb_node **new;
+// 	struct rb_node *parent;
+// 	struct stable_node *stable_node;
+// 	struct stable_node *page_node;
 
-	page_node = page_stable_node(page);
-	if (page_node && page_node->head != &migrate_nodes) {
-		/* ksm page forked */
-		get_page(page);
-		return page;
-	}
+// 	page_node = page_stable_node(page);
+// 	if (page_node && page_node->head != &migrate_nodes) {
+// 		/* ksm page forked */
+// 		get_page(page);
+// 		return page;
+// 	}
 
-	nid = get_kpfn_nid(page_to_pfn(page));
-	root = root_stable_tree + nid;
-again:
-	new = &root->rb_node;
-	parent = NULL;
+// 	nid = get_kpfn_nid(page_to_pfn(page));
+// 	root = root_stable_tree + nid;
+// again:
+// 	new = &root->rb_node;
+// 	parent = NULL;
 
-	while (*new) {
-		struct page *tree_page;
-		int ret;
+// 	while (*new) {
+// 		struct page *tree_page;
+// 		int ret;
 
-		cond_resched();
-		stable_node = rb_entry(*new, struct stable_node, node);
-		tree_page = get_ksm_page(stable_node, false);
-		if (!tree_page)
-			return NULL;
+// 		cond_resched();
+// 		stable_node = rb_entry(*new, struct stable_node, node);
+// 		tree_page = get_ksm_page(stable_node, false);
+// 		if (!tree_page)
+// 			return NULL;
 
-		ret = memcmp_pages(page, tree_page);
-		put_page(tree_page);
+// 		ret = memcmp_pages(page, tree_page);
+// 		put_page(tree_page);
 
-		parent = *new;
-		if (ret < 0)
-			new = &parent->rb_left;
-		else if (ret > 0)
-			new = &parent->rb_right;
-		else {
-			/*
-			 * Lock and unlock the stable_node's page (which
-			 * might already have been migrated) so that page
-			 * migration is sure to notice its raised count.
-			 * It would be more elegant to return stable_node
-			 * than kpage, but that involves more changes.
-			 */
-			tree_page = get_ksm_page(stable_node, true);
-			if (tree_page) {
-				unlock_page(tree_page);
-				if (get_kpfn_nid(stable_node->kpfn) !=
-						NUMA(stable_node->nid)) {
-					put_page(tree_page);
-					goto replace;
-				}
-				return tree_page;
-			}
-			/*
-			 * There is now a place for page_node, but the tree may
-			 * have been rebalanced, so re-evaluate parent and new.
-			 */
-			if (page_node)
-				goto again;
-			return NULL;
-		}
-	}
+// 		parent = *new;
+// 		if (ret < 0)
+// 			new = &parent->rb_left;
+// 		else if (ret > 0)
+// 			new = &parent->rb_right;
+// 		else {
+// 			/*
+// 			 * Lock and unlock the stable_node's page (which
+// 			 * might already have been migrated) so that page
+// 			 * migration is sure to notice its raised count.
+// 			 * It would be more elegant to return stable_node
+// 			 * than kpage, but that involves more changes.
+// 			 */
+// 			tree_page = get_ksm_page(stable_node, true);
+// 			if (tree_page) {
+// 				unlock_page(tree_page);
+// 				if (get_kpfn_nid(stable_node->kpfn) !=
+// 						NUMA(stable_node->nid)) {
+// 					put_page(tree_page);
+// 					goto replace;
+// 				}
+// 				return tree_page;
+// 			}
+// 			/*
+// 			 * There is now a place for page_node, but the tree may
+// 			 * have been rebalanced, so re-evaluate parent and new.
+// 			 */
+// 			if (page_node)
+// 				goto again;
+// 			return NULL;
+// 		}
+// 	}
 
-	if (!page_node)
-		return NULL;
+// 	if (!page_node)
+// 		return NULL;
 
-	list_del(&page_node->list);
-	DO_NUMA(page_node->nid = nid);
-	rb_link_node(&page_node->node, parent, new);
-	rb_insert_color(&page_node->node, root);
-	get_page(page);
-	return page;
+// 	list_del(&page_node->list);
+// 	DO_NUMA(page_node->nid = nid);
+// 	rb_link_node(&page_node->node, parent, new);
+// 	rb_insert_color(&page_node->node, root);
+// 	get_page(page);
+// 	return page;
 
-replace:
-	if (page_node) {
-		list_del(&page_node->list);
-		DO_NUMA(page_node->nid = nid);
-		rb_replace_node(&stable_node->node, &page_node->node, root);
-		get_page(page);
-	} else {
-		rb_erase(&stable_node->node, root);
-		page = NULL;
-	}
-	stable_node->head = &migrate_nodes;
-	list_add(&stable_node->list, stable_node->head);
-	return page;
-}
+// replace:
+// 	if (page_node) {
+// 		list_del(&page_node->list);
+// 		DO_NUMA(page_node->nid = nid);
+// 		rb_replace_node(&stable_node->node, &page_node->node, root);
+// 		get_page(page);
+// 	} else {
+// 		rb_erase(&stable_node->node, root);
+// 		page = NULL;
+// 	}
+// 	stable_node->head = &migrate_nodes;
+// 	list_add(&stable_node->list, stable_node->head);
+// 	return page;
+// }
 
 static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage, struct pksm_hash_node *pksm_hash_node){
 	u32 cur_hash;
@@ -1724,68 +1730,68 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 
 }
 
-/*
- * stable_tree_insert - insert stable tree node pointing to new ksm page
- * into the stable tree.
- *
- * This function returns the stable tree node just allocated on success,
- * NULL otherwise.
- */
-static struct stable_node *stable_tree_insert(struct page *kpage)
-{
-	int nid;
-	unsigned long kpfn;
-	struct rb_root *root;
-	struct rb_node **new;
-	struct rb_node *parent = NULL;
-	struct stable_node *stable_node;
+// /*
+//  * stable_tree_insert - insert stable tree node pointing to new ksm page
+//  * into the stable tree.
+//  *
+//  * This function returns the stable tree node just allocated on success,
+//  * NULL otherwise.
+//  */
+// static struct stable_node *stable_tree_insert(struct page *kpage)
+// {
+// 	int nid;
+// 	unsigned long kpfn;
+// 	struct rb_root *root;
+// 	struct rb_node **new;
+// 	struct rb_node *parent = NULL;
+// 	struct stable_node *stable_node;
 
-	kpfn = page_to_pfn(kpage);
-	nid = get_kpfn_nid(kpfn);
-	root = root_stable_tree + nid;
-	new = &root->rb_node;
+// 	kpfn = page_to_pfn(kpage);
+// 	nid = get_kpfn_nid(kpfn);
+// 	root = root_stable_tree + nid;
+// 	new = &root->rb_node;
 
-	while (*new) {
-		struct page *tree_page;
-		int ret;
+// 	while (*new) {
+// 		struct page *tree_page;
+// 		int ret;
 
-		cond_resched();
-		stable_node = rb_entry(*new, struct stable_node, node);
-		tree_page = get_ksm_page(stable_node, false);
-		if (!tree_page)
-			return NULL;
+// 		cond_resched();
+// 		stable_node = rb_entry(*new, struct stable_node, node);
+// 		tree_page = get_ksm_page(stable_node, false);
+// 		if (!tree_page)
+// 			return NULL;
 
-		ret = memcmp_pages(kpage, tree_page);
-		put_page(tree_page);
+// 		ret = memcmp_pages(kpage, tree_page);
+// 		put_page(tree_page);
 
-		parent = *new;
-		if (ret < 0)
-			new = &parent->rb_left;
-		else if (ret > 0)
-			new = &parent->rb_right;
-		else {
-			/*
-			 * It is not a bug that stable_tree_search() didn't
-			 * find this node: because at that time our page was
-			 * not yet write-protected, so may have changed since.
-			 */
-			return NULL;
-		}
-	}
+// 		parent = *new;
+// 		if (ret < 0)
+// 			new = &parent->rb_left;
+// 		else if (ret > 0)
+// 			new = &parent->rb_right;
+// 		else {
+// 			/*
+// 			 * It is not a bug that stable_tree_search() didn't
+// 			 * find this node: because at that time our page was
+// 			 * not yet write-protected, so may have changed since.
+// 			 */
+// 			return NULL;
+// 		}
+// 	}
 
-	stable_node = alloc_stable_node();
-	if (!stable_node)
-		return NULL;
+// 	stable_node = alloc_stable_node();
+// 	if (!stable_node)
+// 		return NULL;
 
-	INIT_HLIST_HEAD(&stable_node->hlist);
-	stable_node->kpfn = kpfn;
-	set_page_stable_node(kpage, stable_node);
-	DO_NUMA(stable_node->nid = nid);
-	rb_link_node(&stable_node->node, parent, new);
-	rb_insert_color(&stable_node->node, root);
+// 	INIT_HLIST_HEAD(&stable_node->hlist);
+// 	stable_node->kpfn = kpfn;
+// 	set_page_stable_node(kpage, stable_node);
+// 	DO_NUMA(stable_node->nid = nid);
+// 	rb_link_node(&stable_node->node, parent, new);
+// 	rb_insert_color(&stable_node->node, root);
 
-	return stable_node;
-}
+// 	return stable_node;
+// }
 
 // 被unstable_hash_search_insert取代了
 // /*
@@ -2696,8 +2702,11 @@ out:
 }
 
 #ifdef CONFIG_MIGRATION
+// TODO: 暂时不杀
 void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 {
+	printk("PKSM : ksm_migrate_page evoked\n");
+
 	struct stable_node *stable_node;
 
 	VM_BUG_ON_PAGE(!PageLocked(oldpage), oldpage);
@@ -2715,6 +2724,7 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 		 * has gone stale (or that PageSwapCache has been cleared).
 		 */
 		smp_wmb();
+		// ? 这句调用可能存在问题，可能可以和get_pksm_page()一起消除过期node
 		set_page_stable_node(oldpage, NULL);
 	}
 }
@@ -2723,6 +2733,7 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 #ifdef CONFIG_MEMORY_HOTREMOVE
 static void wait_while_offlining(void)
 {
+	printk("PKSM : HOTREMOVE_enabled wait_while_offlining evoked\n");
 	while (pksm_run & PKSM_RUN_OFFLINE) {
 		mutex_unlock(&pksm_thread_mutex);
 		wait_on_bit(&pksm_run, ilog2(PKSM_RUN_OFFLINE),
@@ -2734,6 +2745,8 @@ static void wait_while_offlining(void)
 static void ksm_check_stable_tree(unsigned long start_pfn,
 				  unsigned long end_pfn)
 {
+	printk("PKSM : HOTREMOVE_enabled ksm_check_stable_tree evoked\n");
+
 	struct stable_node *stable_node;
 	struct list_head *this, *next;
 	struct rb_node *node;
@@ -2768,6 +2781,8 @@ static void ksm_check_stable_tree(unsigned long start_pfn,
 static int ksm_memory_callback(struct notifier_block *self,
 			       unsigned long action, void *arg)
 {
+	printk("PKSM : HOTREMOVE_enabled ksm_memory_callback evoked\n");
+
 	struct memory_notify *mn = arg;
 
 	switch (action) {
@@ -3072,7 +3087,8 @@ static int __init ksm_init(void)
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
 	/* There is no significance to this priority 100 */
-	hotplug_memory_notifier(ksm_memory_callback, 100);
+	printf("PKSM : CONFIG_MEMORY_HOTREMOVE defined\n");
+	// hotplug_memory_notifier(ksm_memory_callback, 100);
 #endif
 	return 0;
 

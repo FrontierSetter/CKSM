@@ -138,9 +138,15 @@ void __ksm_exit(struct page *page)
 
 void pksm_new_anon_page(struct page *page);
 
+void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 
+编译的时候去掉了CONFIG_MEMORY_HOTREMOVE编译宏
 
 // TODO
+
+// ? 暂时可以先不管
+struct page *ksm_might_need_to_copy(struct page *page,
+			struct vm_area_struct *vma, unsigned long address)
 
 // 匿名页面产生时的enter -> mm/memory.c/do_anonymous_page()s
 匿名页面生命周期结束时的exit
@@ -159,8 +165,6 @@ static struct vm_area_struct *find_mergeable_vma(struct mm_struct *mm,
 hotplug_memory_notifier(pksm_memory_callback, 100);
 
 暂时没有区分stable_node和普通的hash_node 
-
-// ? madvise->ksm_madvise->__ksm_enter
 
 static int ksm_memory_callback(struct notifier_block *self,
 			       unsigned long action, void *arg)
@@ -202,6 +206,13 @@ static int unmerge_ksm_pages(struct vm_area_struct *vma,
 
 static u32 calc_checksum(struct page *page)
 
+static struct page *page_trans_compound_anon(struct page *page)
+
+static struct page *get_mergeable_page(struct rmap_item *rmap_item)
+
+static inline int get_kpfn_nid(unsigned long kpfn)
+
+static int page_trans_compound_anon_split(struct page *page)
 
 
 

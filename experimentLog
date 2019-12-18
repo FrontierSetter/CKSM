@@ -75,3 +75,7 @@ training-parallel.tgz 来自 http://statmt.org/wmt11/translation-task.html#downl
 虽然在写的时候把所有的ksm都改名成了pksm，
 但是为了makefile和其他文件include方便（懒得一个个改了），
 在放到项目里实际编译的时候还是要叫ksm
+
+----------------------------------------------------------------------------------------------------
+设置CONFIG_MEMORY_HOTREMOVE编译宏：
+Processor type and feature -> Allow for memory hot remove
