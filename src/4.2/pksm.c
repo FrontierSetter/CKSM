@@ -117,64 +117,64 @@ struct page_slot {
 	struct hlist_node link;
 }
 
-/**
- * struct mm_slot - ksm information per mm that is being scanned
- * @link: link to the mm_slots hash list
- * @mm_list: link into the mm_slots list, rooted in ksm_mm_head
- * @rmap_list: head for this mm_slot's singly-linked list of rmap_items
- * @mm: the mm that this information is valid for
- */
-struct mm_slot {
-	struct hlist_node link;
-	struct list_head mm_list;
-	struct rmap_item *rmap_list;
-	struct mm_struct *mm;
-};
+// /**
+//  * struct mm_slot - ksm information per mm that is being scanned
+//  * @link: link to the mm_slots hash list
+//  * @mm_list: link into the mm_slots list, rooted in ksm_mm_head
+//  * @rmap_list: head for this mm_slot's singly-linked list of rmap_items
+//  * @mm: the mm that this information is valid for
+//  */
+// struct mm_slot {
+// 	struct hlist_node link;
+// 	struct list_head mm_list;
+// 	struct rmap_item *rmap_list;
+// 	struct mm_struct *mm;
+// };
 
 struct pksm_scan{
 	struct page_slot *page_slot;
 	unsigned long seqnr;
 };
 
-/**
- * struct ksm_scan - cursor for scanning
- * @mm_slot: the current mm_slot we are scanning
- * @address: the next address inside that to be scanned
- * @rmap_list: link to the next rmap to be scanned in the rmap_list
- * @seqnr: count of completed full scans (needed when removing unstable node)
- *
- * There is only the one ksm_scan instance of this cursor structure.
- */
-struct ksm_scan {
-	struct mm_slot *mm_slot;
-	unsigned long address;
-	struct rmap_item **rmap_list;
-	unsigned long seqnr;
-};
+// /**
+//  * struct ksm_scan - cursor for scanning
+//  * @mm_slot: the current mm_slot we are scanning
+//  * @address: the next address inside that to be scanned
+//  * @rmap_list: link to the next rmap to be scanned in the rmap_list
+//  * @seqnr: count of completed full scans (needed when removing unstable node)
+//  *
+//  * There is only the one ksm_scan instance of this cursor structure.
+//  */
+// struct ksm_scan {
+// 	struct mm_slot *mm_slot;
+// 	unsigned long address;
+// 	struct rmap_item **rmap_list;
+// 	unsigned long seqnr;
+// };
 
-/**
- * struct stable_node - node of the stable rbtree
- * @node: rb node of this ksm page in the stable tree
- * @head: (overlaying parent) &migrate_nodes indicates temporarily on that list
- * @list: linked into migrate_nodes, pending placement in the proper node tree
- * @hlist: hlist head of rmap_items using this ksm page
- * @kpfn: page frame number of this ksm page (perhaps temporarily on wrong nid)
- * @nid: NUMA node id of stable tree in which linked (may not match kpfn)
- */
-struct stable_node {
-	union {
-		struct rb_node node;	/* when node of stable tree */
-		struct {		/* when listed for migration */
-			struct list_head *head;
-			struct list_head list;
-		};
-	};
-	struct hlist_head hlist;
-	unsigned long kpfn;
-#ifdef CONFIG_NUMA
-	int nid;
-#endif
-};
+// /**
+//  * struct stable_node - node of the stable rbtree
+//  * @node: rb node of this ksm page in the stable tree
+//  * @head: (overlaying parent) &migrate_nodes indicates temporarily on that list
+//  * @list: linked into migrate_nodes, pending placement in the proper node tree
+//  * @hlist: hlist head of rmap_items using this ksm page
+//  * @kpfn: page frame number of this ksm page (perhaps temporarily on wrong nid)
+//  * @nid: NUMA node id of stable tree in which linked (may not match kpfn)
+//  */
+// struct stable_node {
+// 	union {
+// 		struct rb_node node;	/* when node of stable tree */
+// 		struct {		/* when listed for migration */
+// 			struct list_head *head;
+// 			struct list_head list;
+// 		};
+// 	};
+// 	struct hlist_head hlist;
+// 	unsigned long kpfn;
+// #ifdef CONFIG_NUMA
+// 	int nid;
+// #endif
+// };
 
 struct pksm_rmap_item{
 	struct hlist_node hlist;
@@ -183,53 +183,53 @@ struct pksm_rmap_item{
 	unsigned long address;
 }
 
-/**
- * struct rmap_item - reverse mapping item for virtual addresses
- * @rmap_list: next rmap_item in mm_slot's singly-linked rmap_list
- * @anon_vma: pointer to anon_vma for this mm,address, when in stable tree
- * @nid: NUMA node id of unstable tree in which linked (may not match page)
- * @mm: the memory structure this rmap_item is pointing into
- * @address: the virtual address this rmap_item tracks (+ flags in low bits)
- * @oldchecksum: previous checksum of the page at that virtual address
- * @node: rb node of this rmap_item in the unstable tree
- * @head: pointer to stable_node heading this list in the stable tree
- * @hlist: link into hlist of rmap_items hanging off that stable_node
- */
-struct rmap_item {
-	struct rmap_item *rmap_list;
-	union {
-		struct anon_vma *anon_vma;	/* when stable */
-#ifdef CONFIG_NUMA
-		int nid;		/* when node of unstable tree */
-#endif
-	};
-	struct mm_struct *mm;
-	unsigned long address;		/* + low bits used for flags below */
-	unsigned int oldchecksum;	/* when unstable */
-	union {
-		struct rb_node node;	/* when node of unstable tree */
-		struct {		/* when listed from stable tree */
-			struct stable_node *head;
-			struct hlist_node hlist;
-		};
-	};
-};
+// /**
+//  * struct rmap_item - reverse mapping item for virtual addresses
+//  * @rmap_list: next rmap_item in mm_slot's singly-linked rmap_list
+//  * @anon_vma: pointer to anon_vma for this mm,address, when in stable tree
+//  * @nid: NUMA node id of unstable tree in which linked (may not match page)
+//  * @mm: the memory structure this rmap_item is pointing into
+//  * @address: the virtual address this rmap_item tracks (+ flags in low bits)
+//  * @oldchecksum: previous checksum of the page at that virtual address
+//  * @node: rb node of this rmap_item in the unstable tree
+//  * @head: pointer to stable_node heading this list in the stable tree
+//  * @hlist: link into hlist of rmap_items hanging off that stable_node
+//  */
+// struct rmap_item {
+// 	struct rmap_item *rmap_list;
+// 	union {
+// 		struct anon_vma *anon_vma;	/* when stable */
+// #ifdef CONFIG_NUMA
+// 		int nid;		/* when node of unstable tree */
+// #endif
+// 	};
+// 	struct mm_struct *mm;
+// 	unsigned long address;		/* + low bits used for flags below */
+// 	unsigned int oldchecksum;	/* when unstable */
+// 	union {
+// 		struct rb_node node;	/* when node of unstable tree */
+// 		struct {		/* when listed from stable tree */
+// 			struct stable_node *head;
+// 			struct hlist_node hlist;
+// 		};
+// 	};
+// };
 
 #define SEQNR_MASK	0x0ff	/* low bits of unstable tree seqnr */
 #define UNSTABLE_FLAG	0x100	/* is a node of the unstable tree */
 #define STABLE_FLAG	0x200	/* is listed from the stable tree */
 
-/* The stable and unstable tree heads */
-static struct rb_root one_stable_tree[1] = { RB_ROOT };
-static struct rb_root one_unstable_tree[1] = { RB_ROOT };
-static struct rb_root *root_stable_tree = one_stable_tree;
-static struct rb_root *root_unstable_tree = one_unstable_tree;
+// /* The stable and unstable tree heads */
+// static struct rb_root one_stable_tree[1] = { RB_ROOT };
+// static struct rb_root one_unstable_tree[1] = { RB_ROOT };
+// static struct rb_root *root_stable_tree = one_stable_tree;
+// static struct rb_root *root_unstable_tree = one_unstable_tree;
 
 /* Recently migrated nodes of stable tree, pending proper placement */
 static LIST_HEAD(migrate_nodes);
 
-#define MM_SLOTS_HASH_BITS 10
-static DEFINE_HASHTABLE(mm_slots_hash, MM_SLOTS_HASH_BITS);
+// #define MM_SLOTS_HASH_BITS 10
+// static DEFINE_HASHTABLE(mm_slots_hash, MM_SLOTS_HASH_BITS);
 
 #define PAGE_SLOTS_HASH_BITS 10
 static DEFINE_HASHTABLE(page_slots_hash, PAGE_SLOTS_HASH_BITS);
@@ -250,21 +250,21 @@ static struct page_slot pksm_page_head = {
 	.page_list = LIST_HEAD_INIT(pksm_page_head.page_list)
 }
 
-static struct mm_slot ksm_mm_head = {
-	.mm_list = LIST_HEAD_INIT(ksm_mm_head.mm_list),
-};
+// static struct mm_slot ksm_mm_head = {
+// 	.mm_list = LIST_HEAD_INIT(ksm_mm_head.mm_list),
+// };
 
 static struct pksm_scan pksm_scan = {
 	.page_slot = &pksm_page_head,
 };
 
-static struct ksm_scan ksm_scan = {
-	.mm_slot = &ksm_mm_head,
-};
+// static struct ksm_scan ksm_scan = {
+// 	.mm_slot = &ksm_mm_head,
+// };
 
-static struct kmem_cache *rmap_item_cache;
-static struct kmem_cache *stable_node_cache;
-static struct kmem_cache *mm_slot_cache;
+// static struct kmem_cache *rmap_item_cache;
+// static struct kmem_cache *stable_node_cache;
+// static struct kmem_cache *mm_slot_cache;
 
 static struct kmem_cache *pksm_hash_node_cache;
 static struct kmem_cache *page_slot_cache;
@@ -370,45 +370,45 @@ static u32 cacl_superfasthash(struct page *page)
 }
 
 
-#define KSM_KMEM_CACHE(__struct, __flags) kmem_cache_create("ksm_"#__struct,\
+#define PKSM_KMEM_CACHE(__struct, __flags) kmem_cache_create("pksm_"#__struct,\
 		sizeof(struct __struct), __alignof__(struct __struct),\
 		(__flags), NULL)
 
-static int __init ksm_slab_init(void)
-{
-	rmap_item_cache = KSM_KMEM_CACHE(rmap_item, 0);
-	if (!rmap_item_cache)
-		goto out;
+// static int __init ksm_slab_init(void)
+// {
+// 	rmap_item_cache = KSM_KMEM_CACHE(rmap_item, 0);
+// 	if (!rmap_item_cache)
+// 		goto out;
 
-	stable_node_cache = KSM_KMEM_CACHE(stable_node, 0);
-	if (!stable_node_cache)
-		goto out_free1;
+// 	stable_node_cache = KSM_KMEM_CACHE(stable_node, 0);
+// 	if (!stable_node_cache)
+// 		goto out_free1;
 
-	mm_slot_cache = KSM_KMEM_CACHE(mm_slot, 0);
-	if (!mm_slot_cache)
-		goto out_free2;
+// 	mm_slot_cache = KSM_KMEM_CACHE(mm_slot, 0);
+// 	if (!mm_slot_cache)
+// 		goto out_free2;
 
-	return 0;
+// 	return 0;
 
-out_free2:
-	kmem_cache_destroy(stable_node_cache);
-out_free1:
-	kmem_cache_destroy(rmap_item_cache);
-out:
-	return -ENOMEM;
-}
+// out_free2:
+// 	kmem_cache_destroy(stable_node_cache);
+// out_free1:
+// 	kmem_cache_destroy(rmap_item_cache);
+// out:
+// 	return -ENOMEM;
+// }
 
 static int __init pksm_slab_init(void)
 {
-	pksm_hash_node_cache = KSM_KMEM_CACHE(pksm_hash_node, 0);
+	pksm_hash_node_cache = PKSM_KMEM_CACHE(pksm_hash_node, 0);
 	if (!pksm_hash_node_cache)
 		goto out;
 
-	page_slot_cache = KSM_KMEM_CACHE(page_slot, 0);
+	page_slot_cache = PKSM_KMEM_CACHE(page_slot, 0);
 	if (!page_slot_cache)
 		goto out_free1;
 
-	pksm_rmap_item_cache = KSM_KMEM_CACHE(pksm_rmap_item, 0);
+	pksm_rmap_item_cache = PKSM_KMEM_CACHE(pksm_rmap_item, 0);
 	if (!pksm_rmap_item_cache)
 		goto out_free2;
 
@@ -423,13 +423,13 @@ out:
 }
 
 
-static void __init ksm_slab_free(void)
-{
-	kmem_cache_destroy(mm_slot_cache);
-	kmem_cache_destroy(stable_node_cache);
-	kmem_cache_destroy(rmap_item_cache);
-	mm_slot_cache = NULL;
-}
+// static void __init ksm_slab_free(void)
+// {
+// 	kmem_cache_destroy(mm_slot_cache);
+// 	kmem_cache_destroy(stable_node_cache);
+// 	kmem_cache_destroy(rmap_item_cache);
+// 	mm_slot_cache = NULL;
+// }
 
 static void __init pksm_slab_free(void)
 {
@@ -439,15 +439,6 @@ static void __init pksm_slab_free(void)
 	page_slot_cache = NULL; // 为什么就他这么突出？
 }
 
-static inline struct rmap_item *alloc_rmap_item(void)
-{
-	struct rmap_item *rmap_item;
-
-	rmap_item = kmem_cache_zalloc(rmap_item_cache, GFP_KERNEL);
-	if (rmap_item)
-		ksm_rmap_items++;
-	return rmap_item;
-}
 
 // * pksm begin
 
@@ -503,52 +494,62 @@ static void insert_to_page_slots_hash(struct page *page,
 
 // * pksm end
 
-static inline void free_rmap_item(struct rmap_item *rmap_item)
-{
-	ksm_rmap_items--;
-	rmap_item->mm = NULL;	/* debug safety */
-	kmem_cache_free(rmap_item_cache, rmap_item);
-}
+// static inline struct rmap_item *alloc_rmap_item(void)
+// {
+// 	struct rmap_item *rmap_item;
 
-static inline struct stable_node *alloc_stable_node(void)
-{
-	return kmem_cache_alloc(stable_node_cache, GFP_KERNEL);
-}
+// 	rmap_item = kmem_cache_zalloc(rmap_item_cache, GFP_KERNEL);
+// 	if (rmap_item)
+// 		ksm_rmap_items++;
+// 	return rmap_item;
+// }
 
-static inline void free_stable_node(struct stable_node *stable_node)
-{
-	kmem_cache_free(stable_node_cache, stable_node);
-}
+// static inline void free_rmap_item(struct rmap_item *rmap_item)
+// {
+// 	ksm_rmap_items--;
+// 	rmap_item->mm = NULL;	/* debug safety */
+// 	kmem_cache_free(rmap_item_cache, rmap_item);
+// }
 
-static inline struct mm_slot *alloc_mm_slot(void)
-{
-	if (!mm_slot_cache)	/* initialization failed */
-		return NULL;
-	return kmem_cache_zalloc(mm_slot_cache, GFP_KERNEL);
-}
+// static inline struct stable_node *alloc_stable_node(void)
+// {
+// 	return kmem_cache_alloc(stable_node_cache, GFP_KERNEL);
+// }
 
-static inline void free_mm_slot(struct mm_slot *mm_slot)
-{
-	kmem_cache_free(mm_slot_cache, mm_slot);
-}
+// static inline void free_stable_node(struct stable_node *stable_node)
+// {
+// 	kmem_cache_free(stable_node_cache, stable_node);
+// }
 
-static struct mm_slot *get_mm_slot(struct mm_struct *mm)
-{
-	struct mm_slot *slot;
+// static inline struct mm_slot *alloc_mm_slot(void)
+// {
+// 	if (!mm_slot_cache)	/* initialization failed */
+// 		return NULL;
+// 	return kmem_cache_zalloc(mm_slot_cache, GFP_KERNEL);
+// }
 
-	hash_for_each_possible(mm_slots_hash, slot, link, (unsigned long)mm)
-		if (slot->mm == mm)
-			return slot;
+// static inline void free_mm_slot(struct mm_slot *mm_slot)
+// {
+// 	kmem_cache_free(mm_slot_cache, mm_slot);
+// }
 
-	return NULL;
-}
+// static struct mm_slot *get_mm_slot(struct mm_struct *mm)
+// {
+// 	struct mm_slot *slot;
 
-static void insert_to_mm_slots_hash(struct mm_struct *mm,
-				    struct mm_slot *mm_slot)
-{
-	mm_slot->mm = mm;
-	hash_add(mm_slots_hash, &mm_slot->link, (unsigned long)mm);
-}
+// 	hash_for_each_possible(mm_slots_hash, slot, link, (unsigned long)mm)
+// 		if (slot->mm == mm)
+// 			return slot;
+
+// 	return NULL;
+// }
+
+// static void insert_to_mm_slots_hash(struct mm_struct *mm,
+// 				    struct mm_slot *mm_slot)
+// {
+// 	mm_slot->mm = mm;
+// 	hash_add(mm_slots_hash, &mm_slot->link, (unsigned long)mm);
+// }
 
 /*
  * ksmd, and unmerge_and_remove_all_rmap_items(), must not touch an mm's
@@ -558,10 +559,10 @@ static void insert_to_mm_slots_hash(struct mm_struct *mm,
  * ksm_test_exit() is used throughout to make this test for exit: in some
  * places for correctness, in some places just to avoid unnecessary work.
  */
-static inline bool ksm_test_exit(struct mm_struct *mm)
-{
-	return atomic_read(&mm->mm_users) == 0;
-}
+// static inline bool ksm_test_exit(struct mm_struct *mm)
+// {
+// 	return atomic_read(&mm->mm_users) == 0;
+// }
 
 static inline bool pksm_test_exit(struct page_slot *page_slot)
 {
