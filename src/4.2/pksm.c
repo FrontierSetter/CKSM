@@ -752,27 +752,27 @@ static void remove_node_from_hashlist(struct page_slot *page_slot)
 
 }
 
-static void remove_node_from_stable_tree(struct stable_node *stable_node)
-{
-	struct rmap_item *rmap_item;
+// static void remove_node_from_stable_tree(struct stable_node *stable_node)
+// {
+// 	struct rmap_item *rmap_item;
 
-	hlist_for_each_entry(rmap_item, &stable_node->hlist, hlist) {
-		if (rmap_item->hlist.next)
-			ksm_pages_sharing--;
-		else
-			ksm_pages_shared--;
-		put_anon_vma(rmap_item->anon_vma);
-		rmap_item->address &= PAGE_MASK;
-		cond_resched();
-	}
+// 	hlist_for_each_entry(rmap_item, &stable_node->hlist, hlist) {
+// 		if (rmap_item->hlist.next)
+// 			ksm_pages_sharing--;
+// 		else
+// 			ksm_pages_shared--;
+// 		put_anon_vma(rmap_item->anon_vma);
+// 		rmap_item->address &= PAGE_MASK;
+// 		cond_resched();
+// 	}
 
-	if (stable_node->head == &migrate_nodes)
-		list_del(&stable_node->list);
-	else
-		rb_erase(&stable_node->node,
-			 root_stable_tree + NUMA(stable_node->nid));
-	free_stable_node(stable_node);
-}
+// 	if (stable_node->head == &migrate_nodes)
+// 		list_del(&stable_node->list);
+// 	else
+// 		rb_erase(&stable_node->node,
+// 			 root_stable_tree + NUMA(stable_node->nid));
+// 	free_stable_node(stable_node);
+// }
 
 /*
  * get_ksm_page: checks if the page indicated by the stable node
@@ -1558,8 +1558,9 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 								unsigned int entryIndex, struct page_slot **table_page_slot)
 {
 	struct pksm_hash_node *unstable_node;
+	struct hlist_node *nxt;
 
-	hlist_for_each_entry(unstable_node, &(unstable_hash_table[entryIndex]), hlist){
+	hlist_for_each_entry_safe(unstable_node, nxt, &(unstable_hash_table[entryIndex]), hlist){
 		hash_page = get_pksm_page(unstable_node, false);
 		if(!hash_page){
 			continue;
@@ -1587,6 +1588,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 static struct page *stable_hash_search(struct page *page, unsigned int entryIndex)
 {
 	struct pksm_hash_node *stable_node;
+	struct hlist_node *nxt;
 
 	stable_node = page_stable_node(page);
 	if (stable_node) {			/* ksm page already */
@@ -1594,7 +1596,7 @@ static struct page *stable_hash_search(struct page *page, unsigned int entryInde
 		return page;
 	}
 
-	hlist_for_each_entry(stable_node, &(stable_hash_table[entryIndex]), hlist){
+	hlist_for_each_entry_safe(stable_node, nxt, &(stable_hash_table[entryIndex]), hlist){
 		hash_page = get_pksm_page(stable_node, false);
 		if(!hash_page){
 			continue;
@@ -2734,12 +2736,12 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 static void wait_while_offlining(void)
 {
 	printk("PKSM : HOTREMOVE_enabled wait_while_offlining evoked\n");
-	while (pksm_run & PKSM_RUN_OFFLINE) {
-		mutex_unlock(&pksm_thread_mutex);
-		wait_on_bit(&pksm_run, ilog2(PKSM_RUN_OFFLINE),
-			    TASK_UNINTERRUPTIBLE);
-		mutex_lock(&pksm_thread_mutex);
-	}
+	// while (pksm_run & PKSM_RUN_OFFLINE) {
+	// 	mutex_unlock(&pksm_thread_mutex);
+	// 	wait_on_bit(&pksm_run, ilog2(PKSM_RUN_OFFLINE),
+	// 		    TASK_UNINTERRUPTIBLE);
+	// 	mutex_lock(&pksm_thread_mutex);
+	// }
 }
 
 static void ksm_check_stable_tree(unsigned long start_pfn,
@@ -2747,35 +2749,35 @@ static void ksm_check_stable_tree(unsigned long start_pfn,
 {
 	printk("PKSM : HOTREMOVE_enabled ksm_check_stable_tree evoked\n");
 
-	struct stable_node *stable_node;
-	struct list_head *this, *next;
-	struct rb_node *node;
-	int nid;
+	// struct stable_node *stable_node;
+	// struct list_head *this, *next;
+	// struct rb_node *node;
+	// int nid;
 
-	for (nid = 0; nid < ksm_nr_node_ids; nid++) {
-		node = rb_first(root_stable_tree + nid);
-		while (node) {
-			stable_node = rb_entry(node, struct stable_node, node);
-			if (stable_node->kpfn >= start_pfn &&
-			    stable_node->kpfn < end_pfn) {
-				/*
-				 * Don't get_ksm_page, page has already gone:
-				 * which is why we keep kpfn instead of page*
-				 */
-				remove_node_from_stable_tree(stable_node);
-				node = rb_first(root_stable_tree + nid);
-			} else
-				node = rb_next(node);
-			cond_resched();
-		}
-	}
-	list_for_each_safe(this, next, &migrate_nodes) {
-		stable_node = list_entry(this, struct stable_node, list);
-		if (stable_node->kpfn >= start_pfn &&
-		    stable_node->kpfn < end_pfn)
-			remove_node_from_stable_tree(stable_node);
-		cond_resched();
-	}
+	// for (nid = 0; nid < ksm_nr_node_ids; nid++) {
+	// 	node = rb_first(root_stable_tree + nid);
+	// 	while (node) {
+	// 		stable_node = rb_entry(node, struct stable_node, node);
+	// 		if (stable_node->kpfn >= start_pfn &&
+	// 		    stable_node->kpfn < end_pfn) {
+	// 			/*
+	// 			 * Don't get_ksm_page, page has already gone:
+	// 			 * which is why we keep kpfn instead of page*
+	// 			 */
+	// 			remove_node_from_stable_tree(stable_node);
+	// 			node = rb_first(root_stable_tree + nid);
+	// 		} else
+	// 			node = rb_next(node);
+	// 		cond_resched();
+	// 	}
+	// }
+	// list_for_each_safe(this, next, &migrate_nodes) {
+	// 	stable_node = list_entry(this, struct stable_node, list);
+	// 	if (stable_node->kpfn >= start_pfn &&
+	// 	    stable_node->kpfn < end_pfn)
+	// 		remove_node_from_stable_tree(stable_node);
+	// 	cond_resched();
+	// }
 }
 
 static int ksm_memory_callback(struct notifier_block *self,
@@ -2783,43 +2785,43 @@ static int ksm_memory_callback(struct notifier_block *self,
 {
 	printk("PKSM : HOTREMOVE_enabled ksm_memory_callback evoked\n");
 
-	struct memory_notify *mn = arg;
+	// struct memory_notify *mn = arg;
 
-	switch (action) {
-	case MEM_GOING_OFFLINE:
-		/*
-		 * Prevent ksm_do_scan(), unmerge_and_remove_all_rmap_items()
-		 * and remove_all_stable_nodes() while memory is going offline:
-		 * it is unsafe for them to touch the stable tree at this time.
-		 * But unmerge_ksm_pages(), rmap lookups and other entry points
-		 * which do not need the ksm_thread_mutex are all safe.
-		 */
-		mutex_lock(&pksm_thread_mutex);
-		pksm_run |= PKSM_RUN_OFFLINE;
-		mutex_unlock(&pksm_thread_mutex);
-		break;
+	// switch (action) {
+	// case MEM_GOING_OFFLINE:
+	// 	/*
+	// 	 * Prevent ksm_do_scan(), unmerge_and_remove_all_rmap_items()
+	// 	 * and remove_all_stable_nodes() while memory is going offline:
+	// 	 * it is unsafe for them to touch the stable tree at this time.
+	// 	 * But unmerge_ksm_pages(), rmap lookups and other entry points
+	// 	 * which do not need the ksm_thread_mutex are all safe.
+	// 	 */
+	// 	mutex_lock(&pksm_thread_mutex);
+	// 	pksm_run |= PKSM_RUN_OFFLINE;
+	// 	mutex_unlock(&pksm_thread_mutex);
+	// 	break;
 
-	case MEM_OFFLINE:
-		/*
-		 * Most of the work is done by page migration; but there might
-		 * be a few stable_nodes left over, still pointing to struct
-		 * pages which have been offlined: prune those from the tree,
-		 * otherwise get_ksm_page() might later try to access a
-		 * non-existent struct page.
-		 */
-		ksm_check_stable_tree(mn->start_pfn,
-				      mn->start_pfn + mn->nr_pages);
-		/* fallthrough */
+	// case MEM_OFFLINE:
+	// 	/*
+	// 	 * Most of the work is done by page migration; but there might
+	// 	 * be a few stable_nodes left over, still pointing to struct
+	// 	 * pages which have been offlined: prune those from the tree,
+	// 	 * otherwise get_ksm_page() might later try to access a
+	// 	 * non-existent struct page.
+	// 	 */
+	// 	ksm_check_stable_tree(mn->start_pfn,
+	// 			      mn->start_pfn + mn->nr_pages);
+	// 	/* fallthrough */
 
-	case MEM_CANCEL_OFFLINE:
-		mutex_lock(&pksm_thread_mutex);
-		pksm_run &= ~PKSM_RUN_OFFLINE;
-		mutex_unlock(&pksm_thread_mutex);
+	// case MEM_CANCEL_OFFLINE:
+	// 	mutex_lock(&pksm_thread_mutex);
+	// 	pksm_run &= ~PKSM_RUN_OFFLINE;
+	// 	mutex_unlock(&pksm_thread_mutex);
 
-		smp_mb();	/* wake_up_bit advises this */
-		wake_up_bit(&pksm_run, ilog2(PKSM_RUN_OFFLINE));
-		break;
-	}
+	// 	smp_mb();	/* wake_up_bit advises this */
+	// 	wake_up_bit(&pksm_run, ilog2(PKSM_RUN_OFFLINE));
+	// 	break;
+	// }
 	return NOTIFY_OK;
 }
 #else

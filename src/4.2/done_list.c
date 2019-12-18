@@ -144,6 +144,8 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 
 // TODO
 
+
+
 // ? 暂时可以先不管
 struct page *ksm_might_need_to_copy(struct page *page,
 			struct vm_area_struct *vma, unsigned long address)
@@ -182,6 +184,8 @@ set_current_oom_origin();
 
 
 // ! 注意
+
+hlist_for_each_entry -> hlist_for_each_entry_safe
 
 hlist_for_each_entry() 的参数不一样
 
