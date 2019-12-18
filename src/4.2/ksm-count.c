@@ -205,6 +205,9 @@ static struct kmem_cache *rmap_item_cache;
 static struct kmem_cache *stable_node_cache;
 static struct kmem_cache *mm_slot_cache;
 
+static unsigned long ksm_vir_pages_scaned;
+static unsigned long ksm_vma_scaned = 0;
+
 /* 真正可以减少内存使用的归并操作个数，即归并时页面只被一个pte指向的情况 */
 static unsigned long ksm_pages_truly_reduced;
 
@@ -1634,6 +1637,7 @@ next_mm:
 			if (ksm_test_exit(mm))
 				break;
 			*page = follow_page(vma, ksm_scan.address, FOLL_GET);
+			++ksm_vir_pages_scaned;
 			if (IS_ERR_OR_NULL(*page)) {
 				ksm_scan.address += PAGE_SIZE;
 				cond_resched();
@@ -1719,6 +1723,7 @@ static void ksm_do_scan(unsigned int scan_npages)
 		rmap_item = scan_get_next_rmap_item(&page);
 		if (!rmap_item)
 			return;
+		ksm_vir_pages_scaned = 0;
 		cmp_and_merge_page(page, rmap_item);
 		put_page(page);
 	}
@@ -2252,6 +2257,13 @@ static ssize_t merge_across_nodes_store(struct kobject *kobj,
 KSM_ATTR(merge_across_nodes);
 #endif
 
+static ssize_t vir_pages_scaned_show(struct kobject *kobj,
+				 struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", ksm_vir_pages_scaned);
+}
+KSM_ATTR_RO(vir_pages_scaned);
+
 static ssize_t pages_not_reduced_show(struct kobject *kobj,
 				 struct kobj_attribute *attr, char *buf)
 {
@@ -2319,6 +2331,7 @@ static ssize_t full_scans_show(struct kobject *kobj,
 KSM_ATTR_RO(full_scans);
 
 static struct attribute *ksm_attrs[] = {
+	&vir_pages_scaned_attr.attr,
 	&pages_truly_reduced_attr.attr,
 	&pages_merge_cnt_attr.attr,
 	&sleep_millisecs_attr.attr,
