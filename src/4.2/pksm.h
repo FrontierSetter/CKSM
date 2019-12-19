@@ -25,8 +25,8 @@ void pksm_new_anon_page(struct page *page);
 
 static inline int ksm_fork(struct mm_struct *mm, struct mm_struct *oldmm)
 {
-	if (test_bit(MMF_VM_MERGEABLE, &oldmm->flags))
-		return __ksm_enter(mm);
+	// if (test_bit(MMF_VM_MERGEABLE, &oldmm->flags))
+	// 	return __ksm_enter(mm);
 	return 0;
 }
 
@@ -45,11 +45,6 @@ static inline void pksm_exit(struct page *page)
 // 这里改个名是为了模块内部命名的一致性，但是发现PageKsm在外部也被调用（毕竟是在.h文件里）
 // 所以两个都保留（很蠢，但是懒得改）
 static inline int PagePksm(struct page *page)
-{
-	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==
-				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
-}
-static inline int PageKsm(struct page *page)
 {
 	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==
 				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
@@ -95,10 +90,6 @@ static inline void ksm_exit(struct mm_struct *mm)
 {
 }
 
-static inline int PageKsm(struct page *page)
-{
-	return 0;
-}
 
 #ifdef CONFIG_MMU
 static inline int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
