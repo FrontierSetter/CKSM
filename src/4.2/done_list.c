@@ -16,7 +16,11 @@ struct pksm_scan{
 // page_slot链表的头部
 static struct page_slot pksm_page_head = {
 	.page_list = LIST_HEAD_INIT(pksm_page_head.page_list)
-}
+};
+
+static struct pksm_scan pksm_scan = {
+	.page_slot = &pksm_page_head,
+};
 
 // 用于修改pksm_scan->page_slot的锁
 static DEFINE_SPINLOCK(pksm_pagelist_lock);
@@ -31,7 +35,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 struct pksm_hash_node{
 	unsigned long kpfn;
     struct hlist_node hlist;
-	page_slot *page_slot;	//反向映射到对应的slot
+	struct page_slot *page_slot;	//反向映射到对应的slot
 							//是为了在unstable table中找到后可以在merge时从table中移除
 	struct hlist_head rmap_list;
 };
@@ -41,12 +45,12 @@ struct pksm_rmap_item{
 	struct anon_vma *anon_vma;
 	struct mm_struct *mm;
 	unsigned long address;
-}
+};
 
 struct rmap_process_wrapper{
 	struct pksm_hash_node *pksm_hash_node;
 	struct page *kpage; 
-}
+};
 
 #define PAGE_SLOTS_HASH_BITS 10
 static DEFINE_HASHTABLE(page_slots_hash, PAGE_SLOTS_HASH_BITS);
@@ -144,6 +148,10 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 
 // TODO
 
+stable_hash_insert里释放node
+pksm_cmp_and_merge_page里直接设为invalid
+invalid语义确认
+
 	// ! 关于page引用计数
 ksm中scan_get_next_rmap_item()释放无效的mm_slot之后会mmdrop()释放对应mm的一个引用
 pksm中释放page之后是否需要对应的释放page的引用？
@@ -196,7 +204,9 @@ ksm建立的重映射是否要加入反向映射队列？
 
 // printk()要不要include头文件
 
-/ // ! 调用不到的函数，没有修改（打了个桩）
+// ! 调用不到的函数，没有修改（打了个桩）
+// ! 最后还是把很多东西注释掉了，因为里面有一些已经被注释掉的数据结构
+
 static void remove_rmap_item_from_tree(struct rmap_item *rmap_item)
 
 static void remove_trailing_rmap_items(struct mm_slot *mm_slot,
@@ -221,7 +231,10 @@ static inline int get_kpfn_nid(unsigned long kpfn)
 
 static int page_trans_compound_anon_split(struct page *page)
 
+static void stable_tree_append(struct rmap_item *rmap_item,
+			       struct stable_node *stable_node)
 
+static LIST_HEAD(migrate_nodes);
 
 // ? 关于pksm之后反向映射机制的兼容性
 在merge_with_pksm_page()的层次看不到vma

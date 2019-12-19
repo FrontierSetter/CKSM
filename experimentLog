@@ -78,4 +78,16 @@ training-parallel.tgz 来自 http://statmt.org/wmt11/translation-task.html#downl
 
 ----------------------------------------------------------------------------------------------------
 设置CONFIG_MEMORY_HOTREMOVE编译宏：
-Processor type and feature -> Allow for memory hot remove
+Processor type and feature -> *A*llow for memory hot remove
+
+CONFIG_NUMA
+Processor type and feature -> N*u*ma Memory Allocation and Scheduler Support
+
+------------------------------------------------------------------------------------------------
+mm/memory.c
+mm/pksm.c
+mm/page_alloc.c
+include/linux/pksm.h
+kernel/fork.c
+
+--------------------------------------------------------------------------------------------------------------------

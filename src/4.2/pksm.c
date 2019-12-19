@@ -102,7 +102,7 @@
 struct rmap_process_wrapper{
 	struct pksm_hash_node *pksm_hash_node;
 	struct page *kpage; 
-}
+};
 
 /**
  * struct page_slot - ksm scanning basic unit change from mm(virtual memory) to page(physical memory)
@@ -115,7 +115,7 @@ struct page_slot {
 	struct pksm_hash_node *page_item;
 	bool invalid;
 	struct hlist_node link;
-}
+};
 
 // /**
 //  * struct mm_slot - ksm information per mm that is being scanned
@@ -181,7 +181,7 @@ struct pksm_rmap_item{
 	struct anon_vma *anon_vma;
 	struct mm_struct *mm;
 	unsigned long address;
-}
+};
 
 // /**
 //  * struct rmap_item - reverse mapping item for virtual addresses
@@ -215,9 +215,9 @@ struct pksm_rmap_item{
 // 	};
 // };
 
-#define SEQNR_MASK	0x0ff	/* low bits of unstable tree seqnr */
-#define UNSTABLE_FLAG	0x100	/* is a node of the unstable tree */
-#define STABLE_FLAG	0x200	/* is listed from the stable tree */
+// #define SEQNR_MASK	0x0ff	/* low bits of unstable tree seqnr */
+// #define UNSTABLE_FLAG	0x100	/* is a node of the unstable tree */
+// #define STABLE_FLAG	0x200	/* is listed from the stable tree */
 
 // /* The stable and unstable tree heads */
 // static struct rb_root one_stable_tree[1] = { RB_ROOT };
@@ -226,7 +226,7 @@ struct pksm_rmap_item{
 // static struct rb_root *root_unstable_tree = one_unstable_tree;
 
 /* Recently migrated nodes of stable tree, pending proper placement */
-static LIST_HEAD(migrate_nodes);
+// static LIST_HEAD(migrate_nodes);
 
 // #define MM_SLOTS_HASH_BITS 10
 // static DEFINE_HASHTABLE(mm_slots_hash, MM_SLOTS_HASH_BITS);
@@ -236,8 +236,8 @@ static DEFINE_HASHTABLE(page_slots_hash, PAGE_SLOTS_HASH_BITS);
 
 struct pksm_hash_node{
 	unsigned long kpfn;
-    struct hlist_head hlist;
-	page_slot *page_slot;
+    struct hlist_node hlist;
+	struct page_slot *page_slot;
 	struct hlist_head rmap_list;
 };
 
@@ -248,7 +248,7 @@ static DEFINE_HASHTABLE(unstable_hash_table, PAGE_HASH_BIT);
 
 static struct page_slot pksm_page_head = {
 	.page_list = LIST_HEAD_INIT(pksm_page_head.page_list)
-}
+};
 
 // static struct mm_slot ksm_mm_head = {
 // 	.mm_list = LIST_HEAD_INIT(ksm_mm_head.mm_list),
@@ -305,13 +305,24 @@ static int ksm_nr_node_ids = 1;
 static unsigned long pksm_run = PKSM_RUN_STOP;
 static void wait_while_offlining(void);
 
-// ksm_thread_wait不改了
-static DECLARE_WAIT_QUEUE_HEAD(ksm_thread_wait);
-static DECLARE_WAIT_QUEUE_HEAD(pksm_thread_mutex);
+// ksm_thread_wait不改了 最后还是改了
+// static DECLARE_WAIT_QUEUE_HEAD(ksm_thread_wait);
+static DECLARE_WAIT_QUEUE_HEAD(pksm_thread_wait);
 // static DEFINE_MUTEX(ksm_thread_mutex);
 static DEFINE_MUTEX(pksm_thread_mutex);
 // static DEFINE_SPINLOCK(ksm_mmlist_lock);
 static DEFINE_SPINLOCK(pksm_pagelist_lock);
+
+#undef get16bits
+#if (defined(__GNUC__) && defined(__i386__)) || defined(__WATCOMC__) \
+  || defined(_MSC_VER) || defined (__BORLANDC__) || defined (__TURBOC__)
+#define get16bits(d) (*((const uint16_t *) (d)))
+#endif
+
+#if !defined (get16bits)
+#define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
+                       +(uint32_t)(((const uint8_t *)(d))[0]) )
+#endif
 
 static uint32_t super_fast_hash(const char * data, int len)
 {
@@ -413,7 +424,7 @@ static int __init pksm_slab_init(void)
 	if (!pksm_rmap_item_cache)
 		goto out_free2;
 
-	return 0;s
+	return 0;
 
 out_free2:
 	kmem_cache_destroy(page_slot_cache);
@@ -585,6 +596,7 @@ static inline bool pksm_test_exit(struct page_slot *page_slot)
 static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
 {
 	printk("PKSM : break_ksm evoked\n");
+	return 0;
 	// struct page *page;
 	// int ret = 0;
 
@@ -648,7 +660,7 @@ static struct vm_area_struct *find_mergeable_vma(struct mm_struct *mm,
 	// return vma;
 }
 
-static void break_cow()
+static void break_cow(void)
 {
 	printk("PKSM : break_cow called\n");
 	// struct mm_struct *mm = rmap_item->mm;
@@ -704,33 +716,33 @@ static struct page *page_trans_compound_anon(struct page *page)
 }
 
 
-static struct page *get_mergeable_page(struct rmap_item *rmap_item)
-{
-	printk("PKSM : get_mergeable_page evoked\n");
-	return NULL;
-// 	struct mm_struct *mm = rmap_item->mm;
-// 	unsigned long addr = rmap_item->address;
-// 	struct vm_area_struct *vma;
-// 	struct page *page;
+// static struct page *get_mergeable_page(struct rmap_item *rmap_item)
+// {
+// 	printk("PKSM : get_mergeable_page evoked\n");
+// 	return NULL;
+// // 	struct mm_struct *mm = rmap_item->mm;
+// // 	unsigned long addr = rmap_item->address;
+// // 	struct vm_area_struct *vma;
+// // 	struct page *page;
 
-// 	down_read(&mm->mmap_sem);
-// 	vma = find_mergeable_vma(mm, addr);
-// 	if (!vma)
-// 		goto out;
+// // 	down_read(&mm->mmap_sem);
+// // 	vma = find_mergeable_vma(mm, addr);
+// // 	if (!vma)
+// // 		goto out;
 
-// 	page = follow_page(vma, addr, FOLL_GET);
-// 	if (IS_ERR_OR_NULL(page))
-// 		goto out;
-// 	if (PageAnon(page) || page_trans_compound_anon(page)) {
-// 		flush_anon_page(vma, page, addr);
-// 		flush_dcache_page(page);
-// 	} else {
-// 		put_page(page);
-// out:		page = NULL;
-// 	}
-// 	up_read(&mm->mmap_sem);
-// 	return page;
-}
+// // 	page = follow_page(vma, addr, FOLL_GET);
+// // 	if (IS_ERR_OR_NULL(page))
+// // 		goto out;
+// // 	if (PageAnon(page) || page_trans_compound_anon(page)) {
+// // 		flush_anon_page(vma, page, addr);
+// // 		flush_dcache_page(page);
+// // 	} else {
+// // 		put_page(page);
+// // out:		page = NULL;
+// // 	}
+// // 	up_read(&mm->mmap_sem);
+// // 	return page;
+// }
 
 // /*
 //  * This helper is used for getting right index into array of tree roots.
@@ -754,7 +766,7 @@ static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_n
 static void remove_node_from_hashlist(struct page_slot *page_slot)
 {
 	if(page_slot->page_item != NULL){	// 如果他在哈希表里有残留（不管是stable还是unstable）
-		hlist_del(page_slot->page_item->hlist);	// 都将他删除
+		hlist_del(&(page_slot->page_item->hlist));	// 都将他删除
 
 		// 递归释放所有的rmap_item对象
 		free_all_rmap_item_of_node(page_slot->page_item);
@@ -952,192 +964,192 @@ stale:
 // 	return NULL;
 // }
 
-/*
- * Removing rmap_item from stable or unstable tree.
- * This function will clean the information from the stable/unstable tree.
- */
-static void remove_rmap_item_from_tree(struct rmap_item *rmap_item)
-{
-	printk("PKSM : remove_rmap_item_from_tree evoked\n");
+// /*
+//  * Removing rmap_item from stable or unstable tree.
+//  * This function will clean the information from the stable/unstable tree.
+//  */
+// static void remove_rmap_item_from_tree(struct rmap_item *rmap_item)
+// {
+// 	printk("PKSM : remove_rmap_item_from_tree evoked\n");
 
-// 	if (rmap_item->address & STABLE_FLAG) {
-// 		struct stable_node *stable_node;
-// 		struct page *page;
+// // 	if (rmap_item->address & STABLE_FLAG) {
+// // 		struct stable_node *stable_node;
+// // 		struct page *page;
 
-// 		stable_node = rmap_item->head;
-// 		page = get_ksm_page(stable_node, true);
-// 		if (!page)
-// 			goto out;
+// // 		stable_node = rmap_item->head;
+// // 		page = get_ksm_page(stable_node, true);
+// // 		if (!page)
+// // 			goto out;
 
-// 		hlist_del(&rmap_item->hlist);
-// 		unlock_page(page);
-// 		put_page(page);
+// // 		hlist_del(&rmap_item->hlist);
+// // 		unlock_page(page);
+// // 		put_page(page);
 
-// 		if (stable_node->hlist.first)
-// 			ksm_pages_sharing--;
-// 		else
-// 			ksm_pages_shared--;
+// // 		if (stable_node->hlist.first)
+// // 			ksm_pages_sharing--;
+// // 		else
+// // 			ksm_pages_shared--;
 
-// 		put_anon_vma(rmap_item->anon_vma);
-// 		rmap_item->address &= PAGE_MASK;
+// // 		put_anon_vma(rmap_item->anon_vma);
+// // 		rmap_item->address &= PAGE_MASK;
 
-// 	} else if (rmap_item->address & UNSTABLE_FLAG) {
-// 		unsigned char age;
-// 		/*
-// 		 * Usually ksmd can and must skip the rb_erase, because
-// 		 * root_unstable_tree was already reset to RB_ROOT.
-// 		 * But be careful when an mm is exiting: do the rb_erase
-// 		 * if this rmap_item was inserted by this scan, rather
-// 		 * than left over from before.
-// 		 */
-// 		age = (unsigned char)(ksm_scan.seqnr - rmap_item->address);
-// 		BUG_ON(age > 1);
-// 		if (!age)
-// 			rb_erase(&rmap_item->node,
-// 				 root_unstable_tree + NUMA(rmap_item->nid));
-// 		ksm_pages_unshared--;
-// 		rmap_item->address &= PAGE_MASK;
-// 	}
-// out:
-// 	cond_resched();		/* we're called from many long loops */
-}
+// // 	} else if (rmap_item->address & UNSTABLE_FLAG) {
+// // 		unsigned char age;
+// // 		/*
+// // 		 * Usually ksmd can and must skip the rb_erase, because
+// // 		 * root_unstable_tree was already reset to RB_ROOT.
+// // 		 * But be careful when an mm is exiting: do the rb_erase
+// // 		 * if this rmap_item was inserted by this scan, rather
+// // 		 * than left over from before.
+// // 		 */
+// // 		age = (unsigned char)(ksm_scan.seqnr - rmap_item->address);
+// // 		BUG_ON(age > 1);
+// // 		if (!age)
+// // 			rb_erase(&rmap_item->node,
+// // 				 root_unstable_tree + NUMA(rmap_item->nid));
+// // 		ksm_pages_unshared--;
+// // 		rmap_item->address &= PAGE_MASK;
+// // 	}
+// // out:
+// // 	cond_resched();		/* we're called from many long loops */
+// }
 
-static void remove_trailing_rmap_items(struct mm_slot *mm_slot,
-				       struct rmap_item **rmap_list)
-{
-	printk("PKSM : remove_trailing_rmap_items evoked\n");
-	// while (*rmap_list) {
-	// 	struct rmap_item *rmap_item = *rmap_list;
-	// 	*rmap_list = rmap_item->rmap_list;
-	// 	remove_rmap_item_from_tree(rmap_item);
-	// 	free_rmap_item(rmap_item);
-	// }
-}
+// static void remove_trailing_rmap_items(struct mm_slot *mm_slot,
+// 				       struct rmap_item **rmap_list)
+// {
+// 	printk("PKSM : remove_trailing_rmap_items evoked\n");
+// 	// while (*rmap_list) {
+// 	// 	struct rmap_item *rmap_item = *rmap_list;
+// 	// 	*rmap_list = rmap_item->rmap_list;
+// 	// 	remove_rmap_item_from_tree(rmap_item);
+// 	// 	free_rmap_item(rmap_item);
+// 	// }
+// }
 
-/*
- * Though it's very tempting to unmerge rmap_items from stable tree rather
- * than check every pte of a given vma, the locking doesn't quite work for
- * that - an rmap_item is assigned to the stable tree after inserting ksm
- * page and upping mmap_sem.  Nor does it fit with the way we skip dup'ing
- * rmap_items from parent to child at fork time (so as not to waste time
- * if exit comes before the next scan reaches it).
- *
- * Similarly, although we'd like to remove rmap_items (so updating counts
- * and freeing memory) when unmerging an area, it's easier to leave that
- * to the next pass of ksmd - consider, for example, how ksmd might be
- * in cmp_and_merge_page on one of the rmap_items we would be removing.
- */
-static int unmerge_ksm_pages(struct vm_area_struct *vma,
-			     unsigned long start, unsigned long end)
-{
-	printk("PKSM : unmerge_ksm_pages evoked\n");
-	return 0;
+// /*
+//  * Though it's very tempting to unmerge rmap_items from stable tree rather
+//  * than check every pte of a given vma, the locking doesn't quite work for
+//  * that - an rmap_item is assigned to the stable tree after inserting ksm
+//  * page and upping mmap_sem.  Nor does it fit with the way we skip dup'ing
+//  * rmap_items from parent to child at fork time (so as not to waste time
+//  * if exit comes before the next scan reaches it).
+//  *
+//  * Similarly, although we'd like to remove rmap_items (so updating counts
+//  * and freeing memory) when unmerging an area, it's easier to leave that
+//  * to the next pass of ksmd - consider, for example, how ksmd might be
+//  * in cmp_and_merge_page on one of the rmap_items we would be removing.
+//  */
+// static int unmerge_ksm_pages(struct vm_area_struct *vma,
+// 			     unsigned long start, unsigned long end)
+// {
+// 	printk("PKSM : unmerge_ksm_pages evoked\n");
+// 	return 0;
 
-	// unsigned long addr;
-	// int err = 0;
+// 	// unsigned long addr;
+// 	// int err = 0;
 
-	// for (addr = start; addr < end && !err; addr += PAGE_SIZE) {
-	// 	if (ksm_test_exit(vma->vm_mm))
-	// 		break;
-	// 	if (signal_pending(current))
-	// 		err = -ERESTARTSYS;
-	// 	else
-	// 		err = break_ksm(vma, addr);
-	// }
-	// return err;
-}
+// 	// for (addr = start; addr < end && !err; addr += PAGE_SIZE) {
+// 	// 	if (ksm_test_exit(vma->vm_mm))
+// 	// 		break;
+// 	// 	if (signal_pending(current))
+// 	// 		err = -ERESTARTSYS;
+// 	// 	else
+// 	// 		err = break_ksm(vma, addr);
+// 	// }
+// 	// return err;
+// }
 
 #ifdef CONFIG_SYSFS
 /*
  * Only called through the sysfs control interface:
  */
 
-// 把一个stable_table的节点移除
-static int remove_stable_node(struct pksm_hash_node *pksm_hash_node)
-{
+// // 把一个stable_table的节点移除
+// static int remove_stable_node(struct pksm_hash_node *pksm_hash_node)
+// {
 
-	printk("PKSM : remove_stable_node evoked\n");
+// 	printk("PKSM : remove_stable_node evoked\n");
 	
-	return 0;
-	// struct page *page;
-	// int err;
+// 	return 0;
+// 	// struct page *page;
+// 	// int err;
 
-	// page = get_pksm_page(pksm_hash_node, true);
-	// if (!page) {
-	// 	/*
-	// 	 * get_ksm_page did remove_node_from_stable_tree itself.
-	// 	 */
-	// 	return 0;
-	// }
+// 	// page = get_pksm_page(pksm_hash_node, true);
+// 	// if (!page) {
+// 	// 	/*
+// 	// 	 * get_ksm_page did remove_node_from_stable_tree itself.
+// 	// 	 */
+// 	// 	return 0;
+// 	// }
 
-	// if (WARN_ON_ONCE(page_mapped(page))) {
-	// 	/*
-	// 	 * This should not happen: but if it does, just refuse to let
-	// 	 * merge_across_nodes be switched - there is no need to panic.
-	// 	 */
-	// 	err = -EBUSY;
-	// } else {
-	// 	/*
-	// 	 * The stable node did not yet appear stale to get_ksm_page(),
-	// 	 * since that allows for an unmapped ksm page to be recognized
-	// 	 * right up until it is freed; but the node is safe to remove.
-	// 	 * This page might be in a pagevec waiting to be freed,
-	// 	 * or it might be PageSwapCache (perhaps under writeback),
-	// 	 * or it might have been removed from swapcache a moment ago.
-	// 	 */
-	// 	set_page_stable_node(page, NULL);
-	// 	remove_node_from_hashlist(pksm_hash_node);
-	// 	err = 0;
-	// }
+// 	// if (WARN_ON_ONCE(page_mapped(page))) {
+// 	// 	/*
+// 	// 	 * This should not happen: but if it does, just refuse to let
+// 	// 	 * merge_across_nodes be switched - there is no need to panic.
+// 	// 	 */
+// 	// 	err = -EBUSY;
+// 	// } else {
+// 	// 	/*
+// 	// 	 * The stable node did not yet appear stale to get_ksm_page(),
+// 	// 	 * since that allows for an unmapped ksm page to be recognized
+// 	// 	 * right up until it is freed; but the node is safe to remove.
+// 	// 	 * This page might be in a pagevec waiting to be freed,
+// 	// 	 * or it might be PageSwapCache (perhaps under writeback),
+// 	// 	 * or it might have been removed from swapcache a moment ago.
+// 	// 	 */
+// 	// 	set_page_stable_node(page, NULL);
+// 	// 	remove_node_from_hashlist(pksm_hash_node);
+// 	// 	err = 0;
+// 	// }
 
-	// unlock_page(page);
-	// put_page(page);
-	// return err;
-}
+// 	// unlock_page(page);
+// 	// put_page(page);
+// 	// return err;
+// }
 
-// 遍历stable_table删除里面node
-static int remove_all_stable_nodes(void)
-{
-	printk("PKSM : remove_all_stable_nodes evoked\n");
+// // 遍历stable_table删除里面node
+// static int remove_all_stable_nodes(void)
+// {
+// 	printk("PKSM : remove_all_stable_nodes evoked\n");
 	
-	return 0;
+// 	return 0;
 
-	// struct pksm_hash_node *stable_node;
-	// struct list_head *this, *next;
-	// int err = 0;
-	// int idx;
+// 	// struct pksm_hash_node *stable_node;
+// 	// struct list_head *this, *next;
+// 	// int err = 0;
+// 	// int idx;
 
-	// for(idx = 0; idx < PAGE_HASH_MASK; ++idx){
-	// 	hlist_for_each_entry(stable_node, &(stable_hash_table[idx]), hlist){
-	// 		if (remove_stable_node(stable_node)) {
-	// 			err = -EBUSY;
-	// 			break;	/* proceed to next nid */
-	// 		}
-	// 		cond_resched();
-	// 	}
-	// }
+// 	// for(idx = 0; idx < PAGE_HASH_MASK; ++idx){
+// 	// 	hlist_for_each_entry(stable_node, &(stable_hash_table[idx]), hlist){
+// 	// 		if (remove_stable_node(stable_node)) {
+// 	// 			err = -EBUSY;
+// 	// 			break;	/* proceed to next nid */
+// 	// 		}
+// 	// 		cond_resched();
+// 	// 	}
+// 	// }
 
-	// return err;
-}
+// 	// return err;
+// }
 
-static int unmerge_and_remove_all_rmap_items(void)
-{
-	printk("PKSM : unmerge_and_remove_all_rmap_items evoked\n");
+// static int unmerge_and_remove_all_rmap_items(void)
+// {
+// 	printk("PKSM : unmerge_and_remove_all_rmap_items evoked\n");
 
-	return 0;
-}
+// 	return 0;
+// }
 #endif /* CONFIG_SYSFS */
 
-static u32 calc_checksum(struct page *page)
-{
-	printk("PKSM : calc_checksum evoked");
-	return 0;
-	// u32 checksum;
-	// void *addr = kmap_atomic(page);
-	// checksum = jhash2(addr, PAGE_SIZE / 4, 17);
-	// kunmap_atomic(addr);
-	// return checksum;
-}
+// static u32 calc_checksum(struct page *page)
+// {
+// 	printk("PKSM : calc_checksum evoked");
+// 	return 0;
+// 	// u32 checksum;
+// 	// void *addr = kmap_atomic(page);
+// 	// checksum = jhash2(addr, PAGE_SIZE / 4, 17);
+// 	// kunmap_atomic(addr);
+// 	// return checksum;
+// }
 
 static int memcmp_pages(struct page *page1, struct page *page2)
 {
@@ -1379,7 +1391,7 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 		pksm_rmap_item->mm = vma->vm_mm;
 		pksm_rmap_item->address = address;
 
-		hlist_add_head(pksm_hash_node->rmap_list, pksm_rmap_item->hlist);
+		hlist_add_head(&(pksm_hash_node->rmap_list), &(pksm_rmap_item->hlist));
 	}
 
 	unlock_page(page);
@@ -1391,6 +1403,12 @@ out:
 	}
 }
 
+// 模仿的rmap.c/try_to_unmap函数搞得rwc，不想多include了，就额外实现一个
+static int pksm_page_not_mapped(struct page *page)
+{
+	return !page_mapped(page);
+};
+
 /*
  * pksm中实际merge两个page的函数
  * 是try_to_merge_one_page的反向映射迭代入口
@@ -1399,18 +1417,26 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 {
 	// TODO: 暂时先不用kalloc
 	struct rmap_process_wrapper rmap_process_wrapper = {pksm_hash_node, kpage};
+	int ret;
+
+	// TODO: 下面的两个分支里存在代码冗余
 
 	if(kpage != NULL){	// 对应真实归并的情况
-		int ret;
 		// 因为这里的rmap处理逻辑和unmap基本相同
 		// 只是增加了释放映射后重映射的操作
 		// 因此基本上采用了try_to_unmap的结构
 		struct rmap_walk_control rwc = {
 			.rmap_one = try_to_merge_one_page,
 			.arg = (void *)(&rmap_process_wrapper),
-			.done = page_not_mapped,
+			.done = pksm_page_not_mapped,
 			.anon_lock = page_lock_anon_vma_read,
 		};
+
+		ret = rmap_walk(page, &rwc);
+
+		if (ret != SWAP_MLOCK && !page_mapped(page))
+			ret = SWAP_SUCCESS;
+		return ret;
 		
 	}else{	// 对应将page置为ksm的情况
 		/* TODO: 原则上这里只用对一个vma操作一下就可以了，但是我不会，所以就先这样
@@ -1426,13 +1452,15 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 								//? 那这样子的话后续merge_pksm的操作不是会导致anon_vma的重复添加吗 
 			.anon_lock = page_lock_anon_vma_read,
 		};
+
+		ret = rmap_walk(page, &rwc);
+
+		if (ret != SWAP_MLOCK && !page_mapped(page))
+			ret = SWAP_SUCCESS;
+		return ret;
 	}
 
-	ret = rmap_walk(page, &rwc);
-
-	if (ret != SWAP_MLOCK && !page_mapped(page))
-		ret = SWAP_SUCCESS;
-	return ret;
+	
 }
 
 /**
@@ -1443,6 +1471,8 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 static int try_to_set_this_pksm_page(struct page_slot *page_slot, 
 					  struct page *page, struct pksm_hash_node *pksm_hash_node)
 {
+	int err;
+	
 	if(pksm_test_exit(page_slot)){
 		goto out;
 	}
@@ -1467,6 +1497,8 @@ out:
 static int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
 					  struct page *page, struct page *kpage)
 {
+	int err;
+
 	if(pksm_test_exit(page_slot)){
 		goto out;
 	}
@@ -1518,8 +1550,9 @@ out:
 // }
 
 static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, struct page *page, 
-							struct *table_page_slot, struct page *table_page, struct pksm_hash_node *pksm_hash_node)
+							struct page_slot *table_page_slot, struct page *table_page, struct pksm_hash_node *pksm_hash_node)
 {
+
 	int err;
 
 	err = try_to_set_this_pksm_page(page_slot, page, pksm_hash_node);
@@ -1572,6 +1605,8 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 {
 	struct pksm_hash_node *unstable_node;
 	struct hlist_node *nxt;
+	struct page *hash_page;
+	int ret;
 
 	hlist_for_each_entry_safe(unstable_node, nxt, &(unstable_hash_table[entryIndex]), hlist){
 		hash_page = get_pksm_page(unstable_node, false);
@@ -1589,14 +1624,16 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 
 	if(page_slot->page_item == NULL){
 		page_slot->page_item = alloc_hash_node();
-
+	}else{
+		printk("PKSM : bug occur, unstable_hash_search_insert with page_slot->page_item != NULL\n");
+		remove_node_from_hashlist(page_slot);
 	}
 
 	INIT_HLIST_HEAD(&(page_slot->page_item->rmap_list));
 
 	page_slot->page_item->page_slot = page_slot;
 
-	hlist_add_head(page_slot->page_item->hlist, &(unstable_hash_table[entryIndex]));
+	hlist_add_head(&(page_slot->page_item->hlist), &(unstable_hash_table[entryIndex]));
 
 	return NULL;
 }
@@ -1605,6 +1642,8 @@ static struct page *stable_hash_search(struct page *page, unsigned int entryInde
 {
 	struct pksm_hash_node *stable_node;
 	struct hlist_node *nxt;
+	struct page *hash_page;
+	int ret;
 
 	stable_node = page_stable_node(page);
 	if (stable_node) {			/* ksm page already */
@@ -1733,7 +1772,8 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 	unsigned int entryIndex;
 
 	if(kpage_slot->page_item != NULL){
-		free_hash_node(kpage_slot->page_item)
+		printk("PKSM : bug occur, stable_hash_insert with kpage_slot->page_item != NULL\n");
+		remove_node_from_hashlist(kpage_slot);
 	}
 
 	kpage_slot->page_item = pksm_hash_node;
@@ -1742,7 +1782,7 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 	cur_hash = cacl_superfasthash(kpage);
 	entryIndex = cur_hash & PAGE_HASH_MASK;
 
-	hlist_add_head(pksm_hash_node->hlist, &(stable_hash_table[entryIndex]));
+	hlist_add_head(&(pksm_hash_node->hlist), &(stable_hash_table[entryIndex]));
 	
 
 
@@ -1893,23 +1933,23 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 // 	return NULL;
 // }
 
-/*
- * stable_tree_append - add another rmap_item to the linked list of
- * rmap_items hanging off a given node of the stable tree, all sharing
- * the same ksm page.
- */
-static void stable_tree_append(struct rmap_item *rmap_item,
-			       struct stable_node *stable_node)
-{
-	rmap_item->head = stable_node;
-	rmap_item->address |= STABLE_FLAG;
-	hlist_add_head(&rmap_item->hlist, &stable_node->hlist);
+// /*
+//  * stable_tree_append - add another rmap_item to the linked list of
+//  * rmap_items hanging off a given node of the stable tree, all sharing
+//  * the same ksm page.
+//  */
+// static void stable_tree_append(struct rmap_item *rmap_item,
+// 			       struct stable_node *stable_node)
+// {
+// 	rmap_item->head = stable_node;
+// 	rmap_item->address |= STABLE_FLAG;
+// 	hlist_add_head(&rmap_item->hlist, &stable_node->hlist);
 
-	if (rmap_item->hlist.next)
-		ksm_pages_sharing++;
-	else
-		ksm_pages_shared++;
-}
+// 	if (rmap_item->hlist.next)
+// 		ksm_pages_sharing++;
+// 	else
+// 		ksm_pages_shared++;
+// }
 
 /*
  * 针对当前的page_slot对象对应的page结构寻找可以归并的归宿
@@ -1923,6 +1963,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 	struct page *unstable_page;
 	struct page_slot *table_page_slot;
 	struct pksm_hash_node *hash_node;
+	int err;
 
 	if(pksm_test_exit(cur_page_slot)){	//当前page已经离开
 		remove_node_from_hashlist(cur_page_slot);
@@ -1967,6 +2008,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 			INIT_HLIST_HEAD(&(hash_node->rmap_list));
 
 			kpage = pksm_try_to_merge_two_pages(cur_page_slot, cur_page, table_page_slot, unstable_page, hash_node);
+			// 这是cur_page已经变成pksm_page了
 			put_page(unstable_page);
 			if (kpage) {
 
@@ -1975,7 +2017,11 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 				stable_hash_insert(cur_page_slot, kpage, hash_node);
 				unlock_page(kpage);
 
-				cur_page_slot->invalid = true;
+				// invalid意味着页不再参与pksm->匿名页离开系统
+				// TODO: 要将已经完成归并的pksm页移出扫描对象队列中，但不能粗暴地通过invalid位来设置
+				// cur_page_slot->invalid = true;
+
+				// table_page_slot可以设置为invalid，因为原则上它*应该*已经不再被映射了才对
 				table_page_slot->invalid = true;
 
 				// if (!stable_node) {
@@ -2134,18 +2180,18 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 // 	return rmap_item;
 // }
 
-static struct page_slot *scan_get_next_page_slot()
+static struct page_slot *scan_get_next_page_slot(void)
 {
 	struct page_slot *slot;
 	struct page *cur_page;
 
-	if(list_empty(pksm_page_head)){
+	if(list_empty(&(pksm_page_head.page_list))){
 		return NULL;
 	}
 
 	slot = pksm_scan.page_slot;
 
-	if(slot == pksm_page_head){
+	if(slot == &pksm_page_head){
 		spin_lock(&pksm_pagelist_lock);
 		slot = list_entry(slot->page_list.next, struct page_slot, page_list);
 		pksm_scan.page_slot = slot;
@@ -2164,8 +2210,8 @@ static struct page_slot *scan_get_next_page_slot()
 	pksm_scan.page_slot = list_entry(slot->page_list.next, struct page_slot, page_list);
 
 	if(pksm_test_exit(slot)){
-		hash_del(&page_slot->link);			//从page -> page_slot映射表中删除
-		list_del(&page_slot->page_list);
+		hash_del(&slot->link);			//从page -> page_slot映射表中删除
+		list_del(&slot->page_list);
 		spin_unlock(&pksm_pagelist_lock);
 
 		remove_node_from_hashlist(slot);
@@ -2174,9 +2220,9 @@ static struct page_slot *scan_get_next_page_slot()
 	}else{
 		spin_unlock(&pksm_pagelist_lock);
 
-		if(valid_pksm_page(cur_page)){
+		// TODO: if(valid_pksm_page(cur_page)){
 			return slot;
-		} 
+		// } 
 	}
 
 	slot = pksm_scan.page_slot;
@@ -2405,7 +2451,7 @@ static int pksm_scan_thread(void *nothing)
 			schedule_timeout_interruptible(
 				msecs_to_jiffies(ksm_thread_sleep_millisecs));
 		} else {
-			wait_event_freezable(ksm_thread_wait,
+			wait_event_freezable(pksm_thread_wait,
 				pksmd_should_run() || kthread_should_stop());
 		}
 	}
@@ -2730,12 +2776,12 @@ out:
 }
 
 #ifdef CONFIG_MIGRATION
-// TODO: 暂时不杀
+// TODO: 暂时不杀 要杀的话注意头文件
 void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 {
 	printk("PKSM : ksm_migrate_page evoked\n");
 
-	struct stable_node *stable_node;
+	struct pksm_hash_node *stable_node;
 
 	VM_BUG_ON_PAGE(!PageLocked(oldpage), oldpage);
 	VM_BUG_ON_PAGE(!PageLocked(newpage), newpage);
@@ -2943,19 +2989,20 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 	if (pksm_run != flags) {
 		pksm_run = flags;
 		if (flags & PKSM_RUN_UNMERGE) {
-			set_current_oom_origin();
-			err = unmerge_and_remove_all_rmap_items();
-			clear_current_oom_origin();
-			if (err) {
-				pksm_run = PKSM_RUN_STOP;
-				count = err;
-			}
+			printk("PKSM : run_store PKSM_RUN_UNMERGE\n");
+			// set_current_oom_origin();
+			// err = unmerge_and_remove_all_rmap_items();
+			// clear_current_oom_origin();
+			// if (err) {
+			// 	pksm_run = PKSM_RUN_STOP;
+			// 	count = err;
+			// }
 		}
 	}
 	mutex_unlock(&pksm_thread_mutex);
 
 	if (flags & PKSM_RUN_MERGE)
-		wake_up_interruptible(&ksm_thread_wait);
+		wake_up_interruptible(&pksm_thread_wait);
 
 	return count;
 }
@@ -3060,11 +3107,11 @@ KSM_ATTR_RO(pages_volatile);
 static ssize_t full_scans_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", ksm_scan.seqnr);
+	return sprintf(buf, "%lu\n", pksm_scan.seqnr);
 }
 KSM_ATTR_RO(full_scans);
 
-static struct attribute *ksm_attrs[] = {
+static struct attribute *pksm_attrs[] = {
 	&sleep_millisecs_attr.attr,
 	&pages_to_scan_attr.attr,
 	&run_attr.attr,
@@ -3079,9 +3126,9 @@ static struct attribute *ksm_attrs[] = {
 	NULL,
 };
 
-static struct attribute_group ksm_attr_group = {
-	.attrs = ksm_attrs,
-	.name = "ksm",
+static struct attribute_group pksm_attr_group = {
+	.attrs = pksm_attrs,
+	.name = "pksm",
 };
 #endif /* CONFIG_SYSFS */
 

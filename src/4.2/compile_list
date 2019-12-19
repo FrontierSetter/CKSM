@@ -1,0 +1,28 @@
+mm/ksm.c:1576:2: note: in expansion of macro ‘hlist_for_each_entry_safe’
+  hlist_for_each_entry_safe(unstable_node, nxt, &(unstable_hash_table[entryIndex]), hlist){
+  ^
+In file included from include/linux/list.h:8:0,
+                 from include/linux/preempt.h:10,
+                 from include/linux/spinlock.h:50,
+                 from include/linux/mmzone.h:7,
+                 from include/linux/gfp.h:5,
+                 from include/linux/mm.h:9,
+                 from mm/ksm.c:18:
+include/linux/kernel.h:811:48: warning: initialization from incompatible pointer type [-Wincompatible-pointer-types]
+  const typeof( ((type *)0)->member ) *__mptr = (ptr); \
+                                                ^
+include/linux/list.h:688:40: note: in expansion of macro ‘container_of’
+ #define hlist_entry(ptr, type, member) container_of(ptr,type,member)
+                                        ^
+include/linux/list.h:699:15: note: in expansion of macro ‘hlist_entry’
+     ____ptr ? hlist_entry(____ptr, type, member) : NULL; \
+               ^
+include/linux/list.h:742:13: note: in expansion of macro ‘hlist_entry_safe’
+       pos = hlist_entry_safe(n, typeof(*pos), member))
+             ^
+mm/ksm.c:1576:2: note: in expansion of macro ‘hlist_for_each_entry_safe’
+  hlist_for_each_entry_safe(unstable_node, nxt, &(unstable_hash_table[entryIndex]), hlist){
+  ^
+
+--------------------------------------------------
+
