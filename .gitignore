@@ -9,3 +9,5 @@ Session.vim
 .vscode/**
 relatedwork/**
 workload/pytorch/data/**
+log/**
+!log/*.py
