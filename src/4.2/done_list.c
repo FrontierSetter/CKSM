@@ -125,7 +125,7 @@ pksm_scan_thread
 
 pksmd_should_run()
 
-pksm_do_scan
+pksm_do_scanf
 
 wait_while_offlining(); // 不用改（应该）
 
@@ -147,6 +147,9 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 编译的时候去掉了CONFIG_MEMORY_HOTREMOVE编译宏
 
 // TODO
+sudo echo 1 > run 写不进去
+
+pksm_new_anon_page调用太多？？
 
 stable_hash_insert里释放node
 pksm_cmp_and_merge_page里直接设为invalid
@@ -235,6 +238,12 @@ static void stable_tree_append(struct rmap_item *rmap_item,
 			       struct stable_node *stable_node)
 
 static LIST_HEAD(migrate_nodes);
+
+static struct vm_area_struct *find_mergeable_vma(struct mm_struct *mm,
+		unsigned long addr)
+
+static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
+
 
 // ? 关于pksm之后反向映射机制的兼容性
 在merge_with_pksm_page()的层次看不到vma

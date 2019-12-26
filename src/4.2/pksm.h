@@ -44,7 +44,8 @@ static inline void pksm_exit(struct page *page)
 
 // 这里改个名是为了模块内部命名的一致性，但是发现PageKsm在外部也被调用（毕竟是在.h文件里）
 // 所以两个都保留（很蠢，但是懒得改）
-static inline int PagePksm(struct page *page)
+// ? 这个东西会在rmap_walk作为函数对象使用，是不是不能inline？
+static int PagePksm(struct page *page)
 {
 	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==
 				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);

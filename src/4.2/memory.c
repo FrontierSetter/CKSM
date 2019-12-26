@@ -2715,6 +2715,9 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	inc_mm_counter_fast(mm, MM_ANONPAGES);
 	page_add_new_anon_rmap(page, vma, address);
+
+	pksm_new_anon_page(page);
+
 	mem_cgroup_commit_charge(page, memcg, false);
 	lru_cache_add_active_or_unevictable(page, vma);
 setpte:
@@ -2725,7 +2728,6 @@ setpte:
 unlock:
 	pte_unmap_unlock(page_table, ptl);
 
-	pksm_new_anon_page(page);
 
 	return 0;
 release:
