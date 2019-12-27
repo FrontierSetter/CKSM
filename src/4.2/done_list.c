@@ -315,3 +315,9 @@ pksm同理
 	但是这是完全不对的，因为此时释放的是进程的虚拟地址空间
 	而我们应该是当物理页被释放时才调用
 所以在put_page()->_put_single_page()->free_hot_cold_page()（page_alloc.c）中调用
+
+// ? 记录一下反向映射的宏
+#define SWAP_SUCCESS	0
+#define SWAP_AGAIN	1
+#define SWAP_FAIL	2
+#define SWAP_MLOCK	3

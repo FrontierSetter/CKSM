@@ -1353,23 +1353,33 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 	struct pksm_hash_node *pksm_hash_node = ((struct rmap_process_wrapper*)arg)->pksm_hash_node;
 	struct pksm_rmap_item *pksm_rmap_item;	
 
-	printk("PKSM : try_to_merge_one_page : page: %p, mm: %p, addr: %lu\n", page, vma->vm_mm, address);
-	printk("PKSM : try_to_merge_one_page : kpage: %p, hash_node: %p\n", kpage, pksm_hash_node);
-
-
 	pte_t orig_pte = __pte(0);
 	int err = -EFAULT;
 
+	printk("PKSM : try_to_merge_one_page : page: %p, mm: %p, addr: %lu\n", page, vma->vm_mm, address);
+	printk("PKSM : try_to_merge_one_page : kpage: %p, hash_node: %p\n", kpage, pksm_hash_node);
+
 	if (page == kpage)			/* ksm page forked */
 		return 0;
+	printk("PKSM : try_to_merge_one_page : 0.1\n");
+	
 
-	if (!(vma->vm_flags & VM_MERGEABLE))
-		goto out;
+	// 这里是ksm用于判断这个虚地址空间是否应该参与merge的标志
+	// pksm里不用，直接全部merge
+	// if (!(vma->vm_flags & VM_MERGEABLE))
+	// 	goto out;
+	// printk("PKSM : try_to_merge_one_page : 0.2\n");
+	
 	if (PageTransCompound(page) && page_trans_compound_anon_split(page))
 		goto out;
+	printk("PKSM : try_to_merge_one_page : 0.3\n");
+	
 	BUG_ON(PageTransCompound(page));
 	if (!PageAnon(page))
 		goto out;
+
+	printk("PKSM : try_to_merge_one_page : 0.4\n");
+	
 
 	/*
 	 * We need the page lock to read a stable PageSwapCache in
@@ -1426,6 +1436,8 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 
 	unlock_page(page);
 out:
+	printk("PKSM : try_to_merge_one_page : out err = %d\n", err);
+
 	if(err == 0){			// err==0代表操作成功
 		return SWAP_AGAIN;	// 反向映射模块定义的标志字段，代表此次操作成功，继续遍历
 	}else{
@@ -1506,6 +1518,7 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 			ret = SWAP_SUCCESS;
 
 		printk("PKSM : pksm_try_to_merge_one_page : set_result: %d\n", ret);
+		printk("PKSM : pksm_try_to_merge_one_page : after PagePksm(%p)=%d\n", page, PagePksm(page));
 
 		return ret;
 	}
@@ -1524,8 +1537,12 @@ static int try_to_set_this_pksm_page(struct page_slot *page_slot,
 	int err = -EFAULT;
 	
 	if(pksm_test_exit(page_slot)){
+		printk("PKSM : try_to_set_this_pksm_page : page_exit slot: %p\n", page_slot);
 		goto out;
 	}
+
+	printk("PKSM : try_to_set_this_pksm_page : slot: %p, page: %p, node: %p\n", page_slot, page, pksm_hash_node);
+
 
 	err = pksm_try_to_merge_one_page(page, NULL, pksm_hash_node);
 	if(err){
@@ -1610,6 +1627,12 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 	printk("PKSM : pksm_try_to_merge_two_pages : major: %p -> %p, minor: %p -> %p, stable_node: %p\n", \
 		page_slot, page, table_page_slot, table_page, pksm_hash_node);
 
+	printk("PKSM : pksm_try_to_merge_two_pages : begin_with major: page:%p count:%d mapcount:%d mapping:%p\n", \
+			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
+
+	printk("PKSM : pksm_try_to_merge_two_pages : begin_with minor: page:%p count:%d mapcount:%d mapping:%p\n", \
+			table_page, atomic_read(&table_page->_count), page_mapcount(table_page), table_page->mapping);
+
 	err = try_to_set_this_pksm_page(page_slot, page, pksm_hash_node);
 	if (!err) {
 		err = try_to_merge_with_pksm_page(table_page_slot,
@@ -1618,9 +1641,17 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 		 * If that fails, we have a ksm page with only one pte
 		 * pointing to it: so break it.
 		 */
-		if (err)
+		if (err){
 			break_cow();
+		}
 	}
+
+	printk("PKSM : pksm_try_to_merge_two_pages : end_with major: page:%p count:%d mapcount:%d mapping:%p\n", \
+			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
+
+	printk("PKSM : pksm_try_to_merge_two_pages : end_with minor: page:%p count:%d mapcount:%d mapping:%p\n", \
+			table_page, atomic_read(&table_page->_count), page_mapcount(table_page), table_page->mapping);
+
 	return err ? NULL : page;
 }
 
@@ -2133,6 +2164,11 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 				// if (!stable_node) {
 				// 	break_cow();
 				// }
+
+				printk("PKSM : pksm_cmp_and_merge_page : kpage: %p, table_slot: %p, invalid: %d\n", kpage, table_page_slot, table_page_slot->invalid);
+
+				// ++pksm_page_shared;
+
 			}
 
 		}
