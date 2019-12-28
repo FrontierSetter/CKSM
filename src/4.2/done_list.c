@@ -147,6 +147,18 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 编译的时候去掉了CONFIG_MEMORY_HOTREMOVE编译宏
 
 // TODO
+PagePksm因为函数对象的关系不是inline的
+在代码里调用的时候可以用PageKsm代替
+
+page_sharing的统计是不准确的，因为可能存在用户进程释放了pte但是pksm系统并不知悉
+
+try_to_set_this_pksm_page会失败
+当get_pksm_page里的断点去掉之后？？？12-28-2/3
+加上断点之后就正常？？？12-28-4
+
+
+get_pksm_page里kpfn和slot->page对应的page不一样
+
 sudo echo 1 > run 写不进去
 
 pksm_new_anon_page调用太多？？

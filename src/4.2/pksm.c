@@ -166,11 +166,9 @@ static unsigned long pksm_pages_shared;
 /* The number of page slots additionally sharing those nodes */
 static unsigned long pksm_pages_sharing;
 
-/* The number of nodes in the unstable tree */
-static unsigned long pksm_pages_unshared;
+static unsigned long pksm_pages_inlist;
 
-/* The number of rmap_items in use: to calculate pages_volatile */
-static unsigned long ksm_rmap_items;
+static unsigned long pksm_node_items;
 
 /* Number of pages ksmd should scan in one batch */
 static unsigned int ksm_thread_pages_to_scan = 100;
@@ -322,24 +320,28 @@ static inline void free_pksm_rmap_item(struct pksm_rmap_item *pksm_rmap_item)
 
 static inline struct pksm_hash_node *alloc_hash_node(void)
 {
+	++pksm_node_items;
 	return kmem_cache_alloc(pksm_hash_node_cache, GFP_KERNEL);
 }
 
 static inline void free_hash_node(struct pksm_hash_node *pksm_hash_node)
 {
 	kmem_cache_free(pksm_hash_node_cache, pksm_hash_node);
+	--pksm_node_items;
 }
 
 static inline struct page_slot *alloc_page_slot(void)
 {
 	if (!page_slot_cache)	/* initialization failed */
 		return NULL;
+	++pksm_pages_inlist;
 	return kmem_cache_zalloc(page_slot_cache, GFP_KERNEL);
 }
 
 static inline void free_page_slot(struct page_slot *page_slot)
 {
 	kmem_cache_free(page_slot_cache, page_slot);
+	--pksm_pages_inlist;
 }
 
 static struct page_slot *get_page_slot(struct page *page)
@@ -388,8 +390,12 @@ static struct page *page_trans_compound_anon(struct page *page)
 static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_node){
 	struct pksm_rmap_item* pksm_rmap_item;
 	struct hlist_node *nxt;
-	hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
-		free_pksm_rmap_item(pksm_rmap_item);
+	if(!hlist_empty(&(pksm_hash_node->rmap_list))){
+		hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
+			free_pksm_rmap_item(pksm_rmap_item);
+			--pksm_pages_sharing;
+		}
+		--pksm_pages_shared;
 	}
 }
 
@@ -442,7 +448,19 @@ again:
 
 	printk("PKSM : get_pksm_page : kpfn: %lu\n", kpfn);
 	printk("PKSM : get_pksm_page : node: %p, page: %p\n", stable_node, page);
-	printk("PKSM : get_pksm_page : slot: %p, page: %p\n", stable_node->page_slot, stable_node->page_slot->physical_page);
+	if(stable_node != NULL){
+		printk("PKSM : get_pksm_page : slot: %p\n", stable_node->page_slot);
+		if(stable_node->page_slot != NULL){
+			printk("PKSM : get_pksm_page : page: %p, node: %p\n", stable_node->page_slot->physical_page, stable_node->page_slot->page_item);
+		}else{
+			printk("PKSM : get_pksm_page : page_slot=null\n");
+			
+		}
+	}else{
+		printk("PKSM : get_pksm_page : stable_node=null\n");
+		
+	}
+	
 
 	printk("PKSM : get_pksm_page : 1\n");
 	/*
@@ -621,6 +639,8 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	unsigned long mmun_start;	/* For mmu_notifiers */
 	unsigned long mmun_end;		/* For mmu_notifiers */
 
+	// printk("PKSM : replafe_page evoked\n");
+
 	addr = page_address_in_vma(page, vma);
 	if (addr == -EFAULT)
 		goto out;
@@ -710,7 +730,7 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 
 	if (page == kpage)			/* ksm page forked */
 		return 0;
-	printk("PKSM : try_to_merge_one_page : 0.1\n");
+	// printk("PKSM : try_to_merge_one_page : 0.1\n");
 	
 
 	// 这里是ksm用于判断这个虚地址空间是否应该参与merge的标志
@@ -721,13 +741,13 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 	
 	if (PageTransCompound(page) && page_trans_compound_anon_split(page))
 		goto out;
-	printk("PKSM : try_to_merge_one_page : 0.3\n");
+	// printk("PKSM : try_to_merge_one_page : 0.3\n");
 	
 	BUG_ON(PageTransCompound(page));
 	if (!PageAnon(page))
 		goto out;
 
-	printk("PKSM : try_to_merge_one_page : 0.4\n");
+	// printk("PKSM : try_to_merge_one_page : 0.4\n");
 	
 
 	/*
@@ -745,15 +765,22 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 	 * ptes are necessarily already write-protected.  But in either
 	 * case, we need to lock and check page_count is not raised.
 	 */
-	printk("PKSM : try_to_merge_one_page : 1\n");
+	// printk("PKSM : try_to_merge_one_page : 1\n");
 	if (write_protect_page(vma, page, &orig_pte) == 0) {
 		if (!kpage) {
 			set_page_stable_node(page, pksm_hash_node);	// 因为我们此时已经知道hash_node了，所以直接set到page里
 														// 但是原则上属于破坏了我们正在循环遍历的结构，不知道会不会出问题
 			mark_page_accessed(page);
 			err = 0;
-		} else if (pages_identical(page, kpage))
-			err = replace_page(vma, page, kpage, orig_pte);
+		} else{
+			if (pages_identical(page, kpage)){
+				err = replace_page(vma, page, kpage, orig_pte);
+				printk("PKSM : try_to_merge_one_page : replace_page out: %d\n", err);
+
+			}else{
+				printk("PKSM : try_to_merge_one_page : not_identical\n");
+			}
+		}
 	}
 
 	printk("PKSM : try_to_merge_one_page : err = %d\n", err);
@@ -769,7 +796,7 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 		}
 	}
 
-	printk("PKSM : try_to_merge_one_page : 2\n");
+	// printk("PKSM : try_to_merge_one_page : 2\n");
 
 	if(err == 0){
 		printk("PKSM : try_to_merge_one_page : 3\n");
@@ -788,6 +815,7 @@ out:
 	printk("PKSM : try_to_merge_one_page : out err = %d\n", err);
 
 	if(err == 0){			// err==0代表操作成功
+		++pksm_pages_sharing;
 		return SWAP_AGAIN;	// 反向映射模块定义的标志字段，代表此次操作成功，继续遍历
 	}else{
 		return SWAP_FAIL;	// 此次操作失败，反向映射遍历终止
@@ -832,7 +860,7 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 		if (ret != SWAP_MLOCK && !page_mapped(page))
 			ret = SWAP_SUCCESS;
 
-		printk("PKSM : pksm_try_to_merge_one_page : merge_result: %d\n", ret);
+		// printk("PKSM : pksm_try_to_merge_one_page : merge_result: %d\n", ret);
 
 
 		return ret;
@@ -860,7 +888,7 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 
 		ret = rmap_walk(page, &rwc);
 
-		printk("PKSM : pksm_try_to_merge_one_page : set_result_raw: %d\n", ret);
+		// printk("PKSM : pksm_try_to_merge_one_page : set_result_raw: %d\n", ret);
 
 		// if (ret != SWAP_MLOCK && !page_mapped(page))
 		if (ret != SWAP_MLOCK)
@@ -890,6 +918,11 @@ static int try_to_set_this_pksm_page(struct page_slot *page_slot,
 		goto out;
 	}
 
+	if(PagePksm(page)){
+		printk("PKSM : try_to_set_this_pksm_page : already pksm\n");
+		goto out;
+	}
+
 	printk("PKSM : try_to_set_this_pksm_page : slot: %p, page: %p, node: %p\n", page_slot, page, pksm_hash_node);
 
 
@@ -907,6 +940,8 @@ static int try_to_set_this_pksm_page(struct page_slot *page_slot,
 	// 原则上这里应该不需要锁
 	pksm_hash_node->kpfn = page_to_pfn(page);
 
+	++pksm_pages_shared;
+
 out:
 	return err;
 }
@@ -916,6 +951,14 @@ static int try_to_merge_with_pksm_page(struct page_slot *page_slot,
 {
 	int err = -EFAULT;
 
+	printk("PKSM : try_to_merge_with_pksm_page : slot: %p, page: %p, kpage: %p\n", page_slot, page, kpage);
+
+	printk("PKSM : try_to_merge_with_pksm_page : begin_with major: page:%p count:%d mapcount:%d mapping:%p\n", \
+			kpage, atomic_read(&kpage->_count), page_mapcount(kpage), kpage->mapping);
+	
+	printk("PKSM : try_to_merge_with_pksm_page : begin_with minor: page:%p count:%d mapcount:%d mapping:%p\n", \
+			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
+	
 	if(pksm_test_exit(page_slot)){
 		goto out;
 	}
@@ -926,7 +969,14 @@ static int try_to_merge_with_pksm_page(struct page_slot *page_slot,
 		goto out;
 	}
 
+	printk("PKSM : try_to_merge_with_pksm_page : end_with major: page:%p count:%d mapcount:%d mapping:%p\n", \
+			kpage, atomic_read(&kpage->_count), page_mapcount(kpage), kpage->mapping);
+	
+	printk("PKSM : try_to_merge_with_pksm_page : end_with minor: page:%p count:%d mapcount:%d mapping:%p\n", \
+			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
+
 	remove_node_from_hashlist(page_slot);
+
 
 out:
 	return err;
@@ -1045,21 +1095,38 @@ static struct page *stable_hash_search(struct page *page, unsigned int entryInde
 	struct hlist_node *nxt;
 	struct page *hash_page;
 	int ret;
+	int cnt_bucket = 0;
+
+
+	printk("PKSM : stable_hash_search evoked : entryIndex = %u\n", entryIndex);
 
 	stable_node = page_stable_node(page);
+
+	printk("PKSM : stable_hash_search : page: %p, node: %p\n", page, stable_node);
+
 	if (stable_node) {			/* ksm page already */
 		get_page(page);
 		return page;
 	}
 
 	hlist_for_each_entry_safe(stable_node, nxt, &(stable_hash_table[entryIndex]), hlist){
+		printk("PKSM : stable_hash_search : stable_node:%p\n", stable_node);
+		
 		hash_page = get_pksm_page(stable_node, false);
+
+		++cnt_bucket;
+
 		if(!hash_page){
 			continue;
 		}
+
+		printk("PKSM : stable_hash_search : get_page: %p\n", hash_page);
+		
 		ret = memcmp_pages(page, hash_page);
-		if (ret == 0)
+		if (ret == 0){
+			printk("PKSM : stable_hash_search found at %d\n", cnt_bucket);
 			return hash_page;
+		}
 
 		put_page(hash_page);
 	}
@@ -1076,6 +1143,8 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 	}
 
 	kpage_slot->page_item = pksm_hash_node;
+	pksm_hash_node->page_slot = kpage_slot;
+
 
 	// 重新计算当前页面的哈希值
 	cur_hash = cacl_superfasthash(kpage);
@@ -1097,6 +1166,8 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 	struct pksm_hash_node *hash_node;
 	int err;
 	struct page_slot *table_page_slot = NULL;
+
+	printk("PKSM : pksm_cmp_and_merge_page evoked\n");
 
 	if(pksm_test_exit(cur_page_slot)){	//当前page已经离开
 		remove_node_from_hashlist(cur_page_slot);
@@ -1844,26 +1915,35 @@ PKSM_ATTR_RO(pages_sharing);
 static ssize_t pages_unshared_show(struct kobject *kobj,
 				   struct kobj_attribute *attr, char *buf)
 {
+	long pksm_pages_unshared;
+	pksm_pages_unshared = pksm_node_items-pksm_pages_shared;
 	return sprintf(buf, "%lu\n", pksm_pages_unshared);
 }
 PKSM_ATTR_RO(pages_unshared);
 
-static ssize_t pages_volatile_show(struct kobject *kobj,
+static ssize_t pages_inlist_show(struct kobject *kobj,
 				   struct kobj_attribute *attr, char *buf)
 {
-	long ksm_pages_volatile;
-
-	ksm_pages_volatile = ksm_rmap_items - pksm_pages_shared
-				- pksm_pages_sharing - pksm_pages_unshared;
-	/*
-	 * It was not worth any locking to calculate that statistic,
-	 * but it might therefore sometimes be negative: conceal that.
-	 */
-	if (ksm_pages_volatile < 0)
-		ksm_pages_volatile = 0;
-	return sprintf(buf, "%ld\n", ksm_pages_volatile);
+	return sprintf(buf, "%lu\n", pksm_pages_inlist);
 }
-PKSM_ATTR_RO(pages_volatile);
+PKSM_ATTR_RO(pages_inlist);
+
+// static ssize_t pages_volatile_show(struct kobject *kobj,
+// 				   struct kobj_attribute *attr, char *buf)
+// {
+// 	long pksm_pages_volatile;
+
+// 	pksm_pages_volatile = ksm_rmap_items - pksm_pages_shared
+// 				- pksm_pages_sharing - pksm_pages_unshared;
+// 	/*
+// 	 * It was not worth any locking to calculate that statistic,
+// 	 * but it might therefore sometimes be negative: conceal that.
+// 	 */
+// 	if (ksm_pages_volatile < 0)
+// 		ksm_pages_volatile = 0;
+// 	return sprintf(buf, "%ld\n", ksm_pages_volatile);
+// }
+// PKSM_ATTR_RO(pages_volatile);
 
 static ssize_t full_scans_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
@@ -1879,7 +1959,8 @@ static struct attribute *pksm_attrs[] = {
 	&pages_shared_attr.attr,
 	&pages_sharing_attr.attr,
 	&pages_unshared_attr.attr,
-	&pages_volatile_attr.attr,
+	&pages_inlist_attr.attr,
+	// &pages_volatile_attr.attr,
 	&full_scans_attr.attr,
 #ifdef CONFIG_NUMA
 	&merge_across_nodes_attr.attr,
