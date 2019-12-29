@@ -43,6 +43,12 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
+// #define VERBOS_GET_PKSM_PAGE
+// #define VERBOS_TRY_TO_MERGE_ONE_PAGE
+// #define MANUAL_PAGE_ADD
+// #define VERBOS_PKSM_EXIT
+// #define VERBOS_PKSM_NEW_ANON_PAGE
+
 #ifdef CONFIG_NUMA
 #define NUMA(x)		(x)
 #define DO_NUMA(x)	do { (x); } while (0)
@@ -446,6 +452,7 @@ again:
 	kpfn = READ_ONCE(stable_node->kpfn);
 	page = pfn_to_page(kpfn);
 
+#ifdef VERBOS_GET_PKSM_PAGE
 	printk("PKSM : get_pksm_page : kpfn: %lu\n", kpfn);
 	printk("PKSM : get_pksm_page : node: %p, page: %p\n", stable_node, page);
 	if(stable_node != NULL){
@@ -460,20 +467,26 @@ again:
 		printk("PKSM : get_pksm_page : stable_node=null\n");
 		
 	}
-	
+#endif
 
+#ifdef VERBOS_GET_PKSM_PAGE
 	printk("PKSM : get_pksm_page : 1\n");
+#endif
 	/*
 	 * page is computed from kpfn, so on most architectures reading
 	 * page->mapping is naturally ordered after reading node->kpfn,
 	 * but on Alpha we need to be more careful.
 	 */
 	smp_read_barrier_depends();
+#ifdef VERBOS_GET_PKSM_PAGE
 	printk("PKSM : get_pksm_page : 1.1 : page_mapping: %p, expect_mappint: %p\n", page->mapping, expected_mapping);
+#endif
 	if (READ_ONCE(page->mapping) != expected_mapping)
 		goto stale;
 
+#ifdef VERBOS_GET_PKSM_PAGE
 	printk("PKSM : get_pksm_page : 2\n");
+#endif
 
 	/*
 	 * We cannot do anything with the page while its refcount is 0.
@@ -497,14 +510,18 @@ again:
 			goto stale;
 		cpu_relax();
 	}
+#ifdef VERBOS_GET_PKSM_PAGE
 	printk("PKSM : get_pksm_page : 3\n");
+#endif
 
 
 	if (READ_ONCE(page->mapping) != expected_mapping) {
 		put_page(page);
 		goto stale;
 	}
+#ifdef VERBOS_GET_PKSM_PAGE
 	printk("PKSM : get_pksm_page : 4\n");
+#endif
 
 
 	if (lock_it) {
@@ -515,7 +532,9 @@ again:
 			goto stale;
 		}
 	}
+#ifdef VERBOS_GET_PKSM_PAGE
 	printk("PKSM : get_pksm_page : 5\n");
+#endif
 
 	return page;
 
@@ -526,7 +545,9 @@ stale:
 	 * We need smp_rmb(), matching the smp_wmb() in ksm_migrate_page(),
 	 * before checking whether node->kpfn has been changed.
 	 */
+#ifdef VERBOS_GET_PKSM_PAGE
 	printk("PKSM : get_pksm_page : page staled\n");
+#endif
 	smp_rmb();
 	if (READ_ONCE(stable_node->kpfn) != kpfn)
 		goto again;
@@ -725,29 +746,39 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 	pte_t orig_pte = __pte(0);
 	int err = -EFAULT;
 
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
 	printk("PKSM : try_to_merge_one_page : page: %p, mm: %p, addr: %lu\n", page, vma->vm_mm, address);
 	printk("PKSM : try_to_merge_one_page : kpage: %p, hash_node: %p\n", kpage, pksm_hash_node);
+#endif
 
 	if (page == kpage)			/* ksm page forked */
 		return 0;
-	// printk("PKSM : try_to_merge_one_page : 0.1\n");
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
+	printk("PKSM : try_to_merge_one_page : 0.1\n");
+#endif
 	
 
 	// 这里是ksm用于判断这个虚地址空间是否应该参与merge的标志
 	// pksm里不用，直接全部merge
 	// if (!(vma->vm_flags & VM_MERGEABLE))
 	// 	goto out;
-	// printk("PKSM : try_to_merge_one_page : 0.2\n");
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
+	printk("PKSM : try_to_merge_one_page : 0.2\n");
+#endif
 	
 	if (PageTransCompound(page) && page_trans_compound_anon_split(page))
 		goto out;
-	// printk("PKSM : try_to_merge_one_page : 0.3\n");
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
+	printk("PKSM : try_to_merge_one_page : 0.3\n");
+#endif
 	
 	BUG_ON(PageTransCompound(page));
 	if (!PageAnon(page))
 		goto out;
 
-	// printk("PKSM : try_to_merge_one_page : 0.4\n");
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
+	printk("PKSM : try_to_merge_one_page : 0.4\n");
+#endif
 	
 
 	/*
@@ -775,15 +806,20 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 		} else{
 			if (pages_identical(page, kpage)){
 				err = replace_page(vma, page, kpage, orig_pte);
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
 				printk("PKSM : try_to_merge_one_page : replace_page out: %d\n", err);
-
+#endif
 			}else{
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
 				printk("PKSM : try_to_merge_one_page : not_identical\n");
+#endif
 			}
 		}
 	}
 
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
 	printk("PKSM : try_to_merge_one_page : err = %d\n", err);
+#endif
 
 
 	if ((vma->vm_flags & VM_LOCKED) && kpage && !err) {
@@ -796,10 +832,14 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 		}
 	}
 
-	// printk("PKSM : try_to_merge_one_page : 2\n");
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
+	printk("PKSM : try_to_merge_one_page : 2\n");
+#endif
 
 	if(err == 0){
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
 		printk("PKSM : try_to_merge_one_page : 3\n");
+#endif
 
 		pksm_rmap_item = alloc_pksm_rmap_item();
 
@@ -812,7 +852,9 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 
 	unlock_page(page);
 out:
+#ifdef VERBOS_TRY_TO_MERGE_ONE_PAGE
 	printk("PKSM : try_to_merge_one_page : out err = %d\n", err);
+#endif
 
 	if(err == 0){			// err==0代表操作成功
 		++pksm_pages_sharing;
@@ -958,6 +1000,10 @@ static int try_to_merge_with_pksm_page(struct page_slot *page_slot,
 	
 	printk("PKSM : try_to_merge_with_pksm_page : begin_with minor: page:%p count:%d mapcount:%d mapping:%p\n", \
 			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
+
+	if(page_mapcount(page) > 1){
+		printk("PKSM : try_to_merge_with_pksm_page : multi-map\n");
+	}
 	
 	if(pksm_test_exit(page_slot)){
 		goto out;
@@ -1258,23 +1304,6 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 			}
 
 		}
-		
-		// unstable_page = unstable_hash_search_insert(cur_page_slot, cur_page, entryIndex, &table_page_slot);
-		// if(unstable_page){
-		// 	kpage = pksm_try_to_merge_two_pages(cur_page_slot, cur_page, table_page_slot, unstable_page);
-		// 	put_page(unstable_page);
-		// 	if (kpage) {
-
-		// 		lock_page(kpage);
-		// 		stable_node = stable_hash_insert(cur_page_slot, kpage);
-		// 		unlock_page(kpage);
-
-		// 		if (!stable_node) {
-		// 			break_cow();
-		// 		}
-		// 	}
-
-		// }
 
 	}
 }
@@ -1444,10 +1473,17 @@ void pksm_new_anon_page(struct page *page){
 	int needs_wakeup;
 	struct page_slot *pre_slot;
 
-	// printk("PKSM : pksm_new_anon_page evoked %p\n", page);
+#ifdef VERBOS_PKSM_NEW_ANON_PAGE
+	printk("PKSM : pksm_new_anon_page evoked %p\n", page);
+#endif
 
+#ifdef MANUAL_PAGE_ADD
 	if(pksm_run & PKSM_RUN_MERGE){
+#endif
+
+#ifdef VERBOS_PKSM_NEW_ANON_PAGE
 		printk("PKSM : pksm_new_anon_page : actually add %p\n", page);
+#endif
 
 		page_slot = alloc_page_slot();
 		if(page_slot == NULL){
@@ -1463,19 +1499,25 @@ void pksm_new_anon_page(struct page *page){
 		needs_wakeup = list_empty(&pksm_page_head.page_list);
 		
 		spin_lock(&pksm_pagelist_lock);
-		// printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock obtain by %p\n", page);
+#ifdef VERBOS_PKSM_NEW_ANON_PAGE
+		printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock obtain by %p\n", page);
+#endif
 		insert_to_page_slots_hash(page, page_slot);
 
 		if (pksm_run & PKSM_RUN_UNMERGE)
 			list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 		else{
 			pre_slot = list_prev_entry(pksm_scan.page_slot, page_list);
-			// printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
+#ifdef VERBOS_PKSM_NEW_ANON_PAGE
+			printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
+#endif
 			list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 		}
 			
 		spin_unlock(&pksm_pagelist_lock);
-		// printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock release by %p\n", page);
+#ifdef VERBOS_PKSM_NEW_ANON_PAGE
+		printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock release by %p\n", page);
+#endif
 
 
 		// ? 在ksm里把一个进程加入ksm系统之后会增加其引用计数
@@ -1483,14 +1525,20 @@ void pksm_new_anon_page(struct page *page){
 		// atomic_inc(&mm->mm_count);
 
 		if (needs_wakeup){
+#ifdef VERBOS_PKSM_NEW_ANON_PAGE
 			printk("PKSM : pksm_new_anon_page : wake up\n");
+#endif
 			wake_up_interruptible(&pksm_thread_wait);
 		}else{
 
 		}
+#ifdef MANUAL_PAGE_ADD
 	}else{
+#ifdef VERBOS_PKSM_NEW_ANON_PAGE
 		printk("PKSM : pksm_new_anon_page : not add\n");
+#endif
 	}
+#endif
 
 }
 
@@ -1499,8 +1547,9 @@ void __pksm_exit(struct page *page)
 	struct page_slot *page_slot;
 	int easy_to_free = 0;
 
+#ifdef VERBOS_PKSM_EXIT
 	printk("PKSM : __pksm_exit evoked %p\n", page);
-
+#endif
 
 	/*
 	 * This process is exiting: if it's straightforward (as is the
@@ -1511,40 +1560,54 @@ void __pksm_exit(struct page *page)
 	 * Beware: ksm may already have noticed it exiting and freed the slot.
 	 */
 
+#ifdef MANUAL_PAGE_ADD
 	if(pksm_run & PKSM_RUN_MERGE){
-		// printk("PKSM : __pksm_exit : page:%p count:%d mapcount:%d mapping:%p\n", \
+#endif
+
+#ifdef VERBOS_PKSM_EXIT
+		printk("PKSM : __pksm_exit : page:%p count:%d mapcount:%d mapping:%p\n", \
 			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
+#endif
 
 		spin_lock(&pksm_pagelist_lock);
-		// printk("PKSM : __pksm_exit : pksm_pagelist_lock obtain by %p\n", page);
+
+#ifdef VERBOS_PKSM_EXIT
+		printk("PKSM : __pksm_exit : pksm_pagelist_lock obtain by %p\n", page);
+#endif
 
 		page_slot = get_page_slot(page);
 		if (page_slot && pksm_scan.page_slot != page_slot) {
 			if (page_slot->page_item == NULL) {	// 如果page_slot此使没有加入stable/unstable table
 				hash_del(&page_slot->link);			//从page -> page_slot映射表中删除
 				list_del(&page_slot->page_list);	//从page_slot的list中删除
-				easy_to_free = 1;
+				easy_to_free = 1;				
+#ifdef VERBOS_PKSM_EXIT
 				printk("PKSM : __pksm_exit : easy_to_free %p\n", page);
-
+#endif
 			} else {
 				page_slot->invalid = true;		//把当前page_slot标记为无效	
 				list_move(&page_slot->page_list,	//现在只把他移动到遍历链表的下一个
 					&pksm_scan.page_slot->page_list);		//以后可以根据优先级队列的设计进行适配
+#ifdef VERBOS_PKSM_EXIT
 				printk("PKSM : __pksm_exit : not_easy_to_free %p\n", page);
+#endif
 			}
 		}
 		spin_unlock(&pksm_pagelist_lock);
-		// printk("PKSM : __pksm_exit : pksm_pagelist_lock release by %p\n", page);
-
+#ifdef VERBOS_PKSM_EXIT
+		printk("PKSM : __pksm_exit : pksm_pagelist_lock release by %p\n", page);
+#endif
 
 		if (easy_to_free) {
 			free_page_slot(page_slot);
 		} else if (page_slot) {
 			//TODO：要做什么？
 		}
+#ifdef MANUAL_PAGE_ADD
 	}else{
 
 	}
+#endif
 }
 
 struct page *ksm_might_need_to_copy(struct page *page,
