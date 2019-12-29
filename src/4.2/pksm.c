@@ -48,6 +48,66 @@
 // #define MANUAL_PAGE_ADD
 // #define VERBOS_PKSM_EXIT
 // #define VERBOS_PKSM_NEW_ANON_PAGE
+#define USE_ADVANCED_MEMCMP
+
+#ifdef USE_ADVANCED_MEMCMP
+
+	#ifdef CONFIG_X86
+		#undef memcmp
+
+		#ifdef CONFIG_X86_32
+			#define memcmp memcmpx86_32
+			/*
+			* Compare 4-byte-aligned address s1 and s2, with length n
+			*/
+			int memcmpx86_32(void *s1, void *s2, size_t n)
+			{
+				size_t num = n / 4;
+				register int res;
+
+				__asm__ __volatile__
+				(
+				"testl %3,%3\n\t"
+				"repe; cmpsd\n\t"
+				"je        1f\n\t"
+				"sbbl      %0,%0\n\t"
+				"orl       $1,%0\n"
+				"1:"
+				: "=&a" (res), "+&S" (s1), "+&D" (s2), "+&c" (num)
+				: "0" (0)
+				: "cc");
+
+				return res;
+			}
+		#elif defined(CONFIG_X86_64)
+			#define memcmp memcmpx86_64
+			/*
+			* Compare 8-byte-aligned address s1 and s2, with length n
+			*/
+			int memcmpx86_64(void *s1, void *s2, size_t n)
+			{
+				size_t num = n / 8;
+				register int res;
+
+				__asm__ __volatile__
+				(
+				"testq %q3,%q3\n\t"
+				"repe; cmpsq\n\t"
+				"je        1f\n\t"
+				"sbbq      %q0,%q0\n\t"
+				"orq       $1,%q0\n"
+				"1:"
+				: "=&a" (res), "+&S" (s1), "+&D" (s2), "+&c" (num)
+				: "0" (0)
+				: "cc");
+
+				return res;
+			}
+		#endif
+
+	#endif
+
+#endif
 
 #ifdef CONFIG_NUMA
 #define NUMA(x)		(x)
