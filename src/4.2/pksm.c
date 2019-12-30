@@ -1533,17 +1533,13 @@ void pksm_new_anon_page(struct page *page){
 	int needs_wakeup;
 	struct page_slot *pre_slot;
 
-#ifdef VERBOS_PKSM_NEW_ANON_PAGE
-	printk("PKSM : pksm_new_anon_page evoked %p\n", page);
-#endif
+	// printk("PKSM : pksm_new_anon_page evoked %p\n", page);
 
 #ifdef MANUAL_PAGE_ADD
 	if(pksm_run & PKSM_RUN_MERGE){
 #endif
 
-#ifdef VERBOS_PKSM_NEW_ANON_PAGE
-		printk("PKSM : pksm_new_anon_page : actually add %p\n", page);
-#endif
+		// printk("PKSM : pksm_new_anon_page : actually add %p\n", page);
 
 		page_slot = alloc_page_slot();
 		if(page_slot == NULL){
@@ -1559,25 +1555,21 @@ void pksm_new_anon_page(struct page *page){
 		needs_wakeup = list_empty(&pksm_page_head.page_list);
 		
 		spin_lock(&pksm_pagelist_lock);
-#ifdef VERBOS_PKSM_NEW_ANON_PAGE
-		printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock obtain by %p\n", page);
-#endif
+		// printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock obtain by %p\n", page);
 		insert_to_page_slots_hash(page, page_slot);
 
 		if (pksm_run & PKSM_RUN_UNMERGE)
 			list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 		else{
 			pre_slot = list_prev_entry(pksm_scan.page_slot, page_list);
-#ifdef VERBOS_PKSM_NEW_ANON_PAGE
-			printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
-#endif
-			list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+			// printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
+			// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+			list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+
 		}
 			
 		spin_unlock(&pksm_pagelist_lock);
-#ifdef VERBOS_PKSM_NEW_ANON_PAGE
-		printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock release by %p\n", page);
-#endif
+		// printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock release by %p\n", page);
 
 
 		// ? 在ksm里把一个进程加入ksm系统之后会增加其引用计数
@@ -1585,18 +1577,14 @@ void pksm_new_anon_page(struct page *page){
 		// atomic_inc(&mm->mm_count);
 
 		if (needs_wakeup){
-#ifdef VERBOS_PKSM_NEW_ANON_PAGE
-			printk("PKSM : pksm_new_anon_page : wake up\n");
-#endif
+			// printk("PKSM : pksm_new_anon_page : wake up\n");
 			wake_up_interruptible(&pksm_thread_wait);
 		}else{
 
 		}
 #ifdef MANUAL_PAGE_ADD
 	}else{
-#ifdef VERBOS_PKSM_NEW_ANON_PAGE
-		printk("PKSM : pksm_new_anon_page : not add\n");
-#endif
+		// printk("PKSM : pksm_new_anon_page : not add\n");
 	}
 #endif
 
@@ -1607,9 +1595,7 @@ void __pksm_exit(struct page *page)
 	struct page_slot *page_slot;
 	int easy_to_free = 0;
 
-#ifdef VERBOS_PKSM_EXIT
-	printk("PKSM : __pksm_exit evoked %p\n", page);
-#endif
+	// printk("PKSM : __pksm_exit evoked %p\n", page);
 
 	/*
 	 * This process is exiting: if it's straightforward (as is the
@@ -1624,16 +1610,12 @@ void __pksm_exit(struct page *page)
 	if(pksm_run & PKSM_RUN_MERGE){
 #endif
 
-#ifdef VERBOS_PKSM_EXIT
-		printk("PKSM : __pksm_exit : page:%p count:%d mapcount:%d mapping:%p\n", \
+		// printk("PKSM : __pksm_exit : page:%p count:%d mapcount:%d mapping:%p\n", \
 			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
-#endif
 
 		spin_lock(&pksm_pagelist_lock);
 
-#ifdef VERBOS_PKSM_EXIT
-		printk("PKSM : __pksm_exit : pksm_pagelist_lock obtain by %p\n", page);
-#endif
+		// printk("PKSM : __pksm_exit : pksm_pagelist_lock obtain by %p\n", page);
 
 		page_slot = get_page_slot(page);
 		if (page_slot && pksm_scan.page_slot != page_slot) {
@@ -1641,22 +1623,16 @@ void __pksm_exit(struct page *page)
 				hash_del(&page_slot->link);			//从page -> page_slot映射表中删除
 				list_del(&page_slot->page_list);	//从page_slot的list中删除
 				easy_to_free = 1;				
-#ifdef VERBOS_PKSM_EXIT
-				printk("PKSM : __pksm_exit : easy_to_free %p\n", page);
-#endif
+				// printk("PKSM : __pksm_exit : easy_to_free %p\n", page);
 			} else {
 				page_slot->invalid = true;		//把当前page_slot标记为无效	
 				list_move(&page_slot->page_list,	//现在只把他移动到遍历链表的下一个
 					&pksm_scan.page_slot->page_list);		//以后可以根据优先级队列的设计进行适配
-#ifdef VERBOS_PKSM_EXIT
-				printk("PKSM : __pksm_exit : not_easy_to_free %p\n", page);
-#endif
+				// printk("PKSM : __pksm_exit : not_easy_to_free %p\n", page);
 			}
 		}
 		spin_unlock(&pksm_pagelist_lock);
-#ifdef VERBOS_PKSM_EXIT
-		printk("PKSM : __pksm_exit : pksm_pagelist_lock release by %p\n", page);
-#endif
+		// printk("PKSM : __pksm_exit : pksm_pagelist_lock release by %p\n", page);
 
 		if (easy_to_free) {
 			free_page_slot(page_slot);
