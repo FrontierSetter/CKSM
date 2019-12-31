@@ -38,6 +38,9 @@
 #include <linux/oom.h>
 #include <linux/numa.h>
 
+#include <linux/kernel.h> // printk
+
+
 #include <asm/tlbflush.h>
 #include "internal.h"
 
@@ -1723,6 +1726,7 @@ static void ksm_do_scan(unsigned int scan_npages)
 		rmap_item = scan_get_next_rmap_item(&page);
 		if (!rmap_item)
 			return;
+		printk("KSM : ksm_vir_pages_scaned = %lu\n", ksm_vir_pages_scaned);
 		ksm_vir_pages_scaned = 0;
 		cmp_and_merge_page(page, rmap_item);
 		put_page(page);

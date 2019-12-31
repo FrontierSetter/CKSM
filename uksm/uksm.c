@@ -484,6 +484,9 @@ static unsigned long uksm_hash_round = 1;
  */
 static unsigned long long fully_scanned_round = 1;
 
+static unsigned long ksm_vir_pages_scaned;
+
+
 /* The total number of virtual pages of all vma slots */
 static u64 uksm_pages_total;
 
@@ -3320,6 +3323,7 @@ static struct rmap_item *get_next_rmap_item(struct vma_slot *slot, u32 *hash)
 	BUG_ON(addr > slot->vma->vm_end || addr < slot->vma->vm_start);
 
 	page = follow_page(slot->vma, addr, FOLL_GET);
+	++uksm_vir_pages_scaned;
 	if (IS_ERR_OR_NULL(page))
 		goto nopage;
 
@@ -3407,6 +3411,7 @@ static noinline void scan_vma_one_page(struct vma_slot *slot)
 	rmap_item = get_next_rmap_item(slot, &hash);
 	if (!rmap_item)
 		goto out1;
+	printk("UKSM : uksm_vir_pages_scaned = %lu\n", uksm_vir_pages_scaned);
 
 	if (PageKsm(rmap_item->page) && in_stable_tree(rmap_item))
 		goto out2;
