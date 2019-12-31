@@ -1152,7 +1152,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 
 		if(pksm_test_exit(unstable_node->page_slot)){
 			printk("PKSM : unstable_hash_search_insert : exit\n");
-			// hlist_del(&(unstable_node->hlist));
+			// hlist_del(&(unstable_node->hlist)); 
 			++stale_bucket;
 			continue;
 		}
