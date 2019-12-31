@@ -238,7 +238,7 @@ static unsigned long pksm_pages_inlist;
 static unsigned long pksm_node_items;
 
 /* Number of pages ksmd should scan in one batch */
-static unsigned int ksm_thread_pages_to_scan = 1000;
+static unsigned int ksm_thread_pages_to_scan = 200;
 
 /* Milliseconds ksmd should sleep between batches */
 static unsigned int ksm_thread_sleep_millisecs = 20;
@@ -1151,8 +1151,9 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 
 
 		if(pksm_test_exit(unstable_node->page_slot)){
-			printk("PKSM : unstable_hash_search_insert : exit\n");
+			printk("PKSM : unstable_hash_search_insert : exit item: %p, slot: %p\n", unstable_node, unstable_node->page_slot);
 			// hlist_del(&(unstable_node->hlist)); 
+			// __hlist_del(&(unstable_node->hlist)); 
 			++stale_bucket;
 			continue;
 		}
@@ -1170,7 +1171,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		// printk("PKSM : unstable_hash_search_insert : get_page: %p\n", hash_page);
 		ret = memcmp_pages(page, hash_page);
 		if (ret == 0){
-			printk("PKSM : unstable_hash_search_insert found at valid: %d, stable: %d\n", cnt_bucket, stale_bucket);
+			printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d\n", cnt_bucket, stale_bucket);
 			*table_page_slot = unstable_node->page_slot;
 			return hash_page;
 		}
@@ -1178,7 +1179,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		put_page(hash_page);
 	}
 
-	printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stable: %d\n", cnt_bucket, stale_bucket);
+	printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d\n", cnt_bucket, stale_bucket);
 
 	if(page_slot->page_item == NULL){
 		page_slot->page_item = alloc_hash_node();
