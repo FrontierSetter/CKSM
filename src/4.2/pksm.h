@@ -52,6 +52,12 @@ static int PagePksm(struct page *page)
 				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
 }
 
+static inline int PagePksm_inline(struct page *page)
+{
+	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==
+				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
+}
+
 static inline struct pksm_hash_node *page_stable_node(struct page *page)
 {
 	return PagePksm(page) ? page_rmapping(page) : NULL;
