@@ -1464,7 +1464,7 @@ static struct page_slot *scan_get_next_page_slot(void)
 static void pksm_do_scan(unsigned int scan_npages)
 {
 	struct page_slot *page_slot;
-	struct page_slot *pre_slot = NULL;
+	// struct page_slot *pre_slot = NULL;
 
 	// printk("PKSM : pksm_do_scan evoked\n");
 
@@ -1476,12 +1476,12 @@ static void pksm_do_scan(unsigned int scan_npages)
 		if (!page_slot)
 			return;
 
-		if(pre_slot != NULL && pre_slot == page_slot){
-			printk("PKSM : pksm_do_scan : same slot %p\n", page_slot);
-			return;
-		}
+		// if(pre_slot != NULL && pre_slot == page_slot){
+		// 	printk("PKSM : pksm_do_scan : same slot %p\n", page_slot);
+		// 	return;
+		// }
 
-		pre_slot = page_slot;
+		// pre_slot = page_slot;
 
 		printk("PKSM : pksm_do_scan : get page %p -> %p\n", page_slot, page_slot->physical_page);
 		pksm_cmp_and_merge_page(page_slot);
