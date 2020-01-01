@@ -73,6 +73,9 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
+#include <linux/kernel.h> // printk
+
+
 #ifdef CONFIG_X86
 #undef memcmp
 
@@ -484,7 +487,7 @@ static unsigned long uksm_hash_round = 1;
  */
 static unsigned long long fully_scanned_round = 1;
 
-static unsigned long ksm_vir_pages_scaned;
+static unsigned long uksm_vir_pages_scaned = 0;
 
 
 /* The total number of virtual pages of all vma slots */
@@ -3412,6 +3415,7 @@ static noinline void scan_vma_one_page(struct vma_slot *slot)
 	if (!rmap_item)
 		goto out1;
 	printk("UKSM : uksm_vir_pages_scaned = %lu\n", uksm_vir_pages_scaned);
+	uksm_vir_pages_scaned = 0;
 
 	if (PageKsm(rmap_item->page) && in_stable_tree(rmap_item))
 		goto out2;
