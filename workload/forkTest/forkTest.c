@@ -18,13 +18,12 @@ int main (int argc,char *argv[])
     int fork_time = atoi(argv[3]);
     int group_idx = atoi(argv[4]);
 
+    // 4KB * 10240 = 40MB
     int* result = (int*)malloc(1024*page_num*sizeof(int));
     int tem;
     int fpid;
 
-    for(int i = 0; i < 1024*page_num; ++i){
-        result[i] = 65536;
-    }
+    memset(result, 128, 1024*page_num*sizeof(int));
 
     printf("group %d start\n", group_idx);
 
