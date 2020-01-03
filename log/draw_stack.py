@@ -8,7 +8,10 @@ Gallery 使用 pyecharts 1.1.0
 暂无
 """
 
-curFile = open('uksm_pages_map_cnt.log', 'r')
+filePath = input('file: ')
+startStamp = int(input('start: '))
+
+curFile = open(filePath, 'r')
 
 pre_merged = 0
 pre_notmerged = 0
@@ -22,17 +25,21 @@ not_merged = []
 idx = 0
 
 while True:
-    curLine = curFile.readline()
+    curLine = curFile.readline().strip('\n')
     if curLine == '':
         break
-    x_data.append(idx)
-    idx += 1
+    
+    curTime = int(curLine)
+
     curFile.readline()
     cur_merged = int(curFile.readline())
     cur_notmerged = int(curFile.readline())
 
-    truly_merged.append(cur_merged-pre_merged)
-    not_merged.append(cur_notmerged-pre_notmerged)
+    if curTime >= startStamp:
+        truly_merged.append(cur_merged-pre_merged)
+        not_merged.append(cur_notmerged-pre_notmerged)
+        x_data.append(idx)
+        idx += 1
 
     pre_merged = cur_merged
     pre_notmerged = cur_notmerged
