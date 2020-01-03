@@ -8,7 +8,7 @@ echo "" > ${my_log}"pages_unshared.log"
 
 while true;
 do
-	/bin/sleep 1
+	/bin/sleep 0.1
 
 	date +%s >> ${my_log}"full_scans.log"
 	cat ${ori_log}"full_scans" >> ${my_log}"full_scans.log"

@@ -486,7 +486,7 @@ static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_n
 static void remove_node_from_hashlist(struct page_slot *page_slot)
 {
 	if(page_slot->page_item != NULL){	// 如果他在哈希表里有残留（不管是stable还是unstable）
-		printk("PKSM : remove_node_from_hashlist : slot: %p, page: %p, item: %p\n", page_slot, page_slot->physical_page, page_slot->page_item);
+		// printk("PKSM : remove_node_from_hashlist : slot: %p, page: %p, item: %p\n", page_slot, page_slot->physical_page, page_slot->page_item);
 		hlist_del(&(page_slot->page_item->hlist));	// 都将他删除
 
 		// 递归释放所有的rmap_item对象
@@ -738,7 +738,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	unsigned long mmun_start;	/* For mmu_notifiers */
 	unsigned long mmun_end;		/* For mmu_notifiers */
 
-	printk("PKSM : replace_page evoked\n");
+	// printk("PKSM : replace_page evoked\n");
 
 	addr = page_address_in_vma(page, vma);
 	if (addr == -EFAULT)
@@ -829,14 +829,14 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 	pte_t orig_pte = __pte(0);
 	int err = -EFAULT;
 
-	printk("PKSM : try_to_merge_one_page : page: %p, mm: %p, addr: %lu\n", page, vma->vm_mm, address);
-	printk("PKSM : try_to_merge_one_page : kpage: %p, hash_node: %p\n", kpage, pksm_hash_node);
+	// printk("PKSM : try_to_merge_one_page : page: %p, mm: %p, addr: %lu\n", page, vma->vm_mm, address);
+	// printk("PKSM : try_to_merge_one_page : kpage: %p, hash_node: %p\n", kpage, pksm_hash_node);
 
 	if (page == kpage)			/* ksm page forked */
 		return 0;
 
 	if(ksm_test_exit(vma->vm_mm)){
-		printk("PKSM : try_to_merge_one_page : mm_exit\n");
+		// printk("PKSM : try_to_merge_one_page : mm_exit\n");
 		return 1;
 
 	}
@@ -878,7 +878,7 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 	 */
 	// // printk("PKSM : try_to_merge_one_page : 1\n");
 	if (write_protect_page(vma, page, &orig_pte) == 0) {
-		printk("PKSM : try_to_merge_one_page : write_protect_page in\n");
+		// printk("PKSM : try_to_merge_one_page : write_protect_page in\n");
 
 		if (!kpage) {
 			set_page_stable_node(page, pksm_hash_node);	// 因为我们此时已经知道hash_node了，所以直接set到page里
@@ -888,9 +888,9 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 		} else{
 			if (pages_identical(page, kpage)){
 				err = replace_page(vma, page, kpage, orig_pte);
-				printk("PKSM : try_to_merge_one_page : replace_page out: %d\n", err);
+				// printk("PKSM : try_to_merge_one_page : replace_page out: %d\n", err);
 			}else{
-				printk("PKSM : try_to_merge_one_page : not_identical\n");
+				// printk("PKSM : try_to_merge_one_page : not_identical\n");
 			}
 		}
 	}
@@ -950,7 +950,7 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 	struct rmap_process_wrapper rmap_process_wrapper = {pksm_hash_node, kpage};
 	int ret;
 
-	printk("PKSM : pksm_try_to_merge_one_page : page: %p, kpage: %p, hash_node: %p\n", page, kpage, pksm_hash_node);
+	// printk("PKSM : pksm_try_to_merge_one_page : page: %p, kpage: %p, hash_node: %p\n", page, kpage, pksm_hash_node);
 
 	// TODO: 下面的两个分支里存在代码冗余
 
@@ -967,7 +967,7 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 
 		ret = rmap_walk(page, &rwc);
 
-		printk("PKSM : pksm_try_to_merge_one_page : merge_result_raw: %d\n", ret);
+		// printk("PKSM : pksm_try_to_merge_one_page : merge_result_raw: %d\n", ret);
 
 		if (ret != SWAP_MLOCK && !page_mapped(page))
 			ret = SWAP_SUCCESS;
@@ -1000,7 +1000,7 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 
 		ret = rmap_walk(page, &rwc);
 
-		printk("PKSM : pksm_try_to_merge_one_page : set_result_raw: %d\n", ret);
+		// printk("PKSM : pksm_try_to_merge_one_page : set_result_raw: %d\n", ret);
 
 		// if (ret != SWAP_MLOCK && !page_mapped(page))
 		if (ret == SWAP_AGAIN && PagePksm(page)){
@@ -1009,8 +1009,8 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 			ret = SWAP_FAIL;
 		}
 
-		printk("PKSM : pksm_try_to_merge_one_page : set_result: %d\n", ret);
-		printk("PKSM : pksm_try_to_merge_one_page : after PagePksm(%p)=%d\n", page, PagePksm(page));
+		// printk("PKSM : pksm_try_to_merge_one_page : set_result: %d\n", ret);
+		// printk("PKSM : pksm_try_to_merge_one_page : after PagePksm(%p)=%d\n", page, PagePksm(page));
 
 		return ret;
 	}
@@ -1067,7 +1067,7 @@ static int try_to_merge_with_pksm_page(struct page_slot *page_slot,
 {
 	int err = -EFAULT;
 
-	printk("PKSM : try_to_merge_with_pksm_page : slot: %p, page: %p, kpage: %p\n", page_slot, page, kpage);
+	// printk("PKSM : try_to_merge_with_pksm_page : slot: %p, page: %p, kpage: %p\n", page_slot, page, kpage);
 
 	// printk("PKSM : try_to_merge_with_pksm_page : begin_with major: page:%p count:%d mapcount:%d mapping:%p\n", \
 			kpage, atomic_read(&kpage->_count), page_mapcount(kpage), kpage->mapping);
@@ -1109,7 +1109,7 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 
 	int err = -EFAULT;
 
-	printk("PKSM : pksm_try_to_merge_two_pages : major: %p -> %p, minor: %p -> %p, stable_node: %p\n", \
+	// printk("PKSM : pksm_try_to_merge_two_pages : major: %p -> %p, minor: %p -> %p, stable_node: %p\n", \
 		page_slot, page, table_page_slot, table_page, pksm_hash_node);
 
 	// printk("PKSM : pksm_try_to_merge_two_pages : begin_with major: page:%p count:%d mapcount:%d mapping:%p\n", \
@@ -1158,11 +1158,11 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 	uint32_t new_partial_hash;
 
 
-	printk("PKSM : unstable_hash_search_insert evoked : entryIndex = %u\n", entryIndex);
+	// printk("PKSM : unstable_hash_search_insert evoked : entryIndex = %u\n", entryIndex);
 
 
 	hlist_for_each_entry_safe(unstable_node, nxt, &(unstable_hash_table[entryIndex]), hlist){
-		printk("PKSM : unstable_hash_search_insert : unstable_node:%p\n", unstable_node);
+		// printk("PKSM : unstable_hash_search_insert : unstable_node:%p\n", unstable_node);
 
 		// get_page是通过检查page->mapping的映射的方式获取页面
 		// 但是在unstable_table中并不需要修改page的映射
@@ -1174,7 +1174,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 
 
 		if(pksm_test_exit(unstable_node->page_slot)){
-			printk("PKSM : unstable_hash_search_insert : exit item: %p, slot: %p\n", unstable_node, unstable_node->page_slot);
+			// printk("PKSM : unstable_hash_search_insert : exit item: %p, slot: %p\n", unstable_node, unstable_node->page_slot);
 			// hlist_del(&(unstable_node->hlist)); 
 			// __hlist_del(&(unstable_node->hlist)); 
 			++stale_bucket;
@@ -1202,7 +1202,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		// printk("PKSM : unstable_hash_search_insert : get_page: %p\n", hash_page);
 		ret = memcmp_pages(page, hash_page);
 		if (ret == 0){
-			printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d, skip: %d\n", cnt_bucket, stale_bucket, partial_hash_skip);
+			// printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d, skip: %d\n", cnt_bucket, stale_bucket, partial_hash_skip);
 			*table_page_slot = unstable_node->page_slot;
 			return hash_page;
 		}
@@ -1210,7 +1210,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		put_page(hash_page);
 	}
 
-	printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d\n", cnt_bucket, stale_bucket, partial_hash_skip);
+	// printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d\n", cnt_bucket, stale_bucket, partial_hash_skip);
 
 	if(page_slot->page_item == NULL){
 		page_slot->page_item = alloc_hash_node();
@@ -1246,7 +1246,7 @@ static struct page *stable_hash_search(struct page *page, unsigned int entryInde
 	int cnt_bucket = 0;
 
 
-	printk("PKSM : stable_hash_search evoked : entryIndex = %u\n", entryIndex);
+	// printk("PKSM : stable_hash_search evoked : entryIndex = %u\n", entryIndex);
 
 	stable_node = page_stable_node(page);
 
@@ -1349,7 +1349,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
 
-		printk("PKSM : pksm_cmp_and_merge_page : hash calculated\n");
+		// printk("PKSM : pksm_cmp_and_merge_page : hash calculated\n");
 
 		entryIndex = cur_hash & PAGE_HASH_MASK;
 
@@ -1451,7 +1451,7 @@ static struct page_slot *scan_get_next_page_slot(void)
 
 	if(slot == &pksm_page_head){
 		spin_lock(&pksm_pagelist_lock);
-		printk("PKSM : scan_get_next_page_slot : (pksm_page_head)\n");
+		// printk("PKSM : scan_get_next_page_slot : (pksm_page_head)\n");
 		pksm_scan.seqnr++;
 		slot = list_entry(slot->page_list.next, struct page_slot, page_list);
 		pksm_scan.page_slot = slot;
@@ -1460,7 +1460,7 @@ static struct page_slot *scan_get_next_page_slot(void)
 
 
 		if(slot == &pksm_page_head){
-			printk("PKSM : scan_get_next_page_slot : (empty list)\n");
+			// printk("PKSM : scan_get_next_page_slot : (empty list)\n");
 
 			return NULL;
 		}
@@ -1479,14 +1479,14 @@ static struct page_slot *scan_get_next_page_slot(void)
 		hash_del(&slot->link);			//从page -> page_slot映射表中删除
 		list_del(&slot->page_list);
 		spin_unlock(&pksm_pagelist_lock);
-		printk("PKSM : scan_get_next_page_slot : (exit)\n");
+		// printk("PKSM : scan_get_next_page_slot : (exit)\n");
 
 		remove_node_from_hashlist(slot);
 		free_page_slot(slot);
 
 	}else{
 		spin_unlock(&pksm_pagelist_lock);
-		printk("PKSM : scan_get_next_page_slot : (normal)\n");
+		// printk("PKSM : scan_get_next_page_slot : (normal)\n");
 
 		get_page(slot->physical_page);
 		// TODO: if(valid_pksm_page(cur_page)){
@@ -1500,7 +1500,7 @@ static struct page_slot *scan_get_next_page_slot(void)
 	}
 
 
-	printk("PKSM : scan_get_next_page_slot : pksm_scan.seqnr = %lu\n", pksm_scan.seqnr);
+	// printk("PKSM : scan_get_next_page_slot : pksm_scan.seqnr = %lu\n", pksm_scan.seqnr);
 	
 	return NULL;
 }
@@ -1527,10 +1527,10 @@ static void pksm_do_scan(unsigned int scan_npages)
 
 		// pre_slot = page_slot;
 
-		printk("PKSM : pksm_do_scan : get page %p -> %p\n", page_slot, page_slot->physical_page);
+		// printk("PKSM : pksm_do_scan : get page %p -> %p\n", page_slot, page_slot->physical_page);
 		pksm_cmp_and_merge_page(page_slot);
 
-		printk("PKSM : pksm_do_scan : page %p merge finished\n\n", page_slot->physical_page);
+		// printk("PKSM : pksm_do_scan : page %p merge finished\n\n", page_slot->physical_page);
 
 		//? 下面这句不知道对不对
 		// // printk("PKSM : pksm_do_scan : going to put_page( %p )\n", page_slot->physical_page);
@@ -1616,7 +1616,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		// printk("PKSM : pksm_new_anon_page : actually add %p\n", page);
 		page_slot = get_page_slot(page);
 		if(page_slot){
-			printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
+			// printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
 			return;
 		}
 
@@ -1799,7 +1799,7 @@ int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
 	int ret = SWAP_AGAIN;
 	int search_new_forks = 0;
 
-	printk("PKSM : rmap_walk_ksm called\n");
+	// printk("PKSM : rmap_walk_ksm called\n");
 
 
 	VM_BUG_ON_PAGE(!PageKsm(page), page);
@@ -1868,7 +1868,7 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 {
 	struct pksm_hash_node *stable_node;
 
-	printk("PKSM : ksm_migrate_page evoked\n");
+	// printk("PKSM : ksm_migrate_page evoked\n");
 
 	VM_BUG_ON_PAGE(!PageLocked(oldpage), oldpage);
 	VM_BUG_ON_PAGE(!PageLocked(newpage), newpage);
@@ -1990,7 +1990,7 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 	if (flags > PKSM_RUN_UNMERGE)
 		return -EINVAL;
 
-	printk("PKSM : run_store evoked with flags = %lu\n", flags);
+	// printk("PKSM : run_store evoked with flags = %lu\n", flags);
 
 	/*
 	 * PKSM_RUN_MERGE sets ksmd running, and 0 stops it running.
@@ -2168,7 +2168,7 @@ static int __init pksm_init(void)
 		goto out;
 
 	pksm_thread = kthread_run(pksm_scan_thread, NULL, "pksmd");
-	printk("PKSM : pksm_thread start running\n");
+	// printk("PKSM : pksm_thread start running\n");
 
 	if (IS_ERR(pksm_thread)) {
 		pr_err("PKSM : creating kthread failed\n");
