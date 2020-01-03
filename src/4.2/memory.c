@@ -2091,10 +2091,10 @@ static int wp_page_copy(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	if(old_page && PageKsm(old_page)){
 		pksm_new_anon_page(new_page, false);
-		printk("PKSM : wp_page_copy old_page %p pksm, add page %p\n", old_page, new_page);
+		// printk("PKSM : wp_page_copy old_page %p pksm, add page %p\n", old_page, new_page);
 	}else{
 		pksm_new_anon_page(new_page, true);
-		printk("PKSM : wp_page_copy old_page %p not pksm, add page %p\n", old_page, new_page);
+		// printk("PKSM : wp_page_copy old_page %p not pksm, add page %p\n", old_page, new_page);
 	}
 
 	/*
@@ -2725,7 +2725,7 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	page_add_new_anon_rmap(page, vma, address);
 
 	pksm_new_anon_page(page, true);
-	printk("PKSM : do_anonymous_page page %p\n", page);
+	// printk("PKSM : do_anonymous_page page %p\n", page);
 
 	mem_cgroup_commit_charge(page, memcg, false);
 	lru_cache_add_active_or_unevictable(page, vma);
