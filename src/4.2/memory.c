@@ -2089,6 +2089,14 @@ static int wp_page_copy(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	mmu_notifier_invalidate_range_start(mm, mmun_start, mmun_end);
 
+	if(old_page && PageKsm(old_page)){
+		pksm_new_anon_page(new_page, false);
+		printk("PKSM : wp_page_copy old_page %p pksm, add page %p\n", old_page, new_page);
+	}else{
+		pksm_new_anon_page(new_page, true);
+		printk("PKSM : wp_page_copy old_page %p not pksm, add page %p\n", old_page, new_page);
+	}
+
 	/*
 	 * Re-check the pte - we dropped the lock
 	 */
@@ -2716,7 +2724,8 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	inc_mm_counter_fast(mm, MM_ANONPAGES);
 	page_add_new_anon_rmap(page, vma, address);
 
-	pksm_new_anon_page(page);
+	pksm_new_anon_page(page, true);
+	printk("PKSM : do_anonymous_page page %p\n", page);
 
 	mem_cgroup_commit_charge(page, memcg, false);
 	lru_cache_add_active_or_unevictable(page, vma);

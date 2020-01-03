@@ -1595,7 +1595,9 @@ int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
 	return 0;
 }
 
-void pksm_new_anon_page(struct page *page){
+// 会在memory.c/do_anonymous_page里调用 -> 处理缺页中断
+// 会在memoty.c/wp_page_copy里调用 -> 处理cow
+void pksm_new_anon_page(struct page *page, bool high_priority){
 	struct page_slot *page_slot;
 	int needs_wakeup;
 	// struct page_slot *pre_slot;
@@ -1607,6 +1609,11 @@ void pksm_new_anon_page(struct page *page){
 #endif
 
 		// printk("PKSM : pksm_new_anon_page : actually add %p\n", page);
+		page_slot = get_page_slot(page);
+		if(page_slot){
+			printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
+			return;
+		}
 
 		page_slot = alloc_page_slot();
 		if(page_slot == NULL){
@@ -1631,7 +1638,11 @@ void pksm_new_anon_page(struct page *page){
 		else{
 			// // printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
 			// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
-			list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+			if(likely(high_priority)){
+				list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+			}else{
+				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+			}
 
 			// pre_slot = list_prev_entry(page_slot, page_list);
 			// // printk("PKSM : pksm_new_anon_page : pksm_scan_slot %p = pre_slot %p -> cur_slot %p \n", pksm_scan.page_slot, pre_slot, page_slot);
