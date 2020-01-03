@@ -5,6 +5,8 @@ struct page_slot {
 	struct pksm_hash_node *page_item;
     bool invalid;	// page被merge到一个pksmpage之后会被置为true
 	struct hlist_node link;
+	unsigned long mapcount;
+	uint32_t partial_hash;
 }
 
 // 下一个要被扫描的slot

@@ -183,7 +183,7 @@ struct page_slot {
 	struct pksm_hash_node *page_item;
 	bool invalid;
 	struct hlist_node link;
-	unsigned long mapcount;
+	// unsigned long mapcount;
 	uint32_t partial_hash;
 };
 
@@ -479,6 +479,7 @@ static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_n
 			--pksm_pages_sharing;
 		}
 		--pksm_pages_shared;
+		// pksm_pages_sharing -= pksm_hash_node->page_slot->mapcount;
 	}
 }
 
@@ -1046,7 +1047,7 @@ static int try_to_set_this_pksm_page(struct page_slot *page_slot,
 		goto out;
 	}
 
-	page_slot->mapcount = page_mapcount(page);
+	// page_slot->mapcount = page_mapcount(page);
 	remove_node_from_hashlist(page_slot);
 
 	// 一来要确保这一步之后page就是一个完整的pksm_page
@@ -1130,7 +1131,7 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 		if (err){
 			break_cow();
 		}else{
-			page_slot->mapcount = page_mapcount(page);
+			// page_slot->mapcount = page_mapcount(page);
 		}
 	}
 
@@ -1332,12 +1333,16 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		return;
 	}else if(PagePksm_inline(cur_page)){	// 如果当前page是pksm页，直接跳过
 		// printk("PKSM : pksm_cmp_and_merge_page : page already pksm\n");
-		map_log = page_mapcount(cur_page);
-		if(unlikely(map_log < cur_page_slot->mapcount)){
-			// printk("PKSM : pages_sharing leak\n");
-			pksm_pages_sharing -= (cur_page_slot->mapcount - map_log);
-			cur_page_slot->mapcount = map_log;
-		}
+		// map_log = page_mapcount(cur_page);
+		// if(unlikely(map_log < cur_page_slot->mapcount)){
+		// 	printk("PKSM : pages_sharing leak %lu -> %lu\n", cur_page_slot->mapcount, map_log);
+		// 	pksm_pages_sharing -= (cur_page_slot->mapcount - map_log);
+		// 	cur_page_slot->mapcount = map_log;
+		// }else if(unlikely(map_log > cur_page_slot->mapcount)){
+		// 	printk("PKSM : pages_sharing loss %lu -> %lu\n", cur_page_slot->mapcount, map_log);
+		// 	pksm_pages_sharing += (map_log - cur_page_slot->mapcount);
+		// 	cur_page_slot->mapcount = map_log;
+		// }
 		return;
 	}else{
 		remove_node_from_hashlist(cur_page_slot);
@@ -1362,10 +1367,10 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 			// printk("PKSM : pksm_cmp_and_merge_page : try_to_merge_with_pksm_page(%p, %p) finish\n", cur_page, kpage);
 
 			if(!err){
-				table_page_slot = get_page_slot(kpage);
-				if(table_page_slot){
-					table_page_slot->mapcount = page_mapcount(kpage);
-				}
+				// table_page_slot = get_page_slot(kpage);
+				// if(table_page_slot){
+				// 	table_page_slot->mapcount = page_mapcount(kpage);
+				// }
 
 				// page 成功 merge 到一个pksmpage
 				// cur_page_slot->invalid = true;
@@ -1621,7 +1626,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 			// return -ENOMEM;
 		}
 
-		page_slot->mapcount = 0;
+		// page_slot->mapcount = 0;
 		page_slot->physical_page = page;
 		page_slot->invalid = false;
 		page_slot->page_item = NULL;	// 这个字段是否为NULL代表了这个page是否已经纳入pksm系统
