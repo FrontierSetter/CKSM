@@ -706,10 +706,9 @@ static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 		 * page
 		 */
 		if (page_mapcount(page) + 1 + swapped != page_count(page)) {
+			printk("PKSM : write_pritect_page : mapcount: %d, pagecount: %d, swap: %d\n", page_mapcount(page), page_count(page), swapped);
 			set_pte_at(mm, addr, ptep, entry);
 			goto out_unlock;
-		}else{
-			printk("PKSM : write_pritect_page : mapcount: %d, pagecount: %d, swap: %d\n", page_mapcount(page), page_count(page), swapped);
 		}
 
 		printk("PKSM : write_protect_page 4\n");
@@ -1358,11 +1357,17 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		// }
 		return;
 	}else{
-		remove_node_from_hashlist(cur_page_slot);
 
 		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
 
 		printk("PKSM : pksm_cmp_and_merge_page : hash calculated\n");
+		// if(cur_page_slot->page_item == NULL){
+			cur_page_slot->partial_hash = partial_hash;
+			printk("PKSM : stable partial_hash %u\n", partial_hash);
+		// }
+
+		remove_node_from_hashlist(cur_page_slot);
+
 
 		entryIndex = cur_hash & PAGE_HASH_MASK;
 
@@ -1402,6 +1407,12 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
 		entryIndex = cur_hash & PAGE_HASH_MASK;
+
+		if(partial_hash != cur_page_slot->partial_hash){
+			printk("PKSM : pksm_cmp_and_merge_page : volatile %u -> %u\n", cur_page_slot->partial_hash, partial_hash);
+			cur_page_slot->partial_hash = partial_hash;
+			return;
+		}
 
 		unstable_page = unstable_hash_search_insert(cur_page_slot, cur_page, entryIndex, partial_hash, &table_page_slot);
 		// printk("PKSM : pksm_cmp_and_merge_page : unstable_hash_search_insert finish\n");
@@ -1640,6 +1651,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		}
 
 		// page_slot->mapcount = 0;
+		page_slot->partial_hash = 0;
 		page_slot->physical_page = page;
 		page_slot->invalid = false;
 		page_slot->page_item = NULL;	// 这个字段是否为NULL代表了这个page是否已经纳入pksm系统
@@ -1657,8 +1669,8 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 			// // printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
 			// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			if(likely(high_priority)){
-				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
-				// list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}else{
 				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}
