@@ -12,7 +12,8 @@ stopStamp = int(input('stop: '))
 
 curFile = open(filePath, 'r')
 
-baseSharing = 0
+base_merge = 0
+base_notmerge = 0
 
 while True:
     curLine = curFile.readline().strip('\n')
@@ -20,21 +21,21 @@ while True:
         break
     
     curTime = int(curLine)
-    curSharing = int(curFile.readline().strip('\n'))
-    trueSharing = curSharing - baseSharing
+    curFile.readline()
+    cur_merged = int(curFile.readline())
+    cur_notmerged = int(curFile.readline())
 
     if curTime > startStamp:
         X.append(idx)
-        Y.append(trueSharing)
+        Y.append(cur_merged-base_merge)
         idx += 0.25
     else:
-        baseSharing = curSharing
+        base_merge = cur_merged
+        base_notmerge = cur_notmerged
 
     if curTime > stopStamp:
         break
 
-print(X)
-print(Y)
 
 plt.figure()
 plt.plot(X,Y)
