@@ -3,9 +3,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <stdlib.h>
+#include <string.h>
+
 int main(int argc,char *argv[])
 {
-	if(argc!=3)
+	if(argc!=4)
 	{
 		printf("error args\n");
 		return -1;
@@ -20,7 +23,7 @@ int main(int argc,char *argv[])
 
 	if(-1==fd)
 	{
-		perror("open");
+		printf("open\n");
 		return -1;
 	}
 
@@ -30,25 +33,31 @@ int main(int argc,char *argv[])
 
     if((char*)-1==pstart)
 	{
-		perror("mmap");
+		printf("mmap\n");
 		return -1;
 	}
 
-    int* buff_anonymous = (int*)malloc(1024*128*sizeof(int));
+    int* buff_anonymous = (int*)malloc(1024*56*sizeof(int));
+	memset(buff_anonymous, 128, 1024*56*sizeof(int));
 
-	
+
+	printf("start\n");
 
 	for(;wait_time > 0; --wait_time){
         for(int i = 0; i < map_length*4096; ++i){
-            tem ^= (int)(pstart+i);
+            tem ^= (int)(*(pstart+i));
         }
+		printf("middle\n");
 
-		for(int i = 0; i < 1024*100; ++i){
-            int tem = result[i];
+
+		for(int i = 0; i < 1024*56; ++i){
+            int tem = buff_anonymous[i];
         }
+		printf("round\n");
 
     }
 
+	printf("finish\n");
     
 
 	int ret=munmap(pstart,map_length*4096);
