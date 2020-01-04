@@ -664,9 +664,13 @@ static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 	unsigned long mmun_start;	/* For mmu_notifiers */
 	unsigned long mmun_end;		/* For mmu_notifiers */
 
+	printk("PKSM : write_protect_page evoked\n");
+
 	addr = page_address_in_vma(page, vma);
 	if (addr == -EFAULT)
 		goto out;
+	printk("PKSM : write_protect_page 1\n");
+	
 
 	BUG_ON(PageTransCompound(page));
 
@@ -677,8 +681,12 @@ static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 	ptep = page_check_address(page, mm, addr, &ptl, 0);
 	if (!ptep)
 		goto out_mn;
+	printk("PKSM : write_protect_page 2\n");
+	
 
 	if (pte_write(*ptep) || pte_dirty(*ptep)) {
+		printk("PKSM : write_protect_page 3\n");
+
 		pte_t entry;
 
 		swapped = PageSwapCache(page);
@@ -700,7 +708,12 @@ static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 		if (page_mapcount(page) + 1 + swapped != page_count(page)) {
 			set_pte_at(mm, addr, ptep, entry);
 			goto out_unlock;
+		}else{
+			printk("PKSM : write_pritect_page : mapcount: %d, pagecount: %d, swap: %d\n", page_mapcount(page), page_count(page), swapped);
 		}
+
+		printk("PKSM : write_protect_page 4\n");
+
 		if (pte_dirty(entry))
 			set_page_dirty(page);
 		entry = pte_mkclean(pte_wrprotect(entry));
@@ -876,7 +889,7 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 	 * ptes are necessarily already write-protected.  But in either
 	 * case, we need to lock and check page_count is not raised.
 	 */
-	// // printk("PKSM : try_to_merge_one_page : 1\n");
+	printk("PKSM : try_to_merge_one_page : 1\n");
 	if (write_protect_page(vma, page, &orig_pte) == 0) {
 		printk("PKSM : try_to_merge_one_page : write_protect_page in\n");
 
@@ -1644,7 +1657,8 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 			// // printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
 			// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			if(likely(high_priority)){
-				list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				// list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}else{
 				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}
