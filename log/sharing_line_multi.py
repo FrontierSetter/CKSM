@@ -1,7 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# ========================== fork ==============================
+
 # 3
+# 0.25
+# 8
 # UKSM-fork/bash/test_data/pages_sharing.log
 # 1578060313
 # UKSM
@@ -13,6 +17,8 @@ import matplotlib.pyplot as plt
 # PKSM-500
 
 # 4
+# 0.25
+# 8
 # UKSM-fork/bash/test_data/pages_sharing.log
 # 1578060313
 # UKSM
@@ -27,11 +33,45 @@ import matplotlib.pyplot as plt
 # PKSM-500
 
 # 2
+# 0.25
+# 8
 # UKSM-fork-12-2/bash/test_data/pages_sharing.log
 # 1578140021
 # UKSM
 # PKSM-fork-200-12/bash/test_data/pksm_pages_sharing.log
 # 1578138951
+# PKSM-200
+
+# ==================== quick ================================
+
+# 2
+# 0.11
+# 25
+# quick-UKSM-4096-4-5-2/test_data/pages_sharing.log
+# 1578232326
+# UKSM
+# quick-PKSM-200-4096-4-5/test_data/pksm_pages_sharing.log
+# 1578230743
+# PKSM-200
+
+# 2
+# 0.11
+# 13
+# quick-UKSM-4096-2-5/test_data/pages_sharing.log
+# 1578233847
+# UKSM
+# quick-PKSM-200-4096-2-5/test_data/pksm_pages_sharing.log
+# 1578234211
+# PKSM-200
+
+# 2
+# 0.11
+# 50
+# quick-UKSM-4096-8-5/test_data/pages_sharing.log
+# 1578233613
+# UKSM
+# quick-PKSM-200-4096-8-5/test_data/pksm_pages_sharing.log
+# 1578234399
 # PKSM-200
  
 X=[]
@@ -42,6 +82,8 @@ lineLabel = []
 
 
 lineNum = int(input('lineNum: '))
+idxGap = float(input('timeGap: '))
+stopTime = int(input('stop: '))
 
 for i in range(lineNum):
     filePath.append(input('file: '))
@@ -67,11 +109,11 @@ for i in range(lineNum):
 
         if curTime >= startStamp[i]:
             Y[i].append(trueSharing)
-            idx += 0.25
+            idx += idxGap
         else:
             baseSharing = curSharing
 
-        if idx >= 8.0:
+        if idx >= stopTime:
             break
 
     curFile.close()
@@ -79,16 +121,22 @@ for i in range(lineNum):
 idx = 0.0
 for i in range(len(Y[0])):
     X.append(idx)
-    idx += 0.25
+    idx += idxGap
 
 print(X)
 print(Y)
 
+
+plt.figure(figsize=(9,6))
+
+
 # plt.figure()
 for i in range(lineNum):
-    plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o')
+    plt.plot(X,Y[i], label=lineLabel[i], linewidth=4)
 
 plt.legend()
+
+# plt.set_size_inches(18.5, 10.5)
 
 plt.xlabel('Time(s)')
 plt.ylabel('pages sharing')

@@ -3414,11 +3414,13 @@ static noinline void scan_vma_one_page(struct vma_slot *slot)
 	rmap_item = get_next_rmap_item(slot, &hash);
 	if (!rmap_item)
 		goto out1;
-	printk("UKSM : uksm_vir_pages_scaned = %lu\n", uksm_vir_pages_scaned);
-	uksm_vir_pages_scaned = 0;
+	
 
 	if (PageKsm(rmap_item->page) && in_stable_tree(rmap_item))
 		goto out2;
+
+	printk("UKSM : uksm_vir_pages_scaned = %lu\n", uksm_vir_pages_scaned);
+	uksm_vir_pages_scaned = 0;
 
 	cmp_and_merge_page(rmap_item, hash);
 out2:

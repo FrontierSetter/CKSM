@@ -9,5 +9,6 @@ Session.vim
 .vscode/**
 relatedwork/**
 workload/pytorch/data/**
+workload/pytorch/pytorch-FCN-easiest-demo-master/**
 log/**
 !log/*.py

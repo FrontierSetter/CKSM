@@ -9,6 +9,7 @@ idx = 0.0
 filePath = input('file: ')
 startStamp = int(input('start: '))
 stopStamp = int(input('stop: '))
+timeGap = float(input('gap: '))
 
 curFile = open(filePath, 'r')
 
@@ -23,10 +24,10 @@ while True:
     curSharing = int(curFile.readline().strip('\n'))
     trueSharing = curSharing - baseSharing
 
-    if curTime > startStamp:
+    if curTime >= startStamp:
         X.append(idx)
         Y.append(trueSharing)
-        idx += 0.25
+        idx += timeGap
     else:
         baseSharing = curSharing
 

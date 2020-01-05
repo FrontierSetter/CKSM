@@ -1206,7 +1206,6 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 			continue;
 		}
 
-		++cnt_bucket;
 
 
 		hash_page = unstable_node->page_slot->physical_page;
@@ -1216,11 +1215,13 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		}
 
 		get_page(hash_page);
+		++cnt_bucket;
+
 
 		// printk("PKSM : unstable_hash_search_insert : get_page: %p\n", hash_page);
 		ret = memcmp_pages(page, hash_page);
 		if (ret == 0){
-			// printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d, skip: %d\n", cnt_bucket, stale_bucket, partial_hash_skip);
+			printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
 			*table_page_slot = unstable_node->page_slot;
 			return hash_page;
 		}
@@ -1228,7 +1229,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		put_page(hash_page);
 	}
 
-	// printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d\n", cnt_bucket, stale_bucket, partial_hash_skip);
+	printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
 
 	if(page_slot->page_item == NULL){
 		page_slot->page_item = alloc_hash_node();
