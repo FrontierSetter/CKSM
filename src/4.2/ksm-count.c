@@ -1467,6 +1467,9 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 		return;
 	}
 
+	printk("KSM : ksm_vir_pages_scaned = %lu\n", ksm_vir_pages_scaned);
+	ksm_vir_pages_scaned = 0;
+
 	remove_rmap_item_from_tree(rmap_item);
 
 	if (kpage) {
@@ -1726,8 +1729,7 @@ static void ksm_do_scan(unsigned int scan_npages)
 		rmap_item = scan_get_next_rmap_item(&page);
 		if (!rmap_item)
 			return;
-		printk("KSM : ksm_vir_pages_scaned = %lu\n", ksm_vir_pages_scaned);
-		ksm_vir_pages_scaned = 0;
+
 		cmp_and_merge_page(page, rmap_item);
 		put_page(page);
 	}
@@ -2336,6 +2338,7 @@ KSM_ATTR_RO(full_scans);
 
 static struct attribute *ksm_attrs[] = {
 	&vir_pages_scaned_attr.attr,
+	&pages_not_reduced_attr.attr,
 	&pages_truly_reduced_attr.attr,
 	&pages_merge_cnt_attr.attr,
 	&sleep_millisecs_attr.attr,
