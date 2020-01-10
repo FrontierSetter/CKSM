@@ -1397,9 +1397,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		return;
 	}else{
 
-		// printk("PKSM : partial_hash start\n");
+		printk("PKSM : partial_hash start\n");
 		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
-		// printk("PKSM : partial_hash end\n");
+		printk("PKSM : partial_hash end\n");
 
 
 		// printk("PKSM : pksm_cmp_and_merge_page : hash calculated\n");
@@ -1447,9 +1447,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		// ? 可以先生成一个stable_node结构，然后通过传参的形式层层处理，最后在外面再加入哈希桶
 		// ? 当然也可以先把这个node挂载page_slot上，但是这样会造成不一致性，暂时先不这么搞
 
-		// printk("PKSM : partial_hash start\n");
+		printk("PKSM : partial_hash start\n");
 		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
-		// printk("PKSM : partial_hash end\n");
+		printk("PKSM : partial_hash end\n");
 
 		if((partial_hash != cur_page_slot->partial_hash) || (entryIndex != (cur_hash & PAGE_HASH_MASK))){
 			// printk("PKSM : pksm_cmp_and_merge_page : volatile %u -> %u\n", cur_page_slot->partial_hash, partial_hash);
