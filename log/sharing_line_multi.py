@@ -3,12 +3,24 @@ import matplotlib.pyplot as plt
 
 # ========================== fork ==============================
 
-# 3
+# 7
 # 0.25
-# 8
+# 15
+# KSM-fork-100/test_data/ksm_pages_sharing.log
+# 1578291397
+# KSM-100
+# KSM-fork-200/test_data/ksm_pages_sharing.log
+# 1578289179
+# KSM-200
+# KSM-fork-500/test_data/ksm_pages_sharing.log
+# 1578290210
+# KSM-500
 # UKSM-fork/bash/test_data/pages_sharing.log
 # 1578060313
 # UKSM
+# PKSM-fork-100/bash/test_data/pksm_pages_sharing.log
+# 1578133397
+# PKSM-100
 # PKSM-fork-200-2/bash/test_data/pksm_pages_sharing.log
 # 1578132628
 # PKSM-200
@@ -44,9 +56,12 @@ import matplotlib.pyplot as plt
 
 # ==================== quick ================================
 
-# 2
+# 3
 # 0.11
 # 25
+# quick-KSM-200-4096-4-5-ver/test_data/ksm_pages_sharing.log
+# 1578294856
+# KSM-200
 # quick-UKSM-4096-4-5-2/test_data/pages_sharing.log
 # 1578232326
 # UKSM
@@ -54,9 +69,12 @@ import matplotlib.pyplot as plt
 # 1578230743
 # PKSM-200
 
-# 2
+# 3
 # 0.11
 # 13
+# quick-KSM-200-4096-2-5-ver/test_data/ksm_pages_sharing.log
+# 1578295849
+# KSM-200
 # quick-UKSM-4096-2-5/test_data/pages_sharing.log
 # 1578233847
 # UKSM
@@ -64,9 +82,12 @@ import matplotlib.pyplot as plt
 # 1578234211
 # PKSM-200
 
-# 2
+# 3
 # 0.11
 # 50
+# quick-KSM-200-4096-8-5-ver/test_data/ksm_pages_sharing.log
+# 1578296001
+# KSM-200
 # quick-UKSM-4096-8-5/test_data/pages_sharing.log
 # 1578233613
 # UKSM
@@ -133,6 +154,7 @@ plt.figure(figsize=(9,6))
 # plt.figure()
 for i in range(lineNum):
     plt.plot(X,Y[i], label=lineLabel[i], linewidth=4)
+    # plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o')
 
 plt.legend()
 

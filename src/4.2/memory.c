@@ -71,6 +71,8 @@
 
 #include "internal.h"
 
+#define MAP_PRIVATE	0x02
+
 #ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS
 #warning Unfortunate NUMA and NUMA Balancing config, growing page-frame for last_cpupid.
 #endif
@@ -2067,6 +2069,8 @@ static int wp_page_copy(struct mm_struct *mm, struct vm_area_struct *vma,
 	const unsigned long mmun_start = address & PAGE_MASK;	/* For mmu_notifiers */
 	const unsigned long mmun_end = mmun_start + PAGE_SIZE;	/* For mmu_notifiers */
 	struct mem_cgroup *memcg;
+	bool ksm_cow_page_flag = false;
+	bool ksm_cow_break_flag = false;
 
 	if (unlikely(anon_vma_prepare(vma)))
 		goto oom;
@@ -2075,11 +2079,16 @@ static int wp_page_copy(struct mm_struct *mm, struct vm_area_struct *vma,
 		new_page = alloc_zeroed_user_highpage_movable(vma, address);
 		if (!new_page)
 			goto oom;
+		ksm_cow_page_flag = true;
 	} else {
 		new_page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma, address);
 		if (!new_page)
 			goto oom;
 		cow_user_page(new_page, old_page, address, vma);
+		if (old_page && PageKsm(old_page))
+			ksm_cow_break_flag = true;
+		else
+			ksm_cow_page_flag = true;
 	}
 
 	if (mem_cgroup_try_charge(new_page, mm, GFP_KERNEL, &memcg))
@@ -2089,13 +2098,15 @@ static int wp_page_copy(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	mmu_notifier_invalidate_range_start(mm, mmun_start, mmun_end);
 
-	if(old_page && PageKsm(old_page)){
-		pksm_new_anon_page(new_page, false);
-		// printk("PKSM : wp_page_copy old_page %p pksm, add page %p\n", old_page, new_page);
-	}else{
-		pksm_new_anon_page(new_page, true);
-		// printk("PKSM : wp_page_copy old_page %p not pksm, add page %p\n", old_page, new_page);
-	}
+	// if(old_page && PageKsm(old_page)){
+	// 	pksm_new_anon_page(new_page, false);
+	// 	// printk("PKSM : wp_page_copy old_page %p pksm, add page %p\n", old_page, new_page);
+	// }else{
+	// 	pksm_new_anon_page(new_page, true);
+	// 	// printk("PKSM : wp_page_copy old_page %p not pksm, add page %p\n", old_page, new_page);
+	// }
+
+	
 
 	/*
 	 * Re-check the pte - we dropped the lock
@@ -2155,6 +2166,11 @@ static int wp_page_copy(struct mm_struct *mm, struct vm_area_struct *vma,
 			 */
 			page_remove_rmap(old_page);
 		}
+
+		if (ksm_cow_break_flag)
+			pksm_new_anon_page(new_page, false);
+		else if (ksm_cow_page_flag)
+			pksm_new_anon_page(new_page, true);
 
 		/* Free the old page.. */
 		new_page = old_page;
@@ -2675,6 +2691,8 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	struct page *page;
 	spinlock_t *ptl;
 	pte_t entry;
+	bool flag;
+	flag = false;
 
 	pte_unmap(page_table);
 
@@ -2723,12 +2741,12 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	inc_mm_counter_fast(mm, MM_ANONPAGES);
 	page_add_new_anon_rmap(page, vma, address);
-
-	pksm_new_anon_page(page, true);
-	// printk("PKSM : do_anonymous_page page %p\n", page);
+	flag = true;
 
 	mem_cgroup_commit_charge(page, memcg, false);
 	lru_cache_add_active_or_unevictable(page, vma);
+
+	// printk("PKSM : do_anonymous_page page %p\n", page);
 setpte:
 	set_pte_at(mm, address, page_table, entry);
 
@@ -2736,7 +2754,9 @@ setpte:
 	update_mmu_cache(vma, address, page_table);
 unlock:
 	pte_unmap_unlock(page_table, ptl);
-
+	if(flag == true){
+		pksm_new_anon_page(page, true);
+	}
 
 	return 0;
 release:
@@ -3033,6 +3053,7 @@ static int do_cow_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 		 */
 		i_mmap_unlock_read(vma->vm_file->f_mapping);
 	}
+	pksm_new_anon_page(new_page, true);
 	return ret;
 uncharge_out:
 	mem_cgroup_cancel_charge(new_page, memcg);

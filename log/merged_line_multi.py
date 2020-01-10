@@ -1,16 +1,39 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# 4
+# 7
+# KSM-fork-100/test_data/ksm_pages_merged.log
+# 1578291397
+# KSM-100
+# KSM-fork-200/test_data/ksm_pages_merged.log
+# 1578289179
+# KSM-200
+# KSM-fork-500/test_data/ksm_pages_merged.log
+# 1578290210
+# KSM-500
 # UKSM-fork/bash/test_data/uksm_pages_merged.log
 # 1578060313
 # UKSM-ori
+# PKSM-fork-100/bash/test_data/pksm_pages_merged.log
+# 1578133397
+# PKSM-100
 # PKSM-fork-200-2/bash/test_data/pksm_pages_merged.log
 # 1578132628
 # PKSM-200
 # PKSM-fork-500/test_data/pksm_pages_merged.log
 # 1578131114
 # PKSM-500
+# UKSM-fork/bash/test_data/uksm_pages_merged.log
+# 1578060315
+# UKSM-moved
+
+# 3
+# PKSM-fork-200-2/bash/test_data/pksm_pages_merged.log
+# 1578132628
+# PKSM-200
+# KSM-fork-200/test_data/ksm_pages_merged.log
+# 1578289183
+# KSM-200-moved
 # UKSM-fork/bash/test_data/uksm_pages_merged.log
 # 1578060315
 # UKSM-moved
@@ -68,10 +91,12 @@ for i in range(lineNum):
         else:
             baseSharing = curSharing
 
-        if idx >= 8.0:
+        if idx >= 12.0:
             break
 
     curFile.close()
+
+plt.figure(figsize=(9,6))
 
 idx = 0.0
 for i in range(len(Y[0])):
