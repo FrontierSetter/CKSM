@@ -1,0 +1,35 @@
+sysbench 0.4.12:  multi-threaded system evaluation benchmark
+
+Running the test with following options:
+Number of threads: 1
+
+Extra file open flags: 16384
+128 files, 16Mb each
+2Gb total file size
+Block size 4Kb
+Periodic FSYNC enabled, calling fsync() each 100 requests.
+Calling fsync() at the end of test, Enabled.
+Using fast mmaped I/O mode
+Doing sequential rewrite test
+Threads started!
+FATAL: Failed to fsync file! file: 3 errno = 0 ()
+Done.
+
+Operations performed:  0 Read, 524288 Write, 0 Other = 524288 Total
+Read 0b  Written 2Gb  Total transferred 2Gb  (653.89Mb/sec)
+167397.07 Requests/sec executed
+
+Test execution summary:
+    total time:                          3.1320s
+    total number of events:              524288
+    total time taken by event execution: 3.0382
+    per-request statistics:
+         min:                                  0.00ms
+         avg:                                  0.01ms
+         max:                                 13.81ms
+         approx.  95 percentile:               0.01ms
+
+Threads fairness:
+    events (avg/stddev):           524288.0000/0.00
+    execution time (avg/stddev):   3.0382/0.00
+
