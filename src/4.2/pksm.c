@@ -45,7 +45,7 @@
 
 // #define VERBOS_GET_PKSM_PAGE
 // #define VERBOS_TRY_TO_MERGE_ONE_PAGE
-#define MANUAL_PAGE_ADD
+// #define MANUAL_PAGE_ADD
 // #define VERBOS_PKSM_EXIT
 // #define VERBOS_PKSM_NEW_ANON_PAGE
 #define USE_ADVANCED_MEMCMP
@@ -280,20 +280,18 @@ static DEFINE_SPINLOCK(pksm_pagelist_lock);
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
 #endif
 
-static uint32_t super_fast_hash(const char * data, int len, uint32_t *partial_hash)
+static uint32_t super_fast_hash(const char * data, int len)
 {
     uint32_t hash = len, tmp;
     int rem;
-	int partial_len = PARTIAL_HASH_LEN >> 2;
 
     if (len <= 0 || data == NULL) return 0;
 
     // rem = len & 3;
     len >>= 2;
-	len -= partial_len;
 
     /* Main loop */
-    for (;partial_len > 0; partial_len--) {
+    for (;len > 0; len--) {
         hash  += get16bits (data);
         tmp    = (get16bits (data+2) << 11) ^ hash;
         hash   = (hash << 16) ^ tmp;
@@ -301,15 +299,6 @@ static uint32_t super_fast_hash(const char * data, int len, uint32_t *partial_ha
         hash  += hash >> 11;
     }
 
-	*partial_hash = hash;
-
-	for (;len > 0; len--) {
-        hash  += get16bits (data);
-        tmp    = (get16bits (data+2) << 11) ^ hash;
-        hash   = (hash << 16) ^ tmp;
-        data  += 2*sizeof (uint16_t);
-        hash  += hash >> 11;
-    }
 
 
     /* Handle end cases */
@@ -339,13 +328,13 @@ static uint32_t super_fast_hash(const char * data, int len, uint32_t *partial_ha
     return hash;
 }
 
-static u32 cacl_superfasthash(struct page *page, uint32_t *partial_hash)
+static u32 cacl_superfasthash(struct page *page)
 {
 	char *addr;
 	u32 checksum;
 
 	addr = kmap_atomic(page);
-	checksum = super_fast_hash(addr, PAGE_SIZE, partial_hash);
+	checksum = super_fast_hash(addr, PAGE_SIZE);
 	kunmap_atomic(addr);
 	return checksum;
 }
@@ -1140,8 +1129,9 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 
 	err = try_to_set_this_pksm_page(page_slot, page, pksm_hash_node);
 	if (!err) {
-		err = try_to_merge_with_pksm_page(table_page_slot,
-							table_page, page);
+		err = try_to_merge_with_pksm_page(table_page_slot, table_page, page);
+		// try_to_merge_with_pksm_page(table_page_slot, table_page, page);
+
 		/*
 		 * If that fails, we have a ksm page with only one pte
 		 * pointing to it: so break it.
@@ -1351,9 +1341,9 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 
 
 	// 重新计算当前页面的哈希值
-	cur_hash = cacl_superfasthash(kpage, &partial_hash);
+	cur_hash = cacl_superfasthash(kpage);
 	entryIndex = cur_hash & PAGE_HASH_MASK;
-	kpage_slot->partial_hash = partial_hash;
+	kpage_slot->partial_hash = 0;
 
 	hlist_add_head(&(pksm_hash_node->hlist), &(stable_hash_table[entryIndex]));
 }
@@ -1398,13 +1388,13 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 	}else{
 
 		printk("PKSM : partial_hash start\n");
-		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
+		cur_hash = cacl_superfasthash(cur_page);
 		printk("PKSM : partial_hash end\n");
 
 
 		// printk("PKSM : pksm_cmp_and_merge_page : hash calculated\n");
 		// if(cur_page_slot->page_item == NULL){
-		cur_page_slot->partial_hash = partial_hash;
+		cur_page_slot->partial_hash = 0;
 			// printk("PKSM : stable partial_hash %u\n", partial_hash);
 		// }
 
@@ -1448,12 +1438,12 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		// ? 当然也可以先把这个node挂载page_slot上，但是这样会造成不一致性，暂时先不这么搞
 
 		printk("PKSM : partial_hash start\n");
-		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
+		cur_hash = cacl_superfasthash(cur_page);
 		printk("PKSM : partial_hash end\n");
 
-		if((partial_hash != cur_page_slot->partial_hash) || (entryIndex != (cur_hash & PAGE_HASH_MASK))){
+		if((0 != cur_page_slot->partial_hash) || (entryIndex != (cur_hash & PAGE_HASH_MASK))){
 			// printk("PKSM : pksm_cmp_and_merge_page : volatile %u -> %u\n", cur_page_slot->partial_hash, partial_hash);
-			cur_page_slot->partial_hash = partial_hash;
+			cur_page_slot->partial_hash = 0;
 			return;
 		}
 
@@ -1501,6 +1491,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 				// ++pksm_page_shared;
 
+			}else{
+				// free_all_rmap_item_of_node(hash_node);
+				// free_hash_node(hash_node)
 			}
 
 		}
@@ -1715,8 +1708,8 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 			// // printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
 			// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			if(likely(high_priority)){
-				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
-				list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				// list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}else{
 				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}

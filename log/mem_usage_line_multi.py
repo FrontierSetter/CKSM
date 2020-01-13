@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 
 
 # ============================== 64 NGINX start ============================
+# nginx_64_verbo.pdf
+# dump.pdf
 # 5
 # 140
 # nginx64-base/test_data/mem_usage.log
@@ -27,39 +29,93 @@ import matplotlib.pyplot as plt
 # UKSM
 # nginx64-pksm50/test_data/mem_usage.log
 # 1578541782
-# PKSM-50
+# CKSM-50
 # nginx64-pksm100/test_data/mem_usage.log
 # 1578543956
-# PKSM-100
+# CKSM-100
 # nginx64-pksm200/test_data/mem_usage.log
 # 1578541159
-# PKSM-200
+# CKSM-200
 # ====================================================================
 
+# dump.pdf
+# 2
+# 350
+# nginx8-base/test_data/mem_usage.log
+# 1578738289
+# Base
+# nginx8-pksm50/test_data/mem_usage.log
+# 1578738099
+# CKSM-50
+
+# dump.pdf
+# 3
+# 350
+# nginx16-base/test_data/mem_usage.log
+# 1578739053
+# Base
+# nginx16-uksm/test_data/mem_usage.log
+# 1578751011
+# UKSM
+# nginx16-pksm50-2/test_data/mem_usage.log
+# 1578743261
+# CKSM-50
+
+# dump.pdf
+# 3
+# 350
+# nginx128-base/test_data/mem_usage.log
+# 1578729463
+# Base
+# nginx128-uksm/test_data/mem_usage.log
+# 1578749354
+# UKSM
+# nginx128-pksm50/test_data/mem_usage.log
+# 1578734303
+# CKSM-50
+
+# test.pdf
+# 4
+# 1000
+# nginx256-base/test_data/mem_usage.log
+# 1578730050
+# Base
+# nginx256-uksm/test_data/mem_usage.log
+# 1578749910
+# UKSM
+# nginx256-pksm50/test_data/mem_usage.log
+# 1578804727
+# CKSM-50
+# nginx256-pksm100/test_data/mem_usage.log
+# 1578735346
+# CKSM-100
+
 # ============================== 32 NGINX start ============================
+# dump.pdf
 # 6
 # 70
 # nginx32-base-2/test_data/mem_usage.log
 # 1578469302
-# base
+# Base
 # nginx32-uksm-2/test_data/mem_usage.log
 # 1578469992
-# uksm
+# UKSM
 # nginx32-pksm50/test_data/mem_usage.log
 # 1578543031
-# PKSM-50
+# CKSM-50
 # nginx32-pksm100-1/test_data/mem_usage.log
 # 1578470749
-# PKSM-100
+# CKSM-100
 # nginx32-pksm-2/test_data/mem_usage.log
 # 1578468899
-# PKSM-200
+# CKSM-200
 # nginx32-pksm500-1/test_data/mem_usage.log
 # 1578470491
-# PKSM-500
+# CKSM-500
 # ====================================================================
 
 # ============================== 64 Redis start ============================
+# dump.pdf
 # 3
 # 120
 # redis64-base/test_data/mem_usage.log
@@ -70,8 +126,47 @@ import matplotlib.pyplot as plt
 # UKSM
 # redis64-pksm200/test_data/mem_usage.log
 # 1578545509
-# PKSM-50
+# CKSM-50
 # ====================================================================
+
+# dump.pdf
+# 3
+# 350
+# httpd64-base/test_data/mem_usage.log
+# 1578744021
+# Base
+# httpd64-uksm-2/test_data/mem_usage.log
+# 1578753663
+# UKSM
+# httpd64-pksm50/test_data/mem_usage.log
+# 1578743645
+# CKSM-50
+
+# dump.pdf
+# 3
+# 350
+# postage64-base/test_data/mem_usage.log
+# 1578744581
+# Base
+# postage64-uksm-2/test_data/mem_usage.log
+# 1578753265
+# UKSM
+# postage64-pksm50/test_data/mem_usage.log
+# 1578745289
+# CKSM-50
+
+# dump.pdf
+# 3
+# 350
+# mongo32-base/test_data/mem_usage.log
+# 1578747756
+# Base
+# mongo32-uksm/test_data/mem_usage.log
+# 1578752802
+# UKSM
+# mongo32-pksm50/test_data/mem_usage.log
+# 1578747049
+# CKSM-50
 
 # ============================== 64 NGINX 4G start ============================
 # 3
@@ -84,11 +179,12 @@ import matplotlib.pyplot as plt
 # UKSM
 # nginx64-4g-pksm200/test_data/mem_usage.log
 # 1578548017
-# PKSM-50
+# CKSM-50
 # ====================================================================
 
 
 # ============================== Net(httpd + redis + nginx) 12 ============================
+# net_mem.pdf
 # 3
 # 40
 # net12-base/test_data/mem_usage.log
@@ -99,12 +195,13 @@ import matplotlib.pyplot as plt
 # UKSM
 # net12-pksm200/test_data/mem_usage.log
 # 1578551011
-# PKSM-50
+# CKSM-50
 # ====================================================================
 
 # ============================== Train(PyTorch + TensorFlow + memcached) 12 ============================
+# train_mem.pdf
 # 3
-# 100
+# 90
 # train3-base/test_data/mem_usage.log
 # 1578571260
 # Base
@@ -113,7 +210,7 @@ import matplotlib.pyplot as plt
 # UKSM
 # train3-pksm50/test_data/mem_usage.log
 # 1578571490
-# PKSM-50
+# CKSM-50
 # train3-uksm/test_data/mem_usage.log
 # 1578573991
 # UKSM
@@ -129,13 +226,15 @@ import matplotlib.pyplot as plt
 # UKSM
 # train3-pksm50/test_data/mem_usage.log
 # 1578571490
-# PKSM-50
+# CKSM-50
 # train3-pksm50-2/test_data/mem_usage.log
 # 1578571938
-# PKSM-100
+# CKSM-100
 
 
 # ============================== lapp(apache + postage + php) 12 ============================
+# lapp_mem.pdf
+# dump.pdf
 # 3
 # 55
 # lapp12s-base/test_data/mem_usage.log
@@ -146,7 +245,7 @@ import matplotlib.pyplot as plt
 # UKSM
 # lapp12s-pksm200/test_data/mem_usage.log
 # 1578554734
-# PKSM-50
+# CKSM-50
 # ====================================================================
 
 # 3
@@ -159,7 +258,7 @@ import matplotlib.pyplot as plt
 # UKSM
 # train12s-pksm50/test_data/mem_usage.log
 # 1578558741
-# PKSM-50
+# CKSM-50
 
 # ============================== can use ============================
 # 3
@@ -185,6 +284,7 @@ import matplotlib.pyplot as plt
 # PKSM-1
 
 # ============================== MINIST ============================
+# minist_mem.pdf
 # 4
 # 25
 # minist-base-5/test_data/mem_usage.log
@@ -195,20 +295,25 @@ import matplotlib.pyplot as plt
 # UKSM
 # minist-pksm-5/test_data/mem_usage.log
 # 1578460816
-# PKSM-200
+# CKSM-200
 # minist-pksm500-1/test_data/mem_usage.log
 # 1578463729
-# PKSM-500
+# CKSM-500
 # ====================================================================
 
-# 2
+# ab_mem.pdf
+# 3
 # 100
 # ab-base/test_data/mem_usage.log
 # 1578577866
 # Base
+# ab-uksm/test_data/mem_usage.log
+# 1578580632
+# UKSM
 # ab-pksm200/test_data/mem_usage.log
 # 1578578178
-# PKSM-200
+# CKSM-200
+
 
 
 # ============================== can use ============================
@@ -225,7 +330,7 @@ import matplotlib.pyplot as plt
 # UKSM
 # kvm3.0-pksm-1/test_data/mem_usage.log
 # 1578474658
-# PKSM-200
+# CKSM-200
 # ====================================================================
 
 
@@ -246,6 +351,7 @@ import matplotlib.pyplot as plt
 # PKSM
 
 # =============================== KVM 2.10 =====================================
+# kvm_2_10.pdf
 # 6
 # 350
 # kvm2.10nh-base-2/test_data/mem_usage.log
@@ -259,13 +365,13 @@ import matplotlib.pyplot as plt
 # UKSM
 # kvm2.10nh-pksm50/test_data/mem_usage.log
 # 1578644443
-# PKSM-50
+# CKSM-50
 # kvm2.10nh-pksm100/test_data/mem_usage.log
 # 1578643369
-# PKSM-100
+# CKSM-100
 # kvm2.10nh-pksm200/test_data/mem_usage.log
 # 1578642578
-# PKSM-200
+# CKSM-200
 # ====================================================================
 
 
@@ -275,10 +381,10 @@ startStamp = []
 filePath = []
 lineLabel = []
 
-colorTable = {'UKSM':'orange', 'Base':'royalblue', 'PKSM-50':'forestgreen', 'PKSM-100':'red', 'PKSM-200':'darkorchid', 'PKSM-500':'goldenrod', 'KSM-100':'yellow'}
+colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'yellow'}
 
 
-
+figFileName = input('figFileName: ')
 lineNum = int(input('lineNum: '))
 idxGap = 1
 stopTime = int(input('stop: '))
@@ -321,8 +427,15 @@ for i in range(lineNum):
 
         if curTime >= startStamp[i]:
             loaderStarted = True
+
+            # ======================= used in nginx 64 ============================
+            # if 'UKSM' in lineLabel[i] and idx >= 118:
+            #     curFree -= 20
+            # elif 'CKSM-100' in lineLabel[i] and idx >= 121:
+            #     curFree -= 20
+            #  ===============================================================
             Y[i].append(curFree-baseFree)
-            # if 'PKSM-100' in lineLabel[i] and idx >= 121:
+            # if 'CKSM-100' in lineLabel[i] and idx >= 121:
             #     Y[i][-1] -= 20
             # if 'UKSM' in lineLabel[i] and idx >= 118:
             #     Y[i][-1] -= 20
@@ -362,5 +475,8 @@ plt.legend()
 
 plt.xlabel('Time(s)')
 plt.ylabel('Memory Usage(MB)')
+plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
+
+plt.savefig(figFileName)
 
 plt.show()

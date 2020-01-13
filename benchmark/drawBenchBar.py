@@ -27,6 +27,9 @@ y=[
 bar_width=0.1#设置柱状图的宽度
 tick_label=['Mem_Seq_R','Mem_Seq_W','Mem_Rnd_R','Mem_Rnd_W']
 
+plt.figure(figsize=(11,6))
+
+
 #绘制并列柱状图
 for i in range(5):
     plt.bar(x+i*bar_width,y[i],bar_width,color=colorTable[barName[i]],label=barName[i])
@@ -39,5 +42,13 @@ for i in range(5):
 
 
 plt.legend()#显示图例，即label
+
+plt.ylabel('Bandwidth(MB/s)')
+
 plt.xticks(x+bar_width*5.0/2.0,tick_label)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
+plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
+
+plt.savefig('mem_bench.pdf')
+
+
 plt.show()

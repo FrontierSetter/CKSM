@@ -43,16 +43,21 @@ while True:
     pre_merged = cur_merged
     pre_notmerged = cur_notmerged
 
-    if idx >= 16.0:
+    if idx >= 10.0:
         break
 
 
 print(len(truly_merged))
 print(idx)
+plt.figure(figsize=(9,6))
 
-plt.stackplot(x_data, truly_merged, not_merged, labels=['truly_merged', 'not_merged'], colors=['coral', 'slategray'])
+
+plt.stackplot(x_data, truly_merged, not_merged, labels=['True merge', 'Fake merge'], colors=['coral', 'slategray'])
+plt.legend()#显示图例，即label
 
 plt.xlabel('Time(s)')
-plt.ylabel('pages')
+plt.ylabel('Number of pages')
+plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
+plt.savefig('fake_merge.pdf')
 
 plt.show()

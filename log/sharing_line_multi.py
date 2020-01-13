@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 # ========================== fork ==============================
 
+# fork_sharing.pdf
 # 7
 # 0.25
 # 15
@@ -20,13 +21,13 @@ import matplotlib.pyplot as plt
 # UKSM
 # PKSM-fork-100/bash/test_data/pksm_pages_sharing.log
 # 1578133397
-# PKSM-100
+# CKSM-100
 # PKSM-fork-200-2/bash/test_data/pksm_pages_sharing.log
 # 1578132628
-# PKSM-200
+# CKSM-200
 # PKSM-fork-500/test_data/pksm_pages_sharing.log
 # 1578131114
-# PKSM-500
+# CKSM-500
 
 # 4
 # 0.25
@@ -39,10 +40,10 @@ import matplotlib.pyplot as plt
 # UKSM
 # PKSM-fork-200-2/bash/test_data/pksm_pages_sharing.log
 # 1578132628
-# PKSM-200
+# CKSM-200
 # PKSM-fork-500/test_data/pksm_pages_sharing.log
 # 1578131114
-# PKSM-500
+# CKSM-500
 
 # 2
 # 0.25
@@ -52,10 +53,11 @@ import matplotlib.pyplot as plt
 # UKSM
 # PKSM-fork-200-12/bash/test_data/pksm_pages_sharing.log
 # 1578138951
-# PKSM-200
+# CKSM-200
 
 # ==================== quick ================================
 
+# quick_4_5.pdf
 # 3
 # 0.11
 # 25
@@ -67,8 +69,9 @@ import matplotlib.pyplot as plt
 # UKSM
 # quick-PKSM-200-4096-4-5/test_data/pksm_pages_sharing.log
 # 1578230743
-# PKSM-200
+# CKSM-200
 
+# quick_2_5.pdf
 # 3
 # 0.11
 # 13
@@ -80,8 +83,9 @@ import matplotlib.pyplot as plt
 # UKSM
 # quick-PKSM-200-4096-2-5/test_data/pksm_pages_sharing.log
 # 1578234211
-# PKSM-200
+# CKSM-200
 
+# quick_8_5.pdf
 # 3
 # 0.11
 # 50
@@ -93,7 +97,7 @@ import matplotlib.pyplot as plt
 # UKSM
 # quick-PKSM-200-4096-8-5/test_data/pksm_pages_sharing.log
 # 1578234399
-# PKSM-200
+# CKSM-200
  
 X=[]
 Y=[]
@@ -101,7 +105,11 @@ startStamp = []
 filePath = []
 lineLabel = []
 
+colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'violet', 'KSM-200':'chocolate', 'KSM-500':'rosybrown'}
 
+
+
+figFileName = input('figFileName: ')
 lineNum = int(input('lineNum: '))
 idxGap = float(input('timeGap: '))
 stopTime = int(input('stop: '))
@@ -153,7 +161,7 @@ plt.figure(figsize=(9,6))
 
 # plt.figure()
 for i in range(lineNum):
-    plt.plot(X,Y[i], label=lineLabel[i], linewidth=4)
+    plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o', color=colorTable[lineLabel[i]])
     # plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o')
 
 plt.legend()
@@ -162,5 +170,9 @@ plt.legend()
 
 plt.xlabel('Time(s)')
 plt.ylabel('pages sharing')
+
+plt.subplots_adjust(left=0.10, right=0.98, top=0.98, bottom=0.09)
+
+plt.savefig(figFileName)
 
 plt.show()

@@ -23,6 +23,57 @@ import matplotlib.pyplot as plt
 # 195
 # PKSM-200
 
+
+# 2
+# nginx64-uksm-2/test_data/cpu_usage.log
+# 1578546453
+# 100
+# UKSM
+# nginx64-pksm50/test_data/cpu_usage.log
+# 1578541782
+# 100
+# CKSM-50
+
+# 2
+# nginx32-uksm-2/test_data/cpu_usage.log
+# 1578469992
+# 60
+# UKSM
+# nginx32-pksm100-1/test_data/cpu_usage.log
+# 1578470749
+# 60
+# CKSM-50
+
+# 2
+# nginx16-uksm/test_data/cpu_usage.log
+# 1578751011
+# 30
+# UKSM
+# nginx16-pksm50-2/test_data/cpu_usage.log
+# 1578743261
+# 30
+# CKSM-50
+
+# 2
+# nginx128-uksm/test_data/cpu_usage.log
+# 1578749354
+# 200
+# UKSM
+# nginx128-pksm50/test_data/cpu_usage.log
+# 1578734303
+# 300
+# CKSM-50
+
+# 2
+# nginx256-uksm/test_data/cpu_usage.log
+# 1578749910
+# 450
+# UKSM
+# nginx256-pksm50/test_data/cpu_usage.log
+# 1578804727
+# 900
+# CKSM-50
+
 X=[]
 Y=[]
 startStamp = []

@@ -6,29 +6,26 @@ import numpy as np
 x=np.arange(5)#柱状图在横坐标上的位置
 #列出你要显示的数据，数据的列表长度与x长度相同
 
-y1=[0.9442192804695108,0.9693127060613745,0.9831702014791084,0.895712888019212,0.9235144566020079]
-y2=[1.1468531468531469, 1.2869692532942898, 1.1641842743332178, 1.032934131736527,1.0980253878702397]
-
-for i in range(len(y1)):
-    y1[i] *= 100
-    y2[i] = 100-y1[i]
+y1=[6.8,6.7,7.5,0.5,2.6]
+y2=[2.4328404796788097, 3.930813962853783, 3.398950243540646, 4.053208556149732,2.1462049868061372]
 
 
 bar_width=0.2#设置柱状图的宽度
-tick_label=['FCV Training','Idle','Kernel Compile','Docker Start','KVM Init']
+tick_label=['16','32','64','128','256']
+
 plt.figure(figsize=(9,6))
 
-#绘制并列柱状图
-plt.bar(x,y1,bar_width,color='royalblue',label='with Partial-Hash')
-plt.bar(x+bar_width,y2,bar_width,color='firebrick',label='without Partial-Hash')
 
-plt.ylabel('proportion(%)')
+#绘制并列柱状图
+plt.bar(x,y1,bar_width,color='royalblue',label='PKSM')
+plt.bar(x+bar_width,y2,bar_width,color='firebrick',label='UKSM')
+
 
 
 plt.legend()#显示图例，即label
 plt.xticks(x+bar_width/2,tick_label)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
+
 plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
 
-plt.savefig('partial_par.pdf')
 
 plt.show()

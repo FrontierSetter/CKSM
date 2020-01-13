@@ -92,14 +92,14 @@ while True:
 
 
 
-print('skiped: '+str(cmpSkipped))
-print('called: '+str(cmpCalled))
-print('ratio: '+str(float(cmpSkipped)/(float(cmpSkipped+cmpCalled))))
-print('load: '+str(float(cmpSkipped+cmpCalled)/(float(totalCnt))))
+# print('skiped: '+str(cmpSkipped))
+# print('called: '+str(cmpCalled))
+# print('ratio: '+str(float(cmpSkipped)/(float(cmpSkipped+cmpCalled))))
+# print('load: '+str(float(cmpSkipped+cmpCalled)/(float(totalCnt))))
 
-print('memcmpTime: '+str(memcmpTime)+' memcmpCnt: '+str(memcmpCnt)+' memcmpAve: '+str(memcmpTime/memcmpCnt))
-print('partialTime: '+str(partialHashTime)+' partialCnt: '+str(partialHashCnt)+' partialAve: '+str(partialHashTime/partialHashCnt))
-print('totalAvg: '+str((memcmpTime+partialHashTime)/(memcmpCnt+partialHashCnt)))
-print('sameTime: '+str(sameTime)+' sameCnt: '+str(sameCnt)+' sameAve: '+str(sameTime/sameCnt))
+# print('memcmpTime: '+str(memcmpTime)+' memcmpCnt: '+str(memcmpCnt)+' memcmpAve: '+str(memcmpTime/memcmpCnt))
+# print('partialTime: '+str(partialHashTime)+' partialCnt: '+str(partialHashCnt)+' partialAve: '+str(partialHashTime/partialHashCnt))
+# print('totalAvg: '+str((memcmpTime+partialHashTime)/(memcmpCnt+partialHashCnt)))
+# print('sameTime: '+str(sameTime)+' sameCnt: '+str(sameCnt)+' sameAve: '+str(sameTime/sameCnt))
 
 print('calculateTime: '+str(calHashTime)+' calHashCnt: '+str(calHashCnt)+' calHashAvg: '+str(calHashTime/calHashCnt))

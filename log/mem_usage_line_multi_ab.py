@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# ab_mem.pdf
 # 3
 # 50
 # ab-base/test_data/mem_usage.log
@@ -14,7 +15,7 @@ import matplotlib.pyplot as plt
 # ab-pksm200/test_data/mem_usage.log
 # 1578578177
 # 1578578220
-# PKSM-50
+# CKSM-50
 
 
 X=[]
@@ -25,10 +26,11 @@ startStampAB = []
 filePath = []
 lineLabel = []
 
-colorTable = {'UKSM':'orange', 'Base':'royalblue', 'PKSM-50':'forestgreen', 'PKSM-100':'red', 'PKSM-200':'darkorchid', 'PKSM-500':'goldenrod'}
+colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod'}
 
 
 
+figFileName = input('figFileName: ')
 lineNum = int(input('lineNum: '))
 idxGap = 1
 stopTime = int(input('stop: '))
@@ -105,5 +107,9 @@ plt.legend()
 
 plt.xlabel('Time(s)')
 plt.ylabel('Memory Usage(MB)')
+
+plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
+
+plt.savefig(figFileName)
 
 plt.show()

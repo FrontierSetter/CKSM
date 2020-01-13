@@ -9,16 +9,17 @@ import matplotlib.pyplot as plt
 # uksm
 # nginx32-pksm-2/test_data/cpu_usage.log
 # 1578468899
-# PKSM-200
+# CKSM-200
 # nginx32-pksm500-1/test_data/cpu_usage.log
 # 1578470491
-# PKSM-500
+# CKSM-500
 # nginx32-pksm100-1/test_data/cpu_usage.log
 # 1578470749
-# PKSM-100
+# CKSM-100
 # ====================================================================
 
 # ============================== 64 NGINX start ============================
+# nginx_64_cpu.pdf
 # 2
 # 150
 # nginx64-uksm-2/test_data/cpu_usage.log
@@ -26,7 +27,7 @@ import matplotlib.pyplot as plt
 # UKSM
 # nginx64-pksm50/test_data/cpu_usage.log
 # 1578541782
-# PKSM-50
+# CKSM-50
 # ====================================================================
 
 
@@ -42,7 +43,7 @@ import matplotlib.pyplot as plt
 # uksm
 # nginx-pksm-6/test_data/cpu_usage.log
 # 1578467846
-# PKSM-1
+# CKSM-1
 # ====================================================================
 
 # 2
@@ -52,9 +53,10 @@ import matplotlib.pyplot as plt
 # base
 # httperf-pksm-1/test_data/cpu_usage.log
 # 1578409659
-# PKSM-1
+# CKSM-1
 
 # ============================== can use ============================
+# minist_cpu.pdf
 # 3
 # 30
 # minist-uksm-1/test_data/cpu_usage.log
@@ -62,10 +64,10 @@ import matplotlib.pyplot as plt
 # UKSM
 # minist-pksm-5/test_data/cpu_usage.log
 # 1578460816
-# PKSM-200
+# CKSM-200
 # minist-pksm500-1/test_data/cpu_usage.log
 # 1578463729
-# PKSM-500
+# CKSM-500
 # ====================================================================
 
 
@@ -80,13 +82,13 @@ import matplotlib.pyplot as plt
 # UKSM
 # kvm3.0-pksm-1/test_data/cpu_usage.log
 # 1578474658
-# PKSM-200
+# CKSM-200
 # ====================================================================
 
 
 # kvm3.0-pksm-2/test_data/cpu_usage.log
 # 1578475295
-# PKSM-2
+# CKSM-2
 # kvm3.0-base-1/test_data/cpu_usage.log
 # 1578474255
 # base
@@ -95,25 +97,25 @@ import matplotlib.pyplot as plt
 # 70
 # nginx32-pksm50/test_data/cpu_usage.log
 # 1578543031
-# PKSM-50
+# CKSM-50
 # nginx32-pksm100-1/test_data/cpu_usage.log
 # 1578470749
-# PKSM-100
+# CKSM-100
 # nginx32-pksm-2/test_data/cpu_usage.log
 # 1578468899
-# PKSM-200
+# CKSM-200
 # nginx32-pksm500-1/test_data/cpu_usage.log
 # 1578470491
-# PKSM-500
+# CKSM-500
 
 # 2
 # 250
 # kvm2.5nh-pksm100/test_data/cpu_usage.log
 # 1578643369
-# PKSM-100
+# CKSM-100
 # kvm2.5nh-pksm200/test_data/cpu_usage.log
 # 1578642578
-# PKSM-200
+# CKSM-200
 
 # 5
 # 350
@@ -125,13 +127,13 @@ import matplotlib.pyplot as plt
 # UKSM
 # kvm2.10nh-pksm50/test_data/cpu_usage.log
 # 1578644443
-# PKSM-50
+# CKSM-50
 # kvm2.10nh-pksm100/test_data/cpu_usage.log
 # 1578643369
-# PKSM-100
+# CKSM-100
 # kvm2.10nh-pksm200/test_data/cpu_usage.log
 # 1578642578
-# PKSM-200
+# CKSM-200
 
 
 
@@ -141,8 +143,9 @@ startStamp = []
 filePath = []
 lineLabel = []
 
-colorTable = {'UKSM':'orange', 'Base':'royalblue', 'PKSM-50':'forestgreen', 'PKSM-100':'red', 'PKSM-200':'darkorchid', 'PKSM-500':'goldenrod', 'KSM-100':'yellow'}
+colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'yellow'}
 
+figFileName = input('figFileName: ')
 
 
 lineNum = int(input('lineNum: '))
@@ -202,8 +205,8 @@ plt.figure(figsize=(9,6))
 
 # plt.figure()
 for i in range(lineNum):
-    plt.scatter(X[i],Y[i], label=lineLabel[i],marker='o', c='',edgecolors=colorTable[lineLabel[i]])
-    # plt.plot(X,Y[lineNum-1-i], label=lineLabel[lineNum-1-i], linewidth=2, color=colorTable[lineLabel[lineNum-1-i]])
+    # plt.scatter(X[i],Y[i], label=lineLabel[i],marker='o', c='',edgecolors=colorTable[lineLabel[i]])
+    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=2, color=colorTable[lineLabel[i]])
     # plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o')
 
 plt.legend()
@@ -212,5 +215,10 @@ plt.legend()
 
 plt.xlabel('Time(s)')
 plt.ylabel('CPU(% one core)')
+
+
+plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
+
+plt.savefig(figFileName)
 
 plt.show()

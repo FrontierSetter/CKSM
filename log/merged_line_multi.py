@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# fork_merged.pdf
 # 7
 # KSM-fork-100/test_data/ksm_pages_merged.log
 # 1578291397
@@ -13,30 +14,34 @@ import matplotlib.pyplot as plt
 # KSM-500
 # UKSM-fork/bash/test_data/uksm_pages_merged.log
 # 1578060313
-# UKSM-ori
+# UKSM
 # PKSM-fork-100/bash/test_data/pksm_pages_merged.log
 # 1578133397
-# PKSM-100
+# CKSM-100
 # PKSM-fork-200-2/bash/test_data/pksm_pages_merged.log
 # 1578132628
-# PKSM-200
+# CKSM-200
 # PKSM-fork-500/test_data/pksm_pages_merged.log
 # 1578131114
-# PKSM-500
+# CKSM-500
+
 # UKSM-fork/bash/test_data/uksm_pages_merged.log
 # 1578060315
 # UKSM-moved
 
+# fork_merged_lite.pdf
 # 3
-# PKSM-fork-200-2/bash/test_data/pksm_pages_merged.log
-# 1578132628
-# PKSM-200
 # KSM-fork-200/test_data/ksm_pages_merged.log
 # 1578289183
 # KSM-200-moved
 # UKSM-fork/bash/test_data/uksm_pages_merged.log
 # 1578060315
 # UKSM-moved
+# PKSM-fork-200-2/bash/test_data/pksm_pages_merged.log
+# 1578132628
+# CKSM-200
+
+
 
 # 2
 # UKSM-fork-12/bash/test_data/uksm_pages_merged.log
@@ -59,6 +64,12 @@ Y=[]
 startStamp = []
 filePath = []
 lineLabel = []
+
+colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'violet', 'KSM-200':'chocolate', 'KSM-500':'rosybrown', 'KSM-200-moved':'chocolate', 'UKSM-moved':'orange'}
+
+
+
+figFileName = input('figFileName: ')
 
 
 lineNum = int(input('lineNum: '))
@@ -86,7 +97,7 @@ for i in range(lineNum):
         trueSharing = curSharing - baseSharing
 
         if curTime >= startStamp[i]:
-            Y[i].append(trueSharing)
+            Y[i].append(trueSharing/16384.0*100)
             idx += 0.25
         else:
             baseSharing = curSharing
@@ -109,13 +120,18 @@ print(Y)
 # plt.figure()
 for i in range(lineNum):
     if 'move' in lineLabel[i]:
-        plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o', linestyle='--')
+        plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o', linestyle='--', color=colorTable[lineLabel[i]])
     else:
-        plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o')
+        plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o', color=colorTable[lineLabel[i]])
 
 plt.legend()
 
 plt.xlabel('Time(s)')
-plt.ylabel('pages released')
+plt.ylabel('Deduplication Ratio(%)')
+
+
+plt.subplots_adjust(left=0.10, right=0.98, top=0.98, bottom=0.09)
+
+plt.savefig(figFileName)
 
 plt.show()
