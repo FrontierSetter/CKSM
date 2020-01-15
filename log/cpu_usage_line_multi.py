@@ -143,7 +143,10 @@ startStamp = []
 filePath = []
 lineLabel = []
 
-colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'yellow'}
+colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'violet', 'KSM-200':'chocolate', 'KSM-50':'rosybrown'}
+
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM-50':'v', 'CKSM-100':'^', 'CKSM-200':'<', 'CKSM-500':'>', 'KSM-100':'x', 'KSM-200':'*', 'KSM-50':'D'}
+
 
 figFileName = input('figFileName: ')
 
@@ -182,8 +185,11 @@ for i in range(lineNum):
         curPercent = float(curLineArr[8])
 
         if curTime >= startStamp[i]:
-            Y[i].append(curPercent)
+            Y[i].append(curPercent/3)
             X[i].append(idx)
+            if Y[i][-1] > 15:
+                Y[i].pop()
+                X[i].pop()
             idx += 1
 
         if idx > stopTime:
@@ -206,15 +212,19 @@ plt.figure(figsize=(9,6))
 # plt.figure()
 for i in range(lineNum):
     # plt.scatter(X[i],Y[i], label=lineLabel[i],marker='o', c='',edgecolors=colorTable[lineLabel[i]])
-    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=2, color=colorTable[lineLabel[i]])
+    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=2, marker=markerTable[lineLabel[i]], color=colorTable[lineLabel[i]], markevery=4, markersize=8)
     # plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o')
 
-plt.legend()
+plt.legend(fontsize=14)
+
+# plt.set_size_inches(18.5, 10.5)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
 
 # plt.set_size_inches(18.5, 10.5)
 
-plt.xlabel('Time(s)')
-plt.ylabel('CPU(% one core)')
+plt.xlabel('Time(s)', fontsize=16)
+plt.ylabel('CPU(% one core)', fontsize=16)
 
 
 plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)

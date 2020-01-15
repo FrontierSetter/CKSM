@@ -27,16 +27,19 @@ y1=[
 
 bar_width=0.2#设置柱状图的宽度
 tick_label=['redis','postgres','Apache','MongoDB','Nginx']
+plt.figure(figsize=(9,6))
 
 #绘制并列柱状图
 plt.bar(x,y1,bar_width,color='royalblue',label='CKSM')
 plt.bar(x+bar_width,y2,bar_width,color='firebrick',label='UKSM')
 
-plt.legend()#显示图例，即label
-plt.xticks(x+bar_width/2,tick_label)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
+plt.yticks(fontsize=14)
+plt.legend(fontsize=14)#显示图例，即label
+plt.xticks(x+bar_width/2,tick_label, fontsize=14)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
+plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
 
-plt.xlabel('Image type')
-plt.ylabel('Memory saving percentage(%)')
+plt.xlabel('Image type', fontsize=16)
+plt.ylabel('Memory Usage Reduction Rate(%)', fontsize=16)
 
 
 plt.savefig('image_64.pdf')

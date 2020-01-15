@@ -235,6 +235,7 @@ import matplotlib.pyplot as plt
 # ============================== lapp(apache + postage + php) 12 ============================
 # lapp_mem.pdf
 # dump.pdf
+# dump.pdf
 # 3
 # 55
 # lapp12s-base/test_data/mem_usage.log
@@ -374,6 +375,97 @@ import matplotlib.pyplot as plt
 # CKSM-200
 # ====================================================================
 
+# kvm_8_10.pdf
+# 8
+# 700
+# kvm8.10-base/test_data/mem_usage.log
+# 1578988939
+# Base
+# kvm8.10-ksm50/test_data/mem_usage.log
+# 1578981786
+# KSM-50
+# kvm8.10-ksm100-2/test_data/mem_usage.log
+# 1578984149
+# KSM-100
+# kvm8.10-ksm200/test_data/mem_usage.log
+# 1578983481
+# KSM-200
+# kvm8.10-uksm/test_data/mem_usage.log
+# 1578972298
+# UKSM
+# kvm8.10-pksm50/test_data/mem_usage.log
+# 1578921836
+# CKSM-50
+# kvm8.10-pksm100/test_data/mem_usage.log
+# 1578920649
+# CKSM-100
+# kvm8.10-pksm200/test_data/mem_usage.log
+# 1578919803
+# CKSM-200
+
+
+
+# kvm_4_10.pdf
+# 8
+# 400
+# kvm4.10-base/test_data/mem_usage.log
+# 1578989552
+# Base
+# kvm4.10-ksm50/test_data/mem_usage.log
+# 1578981170
+# KSM-50
+# kvm4.10-ksm100/test_data/mem_usage.log
+# 1578986876
+# KSM-100
+# kvm4.10-ksm200/test_data/mem_usage.log
+# 1578985612
+# KSM-200
+# kvm4.10-uksm/test_data/mem_usage.log
+# 1578973143
+# UKSM
+# kvm4.10-pksm50-2/test_data/mem_usage.log
+# 1578926706
+# CKSM-50
+# kvm4.10-pksm100/test_data/mem_usage.log
+# 1578923886
+# CKSM-100
+# kvm4.10-pksm200/test_data/mem_usage.log
+# 1578923214
+# CKSM-200
+
+
+
+# kvm_2_10.pdf
+# 8
+# 250
+# kvm2.10-base/test_data/mem_usage.log
+# 1578990581
+# Base
+# kvm2.10-ksm50/test_data/mem_usage.log
+# 1578988417
+# KSM-50
+# kvm2.10-ksm100/test_data/mem_usage.log
+# 1578987863
+# KSM-100
+# kvm2.10-ksm200/test_data/mem_usage.log
+# 1578987487
+# KSM-200
+# kvm2.10-uksm/test_data/mem_usage.log
+# 1578973922
+# UKSM
+# kvm2.10-pksm50/test_data/mem_usage.log
+# 1578926164
+# CKSM-50
+# kvm2.10-pksm100/test_data/mem_usage.log
+# 1578925815
+# CKSM-100
+# kvm2.10-pksm200/test_data/mem_usage.log
+# 1578925233
+# CKSM-200
+
+
+
+
 
 X=[]
 Y=[]
@@ -381,7 +473,11 @@ startStamp = []
 filePath = []
 lineLabel = []
 
-colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'yellow'}
+# colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'yellow'}
+colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'violet', 'KSM-200':'chocolate', 'KSM-50':'rosybrown'}
+
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM-50':'v', 'CKSM-100':'^', 'CKSM-200':'<', 'CKSM-500':'>', 'KSM-100':'x', 'KSM-200':'*', 'KSM-50':'D'}
+
 
 
 figFileName = input('figFileName: ')
@@ -465,16 +561,18 @@ plt.figure(figsize=(9,6))
 
 # plt.figure()
 for i in range(lineNum):
-    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=4,color=colorTable[lineLabel[i]])
+    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=3, marker=markerTable[lineLabel[i]], color=colorTable[lineLabel[i]], markevery=80, markersize=8)
     # plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=4,marker='o',color=colorTable[lineLabel[i]])
     # plt.plot(X,Y[i], label=lineLabel[i], linewidth=4)
 
-plt.legend()
+# plt.set_size_inches(18.5, 10.5)
+plt.legend(fontsize=14)
 
 # plt.set_size_inches(18.5, 10.5)
-
-plt.xlabel('Time(s)')
-plt.ylabel('Memory Usage(MB)')
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.xlabel('Time(s)', fontsize=16)
+plt.ylabel('Memory Usage(MB)', fontsize=16)
 plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
 
 plt.savefig(figFileName)

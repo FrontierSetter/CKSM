@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 # CKSM-1
 
 # ============================== can use ============================
-# nginx32.pdf
+# nginx_32.pdf
 # 3
 # 70
 # nginx32-base-2/test_data/mem_usage.log
@@ -175,6 +175,7 @@ import matplotlib.pyplot as plt
 # 1578474255
 # base
 
+# 23
 # nginx_16.pdf
 # 3
 # 100
@@ -215,7 +216,6 @@ import matplotlib.pyplot as plt
 # CKSM-50
 
 # lapp_mem.pdf
-# dump.pdf
 # 3
 # 55
 # lapp12s-base/test_data/mem_usage.log
@@ -275,14 +275,16 @@ filePath = []
 lineLabel = []
 
 colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid'}
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM-50':'v', 'CKSM-100':'^', 'CKSM-200':'<', 'CKSM-500':'>', 'KSM-100':'x', 'KSM-200':'*', 'KSM-50':'D'}
+
 
 # ========================== lapp ==============================
-# CKSMFilter = [2,3,6,16,17,19,21,25,31,32,38,39]
-# BaseFilter = [1,2,3,5,6,10,12,14,16,17,24,26,28,31,33,34,35,37,38]
-# UKSMFilter = [2,3,9,15,16,17,19,20,28,29,31,32,34,35,55]
+CKSMFilter = [2,3,6,16,17,19,21,25,31,32,38,39]
+BaseFilter = [1,2,3,5,6,10,12,14,16,17,24,26,28,31,33,34,35,37,38]
+UKSMFilter = [1,14,3,2,9,15,16,17,19,20,28,29,31,32,34,35,55]
 # ================================================================
 
-
+threshold = 30
 
 figFileName = input('figFileName: ')
 
@@ -307,6 +309,9 @@ for i in range(lineNum):
     newFile = True
     preFree = 0
 
+    # if 'CKSM' in lineLabel[i]:
+    #     threshold = 22
+
     while True:
         curLine = curFile.readline().strip('\n')
         if curLine == '':
@@ -328,7 +333,7 @@ for i in range(lineNum):
 
 
         if curTime >= startStamp[i]:
-            if loaderStarted == False or curFree-baseFree-preFree < 70:
+            if loaderStarted == False or curFree-baseFree-preFree < 20:
                 Y[i].append(curFree-baseFree)
                 # if 'UKSM' in lineLabel[i] and idx >= 118:
                 #     Y[i][-1] -= 20
@@ -353,15 +358,15 @@ for i in range(lineNum):
 # ================================================================
 # ========================== net ==============================
 # thre 70
-            if 'CKSM' in lineLabel[i] and (idx == 11 or idx == 12):
-                Y[i].pop()
-                X[i].pop()
-            if 'UKSM' in lineLabel[i] and (idx == 8 or idx == 14 or idx == 15 or idx == 17):
-                Y[i].pop()
-                X[i].pop()
-            if 'Base' in lineLabel[i] and (idx >= 23 and idx <= 26):
-                Y[i].pop()
-                X[i].pop()
+            # if 'CKSM' in lineLabel[i] and (idx == 11 or idx == 12):
+            #     Y[i].pop()
+            #     X[i].pop()
+            # if 'UKSM' in lineLabel[i] and (idx == 8 or idx == 14 or idx == 15 or idx == 17):
+            #     Y[i].pop()
+            #     X[i].pop()
+            # if 'Base' in lineLabel[i] and (idx >= 23 and idx <= 26):
+            #     Y[i].pop()
+            #     X[i].pop()
 # ================================================================
             idx += 1
             loaderStarted = True
@@ -385,17 +390,22 @@ plt.figure(figsize=(9,6))
 
 # plt.figure()
 for i in range(lineNum):
-    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=4, color=colorTable[lineLabel[i]])
+    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=4, marker=markerTable[lineLabel[i]], color=colorTable[lineLabel[i]], markevery=8, markersize=8)
     # plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o')
 
-plt.legend()
+
+plt.legend(fontsize=14)
+
+# plt.set_size_inches(18.5, 10.5)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
 
 # plt.set_size_inches(18.5, 10.5)
 
-plt.xlabel('Time(s)')
-plt.ylabel('Memory Usage(MB)')
+plt.xlabel('Time(s)',fontsize=16)
+plt.ylabel('Memory Usage(MB)',fontsize=16)
 
-plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
+plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.1)
 
 plt.savefig(figFileName)
 

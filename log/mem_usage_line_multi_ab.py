@@ -27,6 +27,7 @@ filePath = []
 lineLabel = []
 
 colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod'}
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM-50':'v', 'CKSM-100':'^', 'CKSM-200':'<', 'CKSM-500':'>', 'KSM-100':'x', 'KSM-200':'*', 'KSM-50':'D'}
 
 
 
@@ -98,17 +99,21 @@ plt.figure(figsize=(9,6))
 
 # plt.figure()
 for i in range(lineNum):
-    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=4,marker='o',color=colorTable[lineLabel[i]])
+    plt.plot(X[i],Y[i], label=lineLabel[i], linewidth=4, marker=markerTable[lineLabel[i]], color=colorTable[lineLabel[i]], markevery=3, markersize=8)
     # plt.plot(X,Y[i], label=lineLabel[i], linewidth=4)
 
-plt.legend()
+plt.legend(fontsize=14)
+
+# plt.set_size_inches(18.5, 10.5)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
 
 # plt.set_size_inches(18.5, 10.5)
 
-plt.xlabel('Time(s)')
-plt.ylabel('Memory Usage(MB)')
+plt.xlabel('Time(s)',fontsize=16)
+plt.ylabel('Memory Usage(MB)',fontsize=16)
 
-plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
+plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.1)
 
 plt.savefig(figFileName)
 

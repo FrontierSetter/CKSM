@@ -53,11 +53,15 @@ plt.figure(figsize=(9,6))
 
 
 plt.stackplot(x_data, truly_merged, not_merged, labels=['True merge', 'Fake merge'], colors=['coral', 'slategray'])
-plt.legend()#显示图例，即label
+plt.legend(fontsize=16)
 
-plt.xlabel('Time(s)')
-plt.ylabel('Number of pages')
-plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
+# plt.set_size_inches(18.5, 10.5)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+
+plt.xlabel('Time(s)', fontsize=18)
+plt.ylabel('Number of Pages Merged', fontsize=18)
+plt.subplots_adjust(left=0.12, right=0.98, top=0.98, bottom=0.09)
 plt.savefig('fake_merge.pdf')
 
 plt.show()

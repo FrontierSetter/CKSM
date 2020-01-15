@@ -25,6 +25,24 @@ import matplotlib.pyplot as plt
 # 1578131114
 # CKSM-500
 
+# fork_merged.pdf
+# 5
+# KSM-fork-100/test_data/ksm_pages_merged.log
+# 1578291397
+# KSM-50
+# KSM-fork-200/test_data/ksm_pages_merged.log
+# 1578289179
+# KSM-100
+# UKSM-fork/bash/test_data/uksm_pages_merged.log
+# 1578060313
+# UKSM
+# PKSM-fork-100/bash/test_data/pksm_pages_merged.log
+# 1578133397
+# CKSM-50
+# PKSM-fork-200-2/bash/test_data/pksm_pages_merged.log
+# 1578132628
+# CKSM-100
+
 # UKSM-fork/bash/test_data/uksm_pages_merged.log
 # 1578060315
 # UKSM-moved
@@ -65,7 +83,8 @@ startStamp = []
 filePath = []
 lineLabel = []
 
-colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'violet', 'KSM-200':'chocolate', 'KSM-500':'rosybrown', 'KSM-200-moved':'chocolate', 'UKSM-moved':'orange'}
+colorTable = {'UKSM':'orange', 'Base':'royalblue', 'CKSM-50':'forestgreen', 'CKSM-100':'red', 'CKSM-200':'darkorchid', 'CKSM-500':'goldenrod', 'KSM-100':'violet', 'KSM-200':'chocolate', 'KSM-50':'rosybrown'}
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM-50':'v', 'CKSM-100':'^', 'CKSM-200':'<', 'CKSM-500':'>', 'KSM-100':'x', 'KSM-200':'*', 'KSM-50':'D'}
 
 
 
@@ -97,7 +116,7 @@ for i in range(lineNum):
         trueSharing = curSharing - baseSharing
 
         if curTime >= startStamp[i]:
-            Y[i].append(trueSharing/16384.0*100)
+            Y[i].append(trueSharing)
             idx += 0.25
         else:
             baseSharing = curSharing
@@ -119,18 +138,19 @@ print(Y)
 
 # plt.figure()
 for i in range(lineNum):
-    if 'move' in lineLabel[i]:
-        plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o', linestyle='--', color=colorTable[lineLabel[i]])
-    else:
-        plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker='o', color=colorTable[lineLabel[i]])
+    plt.plot(X,Y[i], label=lineLabel[i], linewidth=4, marker=markerTable[lineLabel[i]], color=colorTable[lineLabel[i]], markevery=5, markersize=8)
 
-plt.legend()
+plt.legend(fontsize=14)
 
-plt.xlabel('Time(s)')
-plt.ylabel('Deduplication Ratio(%)')
+# plt.set_size_inches(18.5, 10.5)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+
+plt.xlabel('Time(s)', fontsize=16)
+plt.ylabel('Physical Pages Released', fontsize=16)
 
 
-plt.subplots_adjust(left=0.10, right=0.98, top=0.98, bottom=0.09)
+plt.subplots_adjust(left=0.11, right=0.98, top=0.98, bottom=0.09)
 
 plt.savefig(figFileName)
 
