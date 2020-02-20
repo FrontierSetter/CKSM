@@ -12,3 +12,4 @@ workload/pytorch/data/**
 workload/pytorch/pytorch-FCN-easiest-demo-master/**
 log/**
 !log/*.py
+*.7z
