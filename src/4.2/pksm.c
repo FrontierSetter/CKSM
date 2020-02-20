@@ -280,18 +280,20 @@ static DEFINE_SPINLOCK(pksm_pagelist_lock);
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
 #endif
 
-static uint32_t super_fast_hash(const char * data, int len)
+static uint32_t super_fast_hash(const char * data, int len, uint32_t *partial_hash)
 {
     uint32_t hash = len, tmp;
     int rem;
+	int partial_len = PARTIAL_HASH_LEN >> 2;
 
     if (len <= 0 || data == NULL) return 0;
 
     // rem = len & 3;
     len >>= 2;
+	len -= partial_len;
 
     /* Main loop */
-    for (;len > 0; len--) {
+    for (;partial_len > 0; partial_len--) {
         hash  += get16bits (data);
         tmp    = (get16bits (data+2) << 11) ^ hash;
         hash   = (hash << 16) ^ tmp;
@@ -299,23 +301,15 @@ static uint32_t super_fast_hash(const char * data, int len)
         hash  += hash >> 11;
     }
 
+	*partial_hash = hash;
 
-
-    /* Handle end cases */
-    // switch (rem) {
-    //     case 3: hash += get16bits (data);
-    //             hash ^= hash << 16;
-    //             hash ^= ((signed char)data[sizeof (uint16_t)]) << 18;
-    //             hash += hash >> 11;
-    //             break;
-    //     case 2: hash += get16bits (data);
-    //             hash ^= hash << 11;
-    //             hash += hash >> 17;
-    //             break;
-    //     case 1: hash += (signed char)*data;
-    //             hash ^= hash << 10;
-    //             hash += hash >> 1;
-    // }
+	for (;len > 0; len--) {
+        hash  += get16bits (data);
+        tmp    = (get16bits (data+2) << 11) ^ hash;
+        hash   = (hash << 16) ^ tmp;
+        data  += 2*sizeof (uint16_t);
+        hash  += hash >> 11;
+	}
 
     /* Force "avalanching" of final 127 bits */
     hash ^= hash << 3;
@@ -328,13 +322,14 @@ static uint32_t super_fast_hash(const char * data, int len)
     return hash;
 }
 
-static u32 cacl_superfasthash(struct page *page)
+static u32 cacl_superfasthash(struct page *page, uint32_t *partial_hash)
 {
 	char *addr;
 	u32 checksum;
 
 	addr = kmap_atomic(page);
-	checksum = super_fast_hash(addr, PAGE_SIZE);
+	// checksum = super_fast_hash(addr, PAGE_SIZE);
+	checksum = super_fast_hash(addr, PAGE_SIZE, partial_hash);
 	kunmap_atomic(addr);
 	return checksum;
 }
@@ -1159,9 +1154,9 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 	struct hlist_node *nxt;
 	struct page *hash_page;
 	int ret;
-	// int cnt_bucket = 0;
-	// int stale_bucket = 0;
-	// int partial_hash_skip = 0;
+	int cnt_bucket = 0;
+	int stale_bucket = 0;
+	int partial_hash_skip = 0;
 	unsigned int cur_entryIndex;
 	uint32_t new_partial_hash;
 
@@ -1181,17 +1176,17 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		// hash_page = get_pksm_page(unstable_node, false);
 
 		if(pksm_test_exit(unstable_node->page_slot)){
-			// printk("PKSM : unstable_hash_search_insert : exit item: %p, slot: %p\n", unstable_node, unstable_node->page_slot);
+			printk("PKSM : unstable_hash_search_insert : exit item: %p, slot: %p\n", unstable_node, unstable_node->page_slot);
 			// hlist_del(&(unstable_node->hlist)); 
 			// __hlist_del(&(unstable_node->hlist)); 
-			// ++stale_bucket;
+			++stale_bucket;
 			continue;
 		}
 
 		hash_page = unstable_node->page_slot->physical_page;
 
 		if(!hash_page){
-			// printk("PKSM : cmp end notcount\n");
+			printk("PKSM : cmp end notcount\n");
 
 			continue;
 		}
@@ -1200,38 +1195,38 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		// printk("PKSM : cmp start\n");
 
 		if(partial_hash != unstable_node->page_slot->partial_hash){
-			// ++partial_hash_skip;
+			++partial_hash_skip;
 			// if(memcmp_pages(page, hash_page) == 0){
 			// 	printk("PKSM : error partial-hash wrong\n");
 			// }
-			// printk("PKSM : cmp end partial_hash\n");
+			printk("PKSM : cmp end partial_hash\n");
 
 			continue;
 		}
 
 
 		get_page(hash_page);
-		// ++cnt_bucket;
+		++cnt_bucket;
 
 
 		// printk("PKSM : unstable_hash_search_insert : get_page: %p\n", hash_page);
 		ret = memcmp_pages(page, hash_page);
 
 		if (ret == 0){
-			// printk("PKSM : cmp end same\n");
+			printk("PKSM : cmp end same\n");
 
-			// printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
+			printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
 			*table_page_slot = unstable_node->page_slot;
 			return hash_page;
 		}
 
-		// printk("PKSM : cmp end\n");
+		printk("PKSM : cmp end\n");
 
 
 		put_page(hash_page);
 	}
 
-	// printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
+	printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
 
 	if(page_slot->page_item == NULL){
 		page_slot->page_item = alloc_hash_node();
@@ -1249,14 +1244,14 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 	page_slot->page_item->page_slot = page_slot;
 
 	// printk("PKSM : partial_hash start\n");
-	// cur_entryIndex = cacl_superfasthash(page, &new_partial_hash) & PAGE_HASH_MASK;
+	cur_entryIndex = cacl_superfasthash(page, &new_partial_hash) & PAGE_HASH_MASK;
 	// printk("PKSM : partial_hash end\n");
 
-	page_slot->partial_hash = partial_hash;
+	page_slot->partial_hash = new_partial_hash;
 
-	// printk("PKSM : unstable_hash_search_insert : entryIndex %u -> %u\n", entryIndex, cur_entryIndex);
+	printk("PKSM : unstable_hash_search_insert : entryIndex %u -> %u\n", entryIndex, cur_entryIndex);
 
-	hlist_add_head(&(page_slot->page_item->hlist), &(unstable_hash_table[entryIndex]));
+	hlist_add_head(&(page_slot->page_item->hlist), &(unstable_hash_table[cur_entryIndex]));
 
 	return NULL;
 }
@@ -1341,9 +1336,9 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 
 
 	// 重新计算当前页面的哈希值
-	cur_hash = cacl_superfasthash(kpage);
+	cur_hash = cacl_superfasthash(kpage, &partial_hash);
 	entryIndex = cur_hash & PAGE_HASH_MASK;
-	kpage_slot->partial_hash = 0;
+	kpage_slot->partial_hash = partial_hash;
 
 	hlist_add_head(&(pksm_hash_node->hlist), &(stable_hash_table[entryIndex]));
 }
@@ -1388,13 +1383,13 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 	}else{
 
 		printk("PKSM : partial_hash start\n");
-		cur_hash = cacl_superfasthash(cur_page);
+		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
 		printk("PKSM : partial_hash end\n");
 
 
 		// printk("PKSM : pksm_cmp_and_merge_page : hash calculated\n");
 		// if(cur_page_slot->page_item == NULL){
-		cur_page_slot->partial_hash = 0;
+		cur_page_slot->partial_hash = partial_hash;
 			// printk("PKSM : stable partial_hash %u\n", partial_hash);
 		// }
 
@@ -1438,12 +1433,12 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		// ? 当然也可以先把这个node挂载page_slot上，但是这样会造成不一致性，暂时先不这么搞
 
 		printk("PKSM : partial_hash start\n");
-		cur_hash = cacl_superfasthash(cur_page);
+		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
 		printk("PKSM : partial_hash end\n");
 
-		if((0 != cur_page_slot->partial_hash) || (entryIndex != (cur_hash & PAGE_HASH_MASK))){
+		if((cur_page_slot->partial_hash != partial_hash) || (entryIndex != (cur_hash & PAGE_HASH_MASK))){
 			// printk("PKSM : pksm_cmp_and_merge_page : volatile %u -> %u\n", cur_page_slot->partial_hash, partial_hash);
-			cur_page_slot->partial_hash = 0;
+			cur_page_slot->partial_hash = partial_hash;
 			return;
 		}
 
