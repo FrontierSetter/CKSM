@@ -111,3 +111,21 @@ httperf --client=0/1 --server 127.0.0.1 --port 80 --uri /index.html --rate 100 -
 httperf --server 127.0.0.1 --port 80 --num-conns 20000 --rate 100 --timeout 2
 
 docker stop $(docker ps -aq)
+
+----------------------------------------------------------------------------------------------------------------------------------------
+native_queued_spin_lock_slowpath 占cpu开销大
+
+break_cow rmap_walk_ksm
+
+
+------------------------------------------------------------
+
+先确定 break_cow 触发的原因
+
+再考虑解决：
+    1、仿照ksm
+    2、直接不处理
+
+---------------------------------------------------------------
+
+CONFIG_DEBUG_LOCKDEP

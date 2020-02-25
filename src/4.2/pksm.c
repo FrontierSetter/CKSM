@@ -269,16 +269,19 @@ static DECLARE_WAIT_QUEUE_HEAD(pksm_thread_wait);
 static DEFINE_MUTEX(pksm_thread_mutex);
 static DEFINE_SPINLOCK(pksm_pagelist_lock);
 
-#undef get16bits
-#if (defined(__GNUC__) && defined(__i386__)) || defined(__WATCOMC__) \
-  || defined(_MSC_VER) || defined (__BORLANDC__) || defined (__TURBOC__)
-#define get16bits(d) (*((const uint16_t *) (d)))
-#endif
+// #undef get16bits
+// #if (defined(__GNUC__) && defined(__i386__)) || defined(__WATCOMC__) \
+//   || defined(_MSC_VER) || defined (__BORLANDC__) || defined (__TURBOC__)
+// #define get16bits(d) (*((const uint16_t *) (d)))
+// #endif
 
-#if !defined (get16bits)
-#define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
-                       +(uint32_t)(((const uint8_t *)(d))[0]) )
-#endif
+// #if !defined (get16bits)
+// #define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
+//                        +(uint32_t)(((const uint8_t *)(d))[0]) )
+// #endif
+
+#define get16bits(d) (*((const uint16_t *) (d)))
+
 
 static uint32_t super_fast_hash(const char * data, int len, uint32_t *partial_hash)
 {
@@ -288,12 +291,17 @@ static uint32_t super_fast_hash(const char * data, int len, uint32_t *partial_ha
 
     if (len <= 0 || data == NULL) return 0;
 
+	__builtin_prefetch(data, 0, 3);
+	__builtin_prefetch(data+4, 0, 3);
+
+
     // rem = len & 3;
     len >>= 2;
 	len -= partial_len;
 
     /* Main loop */
     for (;partial_len > 0; partial_len--) {
+		__builtin_prefetch(data+8, 0, 3);
         hash  += get16bits (data);
         tmp    = (get16bits (data+2) << 11) ^ hash;
         hash   = (hash << 16) ^ tmp;
@@ -304,6 +312,7 @@ static uint32_t super_fast_hash(const char * data, int len, uint32_t *partial_ha
 	*partial_hash = hash;
 
 	for (;len > 0; len--) {
+		__builtin_prefetch(data+8, 0, 3);
         hash  += get16bits (data);
         tmp    = (get16bits (data+2) << 11) ^ hash;
         hash   = (hash << 16) ^ tmp;
@@ -930,6 +939,7 @@ out:
 		return SWAP_AGAIN;	// 反向映射模块定义的标志字段，代表此次操作成功，继续遍历
 	}else{
 		return SWAP_FAIL;	// 此次操作失败，反向映射遍历终止
+							//? 只是一次失败就需要终止整个遍历过程吗？
 	}
 }
 
@@ -1176,7 +1186,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		// hash_page = get_pksm_page(unstable_node, false);
 
 		if(pksm_test_exit(unstable_node->page_slot)){
-			printk("PKSM : unstable_hash_search_insert : exit item: %p, slot: %p\n", unstable_node, unstable_node->page_slot);
+			// printk("PKSM : unstable_hash_search_insert : exit item: %p, slot: %p\n", unstable_node, unstable_node->page_slot);
 			// hlist_del(&(unstable_node->hlist)); 
 			// __hlist_del(&(unstable_node->hlist)); 
 			++stale_bucket;
@@ -1186,7 +1196,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		hash_page = unstable_node->page_slot->physical_page;
 
 		if(!hash_page){
-			printk("PKSM : cmp end notcount\n");
+			// printk("PKSM : cmp end notcount\n");
 
 			continue;
 		}
@@ -1199,7 +1209,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 			// if(memcmp_pages(page, hash_page) == 0){
 			// 	printk("PKSM : error partial-hash wrong\n");
 			// }
-			printk("PKSM : cmp end partial_hash\n");
+			// printk("PKSM : cmp end partial_hash\n");
 
 			continue;
 		}
@@ -1213,20 +1223,20 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 		ret = memcmp_pages(page, hash_page);
 
 		if (ret == 0){
-			printk("PKSM : cmp end same\n");
+			// printk("PKSM : cmp end same\n");
 
-			printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
+			// printk("PKSM : unstable_hash_search_insert found at valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
 			*table_page_slot = unstable_node->page_slot;
 			return hash_page;
 		}
 
-		printk("PKSM : cmp end\n");
+		// printk("PKSM : cmp end\n");
 
 
 		put_page(hash_page);
 	}
 
-	printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
+	// printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
 
 	if(page_slot->page_item == NULL){
 		page_slot->page_item = alloc_hash_node();
@@ -1243,15 +1253,16 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 
 	page_slot->page_item->page_slot = page_slot;
 
+	// 因为entryindex发生变化的可能性很小
 	// printk("PKSM : partial_hash start\n");
-	cur_entryIndex = cacl_superfasthash(page, &new_partial_hash) & PAGE_HASH_MASK;
+	// cur_entryIndex = cacl_superfasthash(page, &new_partial_hash) & PAGE_HASH_MASK;	
 	// printk("PKSM : partial_hash end\n");
 
-	page_slot->partial_hash = new_partial_hash;
+	page_slot->partial_hash = partial_hash;
 
-	printk("PKSM : unstable_hash_search_insert : entryIndex %u -> %u\n", entryIndex, cur_entryIndex);
+	// printk("PKSM : unstable_hash_search_insert : entryIndex %u -> %u\n", entryIndex, cur_entryIndex);
 
-	hlist_add_head(&(page_slot->page_item->hlist), &(unstable_hash_table[cur_entryIndex]));
+	hlist_add_head(&(page_slot->page_item->hlist), &(unstable_hash_table[entryIndex]));
 
 	return NULL;
 }
@@ -1382,9 +1393,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		return;
 	}else{
 
-		printk("PKSM : partial_hash start\n");
+		// printk("PKSM : partial_hash start\n");
 		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
-		printk("PKSM : partial_hash end\n");
+		// printk("PKSM : partial_hash end\n");
 
 
 		// printk("PKSM : pksm_cmp_and_merge_page : hash calculated\n");
@@ -1432,9 +1443,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		// ? 可以先生成一个stable_node结构，然后通过传参的形式层层处理，最后在外面再加入哈希桶
 		// ? 当然也可以先把这个node挂载page_slot上，但是这样会造成不一致性，暂时先不这么搞
 
-		printk("PKSM : partial_hash start\n");
+		// printk("PKSM : partial_hash start\n");
 		cur_hash = cacl_superfasthash(cur_page, &partial_hash);
-		printk("PKSM : partial_hash end\n");
+		// printk("PKSM : partial_hash end\n");
 
 		if((cur_page_slot->partial_hash != partial_hash) || (entryIndex != (cur_hash & PAGE_HASH_MASK))){
 			// printk("PKSM : pksm_cmp_and_merge_page : volatile %u -> %u\n", cur_page_slot->partial_hash, partial_hash);
