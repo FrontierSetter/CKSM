@@ -49,7 +49,7 @@
 // #define MANUAL_PAGE_ADD
 // #define VERBOS_PKSM_EXIT
 // #define VERBOS_PKSM_NEW_ANON_PAGE
-#define USE_ADVANCED_MEMCMP
+// #define USE_ADVANCED_MEMCMP
 
 // #define crc32_sse42
 
@@ -871,41 +871,37 @@ static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 			      pte_t *orig_pte)
 {
 	struct mm_struct *mm = vma->vm_mm;
-	unsigned long addr;
-	pte_t *ptep;
-	spinlock_t *ptl;
+	struct page_vma_mapped_walk pvmw = {
+		.page = page,
+		.vma = vma,
+	};
 	int swapped;
 	int err = -EFAULT;
 	unsigned long mmun_start;	/* For mmu_notifiers */
 	unsigned long mmun_end;		/* For mmu_notifiers */
 
-	// printk("PKSM : write_protect_page evoked\n");
-
-	addr = page_address_in_vma(page, vma);
-	if (addr == -EFAULT)
+	pvmw.address = page_address_in_vma(page, vma);
+	if (pvmw.address == -EFAULT)
 		goto out;
-	// printk("PKSM : write_protect_page 1\n");
-	
 
 	BUG_ON(PageTransCompound(page));
 
-	mmun_start = addr;
-	mmun_end   = addr + PAGE_SIZE;
+	mmun_start = pvmw.address;
+	mmun_end   = pvmw.address + PAGE_SIZE;
 	mmu_notifier_invalidate_range_start(mm, mmun_start, mmun_end);
 
-	ptep = page_check_address(page, mm, addr, &ptl, 0);
-	if (!ptep)
+	if (!page_vma_mapped_walk(&pvmw))
 		goto out_mn;
-	// printk("PKSM : write_protect_page 2\n");
-	
+	if (WARN_ONCE(!pvmw.pte, "Unexpected PMD mapping?"))
+		goto out_unlock;
 
-	if (pte_write(*ptep) || pte_dirty(*ptep)) {
-		// printk("PKSM : write_protect_page 3\n");
-
+	if (pte_write(*pvmw.pte) || pte_dirty(*pvmw.pte) ||
+	    (pte_protnone(*pvmw.pte) && pte_savedwrite(*pvmw.pte)) ||
+						mm_tlb_flush_pending(mm)) {
 		pte_t entry;
 
 		swapped = PageSwapCache(page);
-		flush_cache_page(vma, addr, page_to_pfn(page));
+		flush_cache_page(vma, pvmw.address, page_to_pfn(page));
 		/*
 		 * Ok this is tricky, when get_user_pages_fast() run it doesn't
 		 * take any lock, therefore the check that we are going to make
@@ -915,29 +911,29 @@ static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 		 * this assure us that no O_DIRECT can happen after the check
 		 * or in the middle of the check.
 		 */
-		entry = ptep_clear_flush_notify(vma, addr, ptep);
+		entry = ptep_clear_flush_notify(vma, pvmw.address, pvmw.pte);
 		/*
 		 * Check that no O_DIRECT or similar I/O is in progress on the
 		 * page
 		 */
 		if (page_mapcount(page) + 1 + swapped != page_count(page)) {
-			// printk("PKSM : write_pritect_page : mapcount: %d, pagecount: %d, swap: %d\n", page_mapcount(page), page_count(page), swapped);
-			set_pte_at(mm, addr, ptep, entry);
+			set_pte_at(mm, pvmw.address, pvmw.pte, entry);
 			goto out_unlock;
 		}
-
-		// printk("PKSM : write_protect_page 4\n");
-
 		if (pte_dirty(entry))
 			set_page_dirty(page);
-		entry = pte_mkclean(pte_wrprotect(entry));
-		set_pte_at_notify(mm, addr, ptep, entry);
+
+		if (pte_protnone(entry))
+			entry = pte_mkclean(pte_clear_savedwrite(entry));
+		else
+			entry = pte_mkclean(pte_wrprotect(entry));
+		set_pte_at_notify(mm, pvmw.address, pvmw.pte, entry);
 	}
-	*orig_pte = *ptep;
+	*orig_pte = *pvmw.pte;
 	err = 0;
 
 out_unlock:
-	pte_unmap_unlock(ptep, ptl);
+	page_vma_mapped_walk_done(&pvmw);
 out_mn:
 	mmu_notifier_invalidate_range_end(mm, mmun_start, mmun_end);
 out:
@@ -959,6 +955,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	struct mm_struct *mm = vma->vm_mm;
 	pmd_t *pmd;
 	pte_t *ptep;
+	pte_t newpte;
 	spinlock_t *ptl;
 	unsigned long addr;
 	int err = -EFAULT;
@@ -986,13 +983,14 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	}
 
 	get_page(kpage);
-	page_add_anon_rmap(kpage, vma, addr);
+	page_add_anon_rmap(kpage, vma, addr, false);
+	newpte = mk_pte(kpage, vma->vm_page_prot);
 
 	flush_cache_page(vma, addr, pte_pfn(*ptep));
 	ptep_clear_flush_notify(vma, addr, ptep);
-	set_pte_at_notify(mm, addr, ptep, mk_pte(kpage, vma->vm_page_prot));
+	set_pte_at_notify(mm, addr, ptep, newpte);
 
-	page_remove_rmap(page);
+	page_remove_rmap(page, false);
 	if (!page_mapped(page))
 		try_to_free_swap(page);
 	put_page(page);
@@ -1046,7 +1044,7 @@ static inline bool ksm_test_exit(struct mm_struct *mm)
  * pksm中将指向一个page的pte指向另一个kpage的函数
  * 是pksm_try_to_merge_one_page在反向映射机制上调用的单体操作
  */
-static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
+static bool try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 		     unsigned long address, void *arg)
 {
 	struct page *kpage = ((struct rmap_process_wrapper*)arg)->kpage;
@@ -1064,7 +1062,7 @@ static int try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 
 	if(ksm_test_exit(vma->vm_mm)){
 		// printk("PKSM : try_to_merge_one_page : mm_exit\n");
-		return 1;
+		return true;
 
 	}
 	// printk("PKSM : try_to_merge_one_page : 0.1\n");
@@ -1155,9 +1153,9 @@ out:
 
 	if(err == 0){			// err==0代表操作成功
 		++pksm_pages_sharing;
-		return SWAP_AGAIN;	// 反向映射模块定义的标志字段，代表此次操作成功，继续遍历
+		return true;	// 反向映射模块定义的标志字段，代表此次操作成功，继续遍历
 	}else{
-		return SWAP_FAIL;	// 此次操作失败，反向映射遍历终止
+		return false;	// 此次操作失败，反向映射遍历终止
 							//? 只是一次失败就需要终止整个遍历过程吗？
 	}
 }
@@ -1171,6 +1169,11 @@ static int pksm_page_not_mapped(struct page *page)
 /*
  * pksm中实际merge两个page的函数
  * 是try_to_merge_one_page的反向映射迭代入口
+ * 成功则返回0
+ * #define SWAP_SUCCESS	0
+ * #define SWAP_AGAIN	1
+ * #define SWAP_FAIL	2
+ * #define SWAP_MLOCK	3
  */
 static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, struct pksm_hash_node *pksm_hash_node)
 {
@@ -1193,17 +1196,17 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 			.anon_lock = page_lock_anon_vma_read,
 		};
 
-		ret = rmap_walk(page, &rwc);
+		// ret = rmap_walk(page, &rwc);
+		rmap_walk_locked(page, &rwc);	//? 这里是否需要lock存疑，以前是lock的，所以继续lock
+
 
 		// printk("PKSM : pksm_try_to_merge_one_page : merge_result_raw: %d\n", ret);
-
-		if (ret != SWAP_MLOCK && !page_mapped(page))
-			ret = SWAP_SUCCESS;
+			
 
 		// // printk("PKSM : pksm_try_to_merge_one_page : merge_result: %d\n", ret);
 
-
-		return ret;
+		return !page_mapcount(page) ? 0 : 1;
+		// return ret;
 		
 	}else{	// 对应将page置为ksm的情况
 		/* TODO: 原则上这里只用对一个vma操作一下就可以了，但是我不会，所以就先这样
@@ -1226,21 +1229,17 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
 			// printk("PKSM : pksm_try_to_merge_one_page : rmap_walk_anon on page: %p\n", page);
 
 
-		ret = rmap_walk(page, &rwc);
+		// ret = rmap_walk(page, &rwc);
+		rmap_walk_locked(page, &rwc);
 
 		// printk("PKSM : pksm_try_to_merge_one_page : set_result_raw: %d\n", ret);
 
-		// if (ret != SWAP_MLOCK && !page_mapped(page))
-		if (ret == SWAP_AGAIN && PagePksm(page)){
-			ret = SWAP_SUCCESS;
-		}else{
-			ret = SWAP_FAIL;
-		}
+		return PagePksm(page) ? 0 : 1;
+
 
 		// printk("PKSM : pksm_try_to_merge_one_page : set_result: %d\n", ret);
 		// printk("PKSM : pksm_try_to_merge_one_page : after PagePksm(%p)=%d\n", page, PagePksm(page));
 
-		return ret;
 	}
 
 	
@@ -2046,7 +2045,7 @@ struct page *ksm_might_need_to_copy(struct page *page,
 
 		SetPageDirty(new_page);
 		__SetPageUptodate(new_page);
-		__set_page_locked(new_page);
+		__SetPageLocked(new_page);
 	}
 
 	return new_page;
@@ -2082,11 +2081,10 @@ static inline bool mm_test_exit(struct mm_struct *mm)
  * 采用了上面的方法
  */
 
-int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
+void rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
 {
 	struct pksm_hash_node *pksm_hash_node;
 	struct pksm_rmap_item *pksm_rmap_item;
-	int ret = SWAP_AGAIN;
 	int search_new_forks = 0;
 
 	printk("PKSM : rmap_walk_ksm called\n");
@@ -2102,7 +2100,7 @@ int rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
 
 	pksm_hash_node = page_stable_node(page);
 	if (!pksm_hash_node)
-		return ret;
+		return;
 again:
 	hlist_for_each_entry(pksm_rmap_item, &pksm_hash_node->rmap_list, hlist) {
 		struct anon_vma *anon_vma = pksm_rmap_item->anon_vma;
@@ -2133,9 +2131,9 @@ again:
 			if (rwc->invalid_vma && rwc->invalid_vma(vma, rwc->arg))
 				continue;
 
-			ret = rwc->rmap_one(page, vma,
+			rwc->rmap_one(page, vma,
 					pksm_rmap_item->address, rwc->arg);
-			if (ret != SWAP_AGAIN) {
+			if (!rwc->rmap_one(page, vma, pksm_rmap_item->address, rwc->arg)) {
 				anon_vma_unlock_read(anon_vma);
 				goto out;
 			}
@@ -2149,7 +2147,7 @@ again:
 	if (!search_new_forks++)
 		goto again;
 out:
-	return ret;
+	return;
 }
 
 #ifdef CONFIG_MIGRATION
@@ -2158,7 +2156,7 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 {
 	struct pksm_hash_node *stable_node;
 
-	// printk("PKSM : ksm_migrate_page evoked\n");
+	printk("PKSM : ksm_migrate_page evoked\n");
 
 	VM_BUG_ON_PAGE(!PageLocked(oldpage), oldpage);
 	VM_BUG_ON_PAGE(!PageLocked(newpage), newpage);
@@ -2293,7 +2291,7 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 	wait_while_offlining();
 	if (pksm_run != flags) {
 		pksm_run = flags;
-		// printk("PKSM : run_store : now pksm_run = %lu\n", pksm_run);
+		printk("PKSM : run_store : now pksm_run = %lu\n", pksm_run);
 		if (flags & PKSM_RUN_UNMERGE) {
 			// printk("PKSM : run_store PKSM_RUN_UNMERGE\n");
 			// set_current_oom_origin();
