@@ -3639,7 +3639,6 @@ static int do_cow_fault(struct vm_fault *vmf)
 	put_page(vmf->page);
 	if (unlikely(ret & (VM_FAULT_ERROR | VM_FAULT_NOPAGE | VM_FAULT_RETRY)))
 		goto uncharge_out;
-	pksm_new_anon_page(vmf->cow_page, true);
 	return ret;
 uncharge_out:
 	mem_cgroup_cancel_charge(vmf->cow_page, vmf->memcg, false);
