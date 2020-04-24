@@ -274,8 +274,12 @@ target:
 
 host:
     gdb ./vmlinux
-    target remote /dev/ttyS1
+    target remote /dev/ttyS0
     handle SIGSEGV noprint nostop pass
     break sys_clone
     c
     s
+
+-------------------------------------------------------------------------------------
+sudo vmrun stop "vmware/Target/Target.vmx" hard
+sudo docker container prune
