@@ -211,3 +211,18 @@ make dtbs
 
 qemu-system-arm -M vexpress-a9 -smp 4 -m 1024M -kernel arch/arm/boot/zImage -append "rdinit=/linuxrc console=ttyAMA0 loglevel=8" -dtb arch/arm/boot/dts/vexpress-v2p-ca9.dtb -nographic
 qemu-system-aarch64 -machine virt -cpu cortex-a57 -machine type=virt -nographic -m 2048 -smp 2 -kernel arch/arm64/boot/Image --append "rdinit=/linuxrc console=ttyAMA0"
+qemu-system-aarch64 -machine virt -cpu cortex-a57 -machine type=virt -nographic -m 2048 -smp 2 -kernel arch/arm64/boot/Image --append “rdinit=/linuxrc console=ttyAMA0”
+
+
+------------------------------------------------------------------------------
+sudo ./qemu-1.7.0/arm-softmmu/qemu-system-arm  -M vexpress-a9 -kernel ./linux-3.10.28/arch/arm/boot/zImage -sd rootfs.img --append "root=/dev/mmcblk0 rw rootfs=ext3 rootdelay=3  physmap.enabled=0 console=ttyAMA0 console=tty0 kgdboc=tty0,115200 kgdbwait"  -net nic,vlan=0 -net tap,vlan=0  -serial tcp::4321,server
+
+qemu-system-aarch64 -m 8192 -cpu cortex-a57 -smp 4 -M virt -bios QEMU_EFI.fd -nographic -drive if=none,file=ubuntu16.04-arm64.img,id=hd0 -device virtio-blk-device,drive=hd0 -s
+
+-------------------------------------------------------------------------------------
+按照《奔跑吧Linux内核》的方法搭建 qemu+gdb  成功，但是只能运行最小系统，没有上层环境，难以复现问题（相当于静态内核）
+想要qemu+gdb运行Ubuntu，尝试qemu虚拟机运行aarch64的Ubuntu，失败
+
+尝试kgdb，通过网络或串口等等
+kvm不能直接连串口，qemu怎么设置tty不懂
+最后的方法是在服务器上运行vmware
