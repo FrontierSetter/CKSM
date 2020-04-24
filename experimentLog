@@ -226,3 +226,56 @@ qemu-system-aarch64 -m 8192 -cpu cortex-a57 -smp 4 -M virt -bios QEMU_EFI.fd -no
 尝试kgdb，通过网络或串口等等
 kvm不能直接连串口，qemu怎么设置tty不懂
 最后的方法是在服务器上运行vmware
+
+-------------------------------------------------------------------------------------
+//建议打开的选项
+(1)CONFIG_DEBUG_INFO = y 该选项可以使得编译的内核包含一些调试信息，使得调试更容易。
+位置:---->Kernel hacking
+   ---->Compile-time checks and compiler options
+   ---->Compile the kernel with debug info
+(2)CONFIG_FRAME_POINTER = y 该选项将使得内核使用帧指针寄存器来维护堆栈，从而就可以正确地执行堆栈回溯，即函数调用栈信息。
+位置:---->Kernel hacking
+   ---->Compile-time checks and compiler options
+   ---->Compile the kernel with frame pointers
+(3)CONFIG_MAGIC_SYSRQ = y (如果你选择了KGDB_SERIAL_CONSOLE,这个选项将自动被选上) 激活"魔术 SysRq"键. 该选项对kgdboc调试非常有用，kgdb向其注册了‘g’魔术键来激活kgdb 。  
+位置:---->Kernel hacking
+   ---->Magic SysRq key
+当你想手动激活kgdb时，你可以触发SysRq的g键, 如:
+$ echo"g">/proc/sysrq-trigger
+
+//建议关闭的选项
+(4)CONFIG_DEBUG_RODATA = n 该选项是将内核的一些内存区域空间设置为只读，这样可能导致kgdb的设置软断点功能失效。所以推荐将该选项关闭。  
+位置:---->Kernel hacking
+   ---->Write protect kernel read-only data structures
+(5)CONFIG_DEBUG_SET_MODULE_RONX =n,该选项会将内核模块空间设置为只读，这样会导致调试内核模块时设置断点功能失效，设置断点时出现以下错误，(调试内核模块时吃过亏又重新编译的内核)所以将其关闭。
+Cannot insert breakpoint 1.
+Error accessing memory address 0xf90f6000: Unknown error -1.
+位置：---->Kernel hacking
+   ---->Set loadable kernel module data as NX and test as RO.
+  
+//必须使能的选项
+(5)CONFIG_KGDB = y  
+位置:---->Kernel hacking    
+     ---->KGDB: kernel debugger
+(6)CONFIG_KGDB_SERIAL_CONSOLE = y 使KGDB使用串口进行通信。
+位置:---->Kernel hacking     
+     ---->KGDB: kernel debugger              
+     ---->KGDB: use kgdb over the serial console
+(7)其余：
+在Kernel hacking-->KGDB: kernel debugger目录下，除了KGDB：internal test suite外的选项全部使能y。
+
+-------------------------------------------------------------------------------------
+sudo vim /etc/default/grub
+GRUB_CMDLINE_LINUX="rodata=off nokaslr kgdboc=ttyS0,115200"
+sudo update-grub
+
+target:
+    echo g > /proc/sysrq-trigger
+
+host:
+    gdb ./vmlinux
+    target remote /dev/ttyS1
+    handle SIGSEGV noprint nostop pass
+    break sys_clone
+    c
+    s
