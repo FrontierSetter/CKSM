@@ -40,5 +40,11 @@
     在pksm_try_to_merge_two_pages->try_to_merge_with_pksm_page->remove_node_from_hashlist中会将table_slot的page_item置为NULL
     此时若pksm_exit被调用会进入easy_tree路径直接释放
 
+    如果时释放虚拟页导致的->在设置null之前，原则上应该已经完成归并，不会再对这个page调用exit（page释放->引用数量减一->操作在pksm_page上）
+        在归并完成之前就已经进行了释放，此时还没有进行ptr的转移
+    如果时重定向ptr本身导致的->在归并过程中触发，原则上此时应该还没有NULL，但是不排除操作延迟（因为锁争用）
+
+    这个问题在cmp_and_merge过程的最开始也有可能出现
+
 -------------------------------------------------------------------------------------
 记录page->page_slot映射的哈希表只增不减
