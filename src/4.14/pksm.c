@@ -1556,7 +1556,7 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 	uint32_t partial_hash;
 
 	if(kpage_slot->page_item != NULL){
-		// printk("PKSM : bug occur, stable_hash_insert with kpage_slot->page_item != NULL\n");
+		printk("PKSM : bug occur, stable_hash_insert with kpage_slot->page_item != NULL\n");
 		remove_node_from_hashlist(kpage_slot);
 	}
 
@@ -1902,8 +1902,9 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 
 		// printk("PKSM : pksm_new_anon_page : actually add %p\n", page);
 		page_slot = get_page_slot(page);
-		if(page_slot && (page_slot->invalid == false)){
-			// printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
+		if(page_slot){
+		// if(page_slot && (page_slot->invalid == false)){ //?为什么还要第二个条件
+			printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
 			return;
 		}
 

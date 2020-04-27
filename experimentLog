@@ -283,3 +283,57 @@ host:
 -------------------------------------------------------------------------------------
 sudo vmrun stop "vmware/Target/Target.vmx" hard
 sudo docker container prune
+
+-------------------------------------------------------------------------------------
+用
+error position ->
+在syslog中指示错误位置
+
+开机指令：
+    Apr 26 18:48:05 ubuntu rsyslogd: [origin software="rsyslogd" swVersion="8.16.0" x-pid="787" x-info="http://www.rsyslog.com"] start
+
+错误提示：
+    Apr 26 18:41:36 ubuntu kernel: [  228.035535] watchdog: BUG: soft lockup - CPU#0 stuck for 22s! [GC Thread#3:3765]
+    Apr 26 18:41:36 ubuntu kernel: [  228.036267] Modules linked in: veth nf_conntrack_netlink nfnetlink xfrm_user xfrm_algo xt_addrtype br_netfilter xt_CHECKSUM iptable_mangle ipt_MASQUERADE nf_nat_masquerade_ipv4 iptable_nat nf_nat_ipv4 nf_nat nf_conntrack_ipv4 nf_defrag_ipv4 xt_conntrack nf_conntrack libcrc32c ipt_REJECT nf_reject_ipv4 xt_tcpudp rfcomm bridge stp llc ebtable_filter ebtables ip6table_filter ip6_tables iptable_filter ip_tables x_tables overlay bnep btusb btrtl btbcm btintel bluetooth crct10dif_pclmul crc32_pclmul snd_ens1371 ghash_clmulni_intel cryptd vmw_balloon snd_ac97_codec input_leds joydev intel_rapl_perf serio_raw gameport ecdh_generic ac97_bus nfit snd_pcm snd_seq_midi snd_seq_midi_event snd_rawmidi snd_seq snd_seq_device snd_timer snd kvm_intel mac_hid kvm soundcore irqbypass i2c_piix4 vmw_vsock_vmci_transport
+    Apr 26 18:41:36 ubuntu kernel: [  228.036298]  shpchp vsock binfmt_misc vmw_vmci parport_pc ppdev lp parport autofs4 vmwgfx hid_generic usbhid ttm hid drm_kms_helper syscopyarea sysfillrect sysimgblt fb_sys_fops drm mptspi psmouse ahci mptscsih libahci mptbase pata_acpi e1000 scsi_transport_spi
+    Apr 26 18:41:36 ubuntu kernel: [  228.036312] CPU: 0 PID: 3765 Comm: GC Thread#3 Not tainted 4.14.0 #1
+    Apr 26 18:41:36 ubuntu kernel: [  228.036313] Hardware name: VMware, Inc. VMware Virtual Platform/440BX Desktop Reference Platform, BIOS 6.00 07/29/2019
+    Apr 26 18:41:36 ubuntu kernel: [  228.036314] task: ffffa0d3aa3b1600 task.stack: ffffb8c741c20000
+    Apr 26 18:41:36 ubuntu kernel: [  228.036325] RIP: 0010:native_queued_spin_lock_slowpath+0x25/0x1a0
+    Apr 26 18:41:36 ubuntu kernel: [  228.036326] RSP: 0000:ffffb8c741c23da0 EFLAGS: 00000202 ORIG_RAX: ffffffffffffff10
+    Apr 26 18:41:36 ubuntu kernel: [  228.036327] RAX: 0000000000000001 RBX: 0000000000000000 RCX: ffffffffffffffff
+    Apr 26 18:41:36 ubuntu kernel: [  228.036327] RDX: 0000000000000001 RSI: 0000000000000001 RDI: ffffe8e408a424f0
+    Apr 26 18:41:36 ubuntu kernel: [  228.036328] RBP: ffffb8c741c23da0 R08: ffffa0d3ad517a40 R09: 00000000021e2650
+    Apr 26 18:41:36 ubuntu kernel: [  228.036328] R10: 0000000000015afc R11: 0000000000000206 R12: ffffa0d3ad517a40
+    Apr 26 18:41:36 ubuntu kernel: [  228.036329] R13: ffffa0d180000568 R14: ffffb8c741c23dd8 R15: 0000000000000001
+    Apr 26 18:41:36 ubuntu kernel: [  228.036330] FS:  00007f16e79e6700(0000) GS:ffffa0d3b5600000(0000) knlGS:0000000000000000
+    Apr 26 18:41:36 ubuntu kernel: [  228.036331] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+    Apr 26 18:41:36 ubuntu kernel: [  228.036331] CR2: 00000000d5a48ff0 CR3: 0000000230240002 CR4: 00000000003606f0
+    Apr 26 18:41:36 ubuntu kernel: [  228.036363] Call Trace:
+    Apr 26 18:41:36 ubuntu kernel: [  228.036367]  _raw_spin_lock+0x20/0x30
+    Apr 26 18:41:36 ubuntu kernel: [  228.036370]  __handle_mm_fault+0x625/0xf90
+    Apr 26 18:41:36 ubuntu kernel: [  228.036372]  ? set_next_entity+0xcb/0x1f0
+    Apr 26 18:41:36 ubuntu kernel: [  228.036373]  handle_mm_fault+0xcc/0x1c0
+    Apr 26 18:41:36 ubuntu kernel: [  228.036374]  __do_page_fault+0x262/0x4f0
+    Apr 26 18:41:36 ubuntu kernel: [  228.036376]  do_page_fault+0x2e/0xe0
+    Apr 26 18:41:36 ubuntu kernel: [  228.036377]  page_fault+0x22/0x30
+    Apr 26 18:41:36 ubuntu kernel: [  228.036378] RIP: 0033:0x7f1744100b4b
+    Apr 26 18:41:36 ubuntu kernel: [  228.036379] RSP: 002b:00007f16e79e4658 EFLAGS: 00010206
+    Apr 26 18:41:36 ubuntu kernel: [  228.036379] RAX: 00000000d59a85e0 RBX: 00000000d59a85d0 RCX: 00000000000ad7d0
+    Apr 26 18:41:36 ubuntu kernel: [  228.036380] RDX: 00000000000a0950 RSI: 00000000d38669e0 RDI: 00000000d5a49030
+    Apr 26 18:41:36 ubuntu kernel: [  228.036380] RBP: 00007f16e79e46b0 R08: 00000000d5a55da0 R09: 00000000021e2650
+    Apr 26 18:41:36 ubuntu kernel: [  228.036381] R10: 0000000000015afc R11: 0000000000000206 R12: 00007f1743f51384
+    Apr 26 18:41:36 ubuntu kernel: [  228.036381] R13: 0000000000000001 R14: 00000000d37c5f80 R15: 0000000000015afc
+    Apr 26 18:41:36 ubuntu kernel: [  228.036382] Code: 84 00 00 00 00 00 0f 1f 44 00 00 55 48 89 e5 0f 1f 44 00 00 ba 01 00 00 00 8b 07 85 c0 75 0a f0 0f b1 17 85 c0 75 f2 5d c3 f3 90 <eb> ec 81 fe 00 01 00 00 0f 84 92 00 00 00 41 b8 01 01 00 00 b9 
+
+-------------------------------------------------------------------------------------
+可通过运行命令echo "0" >/proc/sys/kernel/sysrq和echo "1" >/proc/sys/kernel/sysrq暂时启用或禁用SysRq. 
+如果需要永久启用或者禁用SysRqs, 则可在/etc/sysctl.conf中设置kernel.sysrq = 1 (启用SsyRq)或kernel.sysrq = 0 (禁用SysRq) 
+
+sudo vi /etc/hdparm.conf
+Uncomment the line “#write_cache = off” (without quotes) by removing the # at its beginning. So it looks like:
+# -W Disable/enable the IDE drive’s write-caching feature
+write_cache = off
+
+-------------------------------------------------------------------------------------
+

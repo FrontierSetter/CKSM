@@ -1,0 +1,44 @@
+-------------------------------------------------------------------------------------
+导致系统奔溃的原因在pksm.c/pksm_cmp_and_merge_page(struct page_slot *cur_page_slot):
+    Thread 64 received signal SIGSEGV, Segmentation fault.
+    [Switching to Thread 64]
+    0xffffffff81219133 in pksm_cmp_and_merge_page (cur_page_slot=<optimized out>) at mm/ksm.c:1708
+    1708                                    table_page_slot->invalid = true;
+    (gdb)
+    Continuing.
+    KGDB only knows signal 9 (pass) and 15 (pass and disconnect)
+    Executing a continue without signal passing
+
+    Thread 64 received signal SIGSEGV, Segmentation fault.
+    0x000000000000000b in irq_stack_union ()
+    (gdb) bt
+    #0  0x000000000000000b in irq_stack_union ()
+    #1  0xffff88023299d800 in ?? ()
+    #2  0xffff88023299d800 in ?? ()
+    #3  0xffff88023299d800 in ?? ()
+    #4  0xffff8802330d8000 in ?? ()
+    #5  0xffffea00051052dc in ?? ()
+    #6  0xffff88021fd0d9d8 in ?? ()
+    #7  0xffffea00041be740 in ?? ()
+    #8  0xffff88021fd0d8d0 in ?? ()
+    #9  0xffffea00041be740 in ?? ()
+    #10 0xffff880222388438 in ?? ()
+    #11 0x4751d3ef3469c000 in ?? ()
+    #12 0xffffc9004751d3ef in ?? ()
+    #13 0xffff88023299d800 in ?? ()
+    #14 0xffffffff810c8520 in ?? () at kernel/sched/wait.c:387
+    #15 0xffffc90000627ec0 in ?? ()
+    #16 0xffffc90000627ec0 in ?? ()
+    #17 0xd66102e689f07a00 in ?? ()
+    #18 0xffff8802328888a0 in ?? ()
+    #19 0xffff880232f78c80 in ?? ()
+    #20 0xffffc9000000fdb8 in ?? ()
+    #21 0x0000000000000000 in ?? ()
+
+推测可能是table_page_slot指针所指向的page_slot此时已经被释放，导致写越界：
+    这条路径是在unstable_table中找到相同页面后进行归并（cur_page -> pksm_page，table_page与之归并）
+    在pksm_try_to_merge_two_pages->try_to_merge_with_pksm_page->remove_node_from_hashlist中会将table_slot的page_item置为NULL
+    此时若pksm_exit被调用会进入easy_tree路径直接释放
+
+-------------------------------------------------------------------------------------
+记录page->page_slot映射的哈希表只增不减
