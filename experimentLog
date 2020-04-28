@@ -282,6 +282,7 @@ host:
 
 -------------------------------------------------------------------------------------
 sudo vmrun stop "vmware/Target/Target.vmx" hard
+sudo vmrun -T ws start "/home/as-admin/vmware/Target/Target.vmx" nogui
 sudo docker container prune
 
 -------------------------------------------------------------------------------------
@@ -336,4 +337,7 @@ Uncomment the line “#write_cache = off” (without quotes) by removing the # a
 write_cache = off
 
 -------------------------------------------------------------------------------------
+
+
+
 

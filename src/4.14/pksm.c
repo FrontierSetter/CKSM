@@ -698,9 +698,19 @@ static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_n
 	}
 }
 
+static inline bool page_slot_not_in_hash_table(struct page_slot *page_slot)
+{
+	return (page_slot->page_item == NULL || page_slot->page_item == page_slot);
+}
+
+static inline bool page_slot_in_hash_table(struct page_slot *page_slot)
+{
+	return !page_slot_not_in_hash_table(page_slot);
+}
+
 static void remove_node_from_hashlist(struct page_slot *page_slot)
 {
-	if(page_slot->page_item != NULL){	// 如果他在哈希表里有残留（不管是stable还是unstable）
+	if(page_slot_in_hash_table(page_slot)){	// 如果他在哈希表里有残留（不管是stable还是unstable）
 		// printk("PKSM : remove_node_from_hashlist : slot: %p, page: %p, item: %p\n", page_slot, page_slot->physical_page, page_slot->page_item);
 		hlist_del(&(page_slot->page_item->hlist));	// 都将他删除
 
@@ -709,6 +719,21 @@ static void remove_node_from_hashlist(struct page_slot *page_slot)
 
 		free_hash_node(page_slot->page_item);
 		page_slot->page_item = NULL;
+	}
+
+}
+
+static void remove_node_from_hashlist_not_null(struct page_slot *page_slot)
+{
+	if(page_slot_in_hash_table(page_slot)){	// 如果他在哈希表里有残留（不管是stable还是unstable）
+		// printk("PKSM : remove_node_from_hashlist : slot: %p, page: %p, item: %p\n", page_slot, page_slot->physical_page, page_slot->page_item);
+		hlist_del(&(page_slot->page_item->hlist));	// 都将他删除
+
+		// 递归释放所有的rmap_item对象
+		free_all_rmap_item_of_node(page_slot->page_item);
+
+		free_hash_node(page_slot->page_item);
+		page_slot->page_item = (struct pksm_hash_node*)page_slot;
 	}
 
 }
@@ -1323,7 +1348,13 @@ static int try_to_merge_with_pksm_page(struct page_slot *page_slot,
 	// printk("PKSM : try_to_merge_with_pksm_page : end_with minor: page:%p count:%d mapcount:%d mapping:%p\n", \
 			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
 
-	remove_node_from_hashlist(page_slot);
+	/*
+	 * 没必要实现在这里
+	 * 1、当发生stable归并时，page_slot对应cur_slot，此前已经remove过
+	 * 2、当发生unstable归并时，page_slot对应table_slot，移出和无效化应紧密结合
+	 */
+
+	// remove_node_from_hashlist(page_slot);
 
 	++pksm_pages_merged;
 
@@ -1456,7 +1487,8 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 
 	// printk("PKSM : unstable_hash_search_insert : not-found with length valid: %d, stale: %d, skip: %d \n", cnt_bucket, stale_bucket, partial_hash_skip);
 
-	if(page_slot->page_item == NULL){
+	// if(page_slot->page_item == NULL){
+	if(page_slot_not_in_hash_table(page_slot)){
 		page_slot->page_item = alloc_hash_node();
 	}else{
 		printk("PKSM : bug occur, unstable_hash_search_insert with page_slot->page_item != NULL\n");
@@ -1555,7 +1587,7 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 	unsigned int entryIndex;
 	uint32_t partial_hash;
 
-	if(kpage_slot->page_item != NULL){
+	if(page_slot_in_hash_table(kpage_slot)){
 		printk("PKSM : bug occur, stable_hash_insert with kpage_slot->page_item != NULL\n");
 		remove_node_from_hashlist(kpage_slot);
 	}
@@ -1622,7 +1654,8 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 			// printk("PKSM : stable partial_hash %u\n", partial_hash);
 		// }
 
-		remove_node_from_hashlist(cur_page_slot);
+		// * 太早remove可能会导致ksm_exit中的错误释放（easy_free）
+		remove_node_from_hashlist_not_null(cur_page_slot);
 
 
 		entryIndex = cur_hash & PAGE_HASH_MASK;
@@ -1706,6 +1739,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 				// table_page_slot可以设置为invalid，因为原则上它*应该*已经不再被映射了才对
 				table_page_slot->invalid = true;
+				remove_node_from_hashlist(table_page_slot);
 
 				// if (!stable_node) {
 				// 	break_cow();
