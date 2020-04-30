@@ -46,5 +46,13 @@
 
     这个问题在cmp_and_merge过程的最开始也有可能出现
 
+FINISHED
+    针对每次cmp_and_merge过程，使用remove_node_not_null，将item置为slot而非null
+    判断时，exit仍只处理null的情况（强离开），其他情况全部使用page_slot_not_in_hash_table判断（null || slot，弱离开）
+    针对unstable_merge的情况，在merge_with_pksm的过程中不置为NULL，而是merge完成后，unvalid置位完成后再设为null
+    merge_with_pksm函数也存在于stable_merge的路径中，但是此时是cur_page向pksm_page merge，而cur_page的item再cmp_and_merge一开始就已经离开
+
 -------------------------------------------------------------------------------------
 记录page->page_slot映射的哈希表只增不减
+
+-------------------------------------------------------------------------------------
