@@ -179,10 +179,15 @@ struct rmap_process_wrapper{
  * struct page_slot - ksm scanning basic unit change from mm(virtual memory) to page(physical memory)
  * @page_list: link into priority list 
  * @physical_page: point to struct page
+ * @page_item: 在stable/unstable table中的结构
+ * @invalid: 代表这个页面是否被exit掉，或者因为发生归并而变得无效
+ * @link: 在page_to_slot_table中的结构
+ * @mapcount: 记录当前page的映射数量，用于page_sharing统计量的准确性
+ * @partial_hash: 记录partial_hash值（full_hash的值由hash table的索引完成） 
  */
 struct page_slot {
-	struct list_head page_list;
-	struct page *physical_page;
+	struct list_head page_list;	
+	struct page *physical_page;	
 	struct pksm_hash_node *page_item;
 	bool invalid;
 	struct hlist_node link;
@@ -653,11 +658,16 @@ static struct page_slot *get_page_slot(struct page *page)
 	return NULL;
 }
 
-static void insert_to_page_slots_hash(struct page *page,
+static void insert_into_page_slots_hash(struct page *page,
 				    struct page_slot *page_slot)
 {
 	page_slot->physical_page = page;
 	hash_add(page_slots_hash, &page_slot->link, (unsigned long)page);
+}
+
+static void remove_from_page_slots_hash(struct page_slot *page_slot)
+{
+	hash_del(&page_slot->link);
 }
 
 // * pksm end
@@ -1797,7 +1807,8 @@ static struct page_slot *scan_get_next_page_slot(void)
 	pksm_scan.page_slot = list_entry(pksm_scan.page_slot->page_list.next, struct page_slot, page_list);
 
 	if(pksm_test_exit(slot)){
-		hash_del(&slot->link);			//从page -> page_slot映射表中删除
+		remove_from_page_slots_hash(slot);
+		// hash_del(&slot->link);			//从page -> page_slot映射表中删除
 		list_del(&slot->page_list);
 		spin_unlock(&pksm_pagelist_lock);
 		// printk("PKSM : scan_get_next_page_slot : (exit)\n");
@@ -1936,10 +1947,15 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 
 		// printk("PKSM : pksm_new_anon_page : actually add %p\n", page);
 		page_slot = get_page_slot(page);
-		if(page_slot){
-		// if(page_slot && (page_slot->invalid == false)){ //?为什么还要第二个条件
-			printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
-			return;
+		if(page_slot && (page_slot->invalid == false)){ // 为什么还要第二个条件，因为有可能已经not_easy exit了
+				printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
+				return;
+			// if(page_slot->invalid == true){
+			// 	printk("PKSM : pksm_new_anon_page fake wrong, page %p in list slot %p\n", page, page_slot);
+			// }else{
+				// printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
+				// return;
+			// }
 		}
 
 		page_slot = alloc_page_slot();
@@ -1959,7 +1975,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		
 		spin_lock(&pksm_pagelist_lock);
 		// // printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock obtain by %p\n", page);
-		insert_to_page_slots_hash(page, page_slot);
+		insert_into_page_slots_hash(page, page_slot);
 
 		if (pksm_run & PKSM_RUN_UNMERGE)
 			list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
@@ -2028,19 +2044,25 @@ void __pksm_exit(struct page *page)
 
 		page_slot = get_page_slot(page);
 		if (page_slot && pksm_scan.page_slot != page_slot) {
+			page_slot->invalid = true;		//把当前page_slot标记为无效	
+											//原本这个操作只在not_easy的情况下进行，但是考虑到多线程同步的问题放到外面可能比较好
 			if (page_slot->page_item == NULL) {	// 如果page_slot此使没有加入stable/unstable table
-				hash_del(&page_slot->link);			//从page -> page_slot映射表中删除
+				remove_from_page_slots_hash(page_slot);
+				// hash_del(&page_slot->link);			//从page -> page_slot映射表中删除
 				list_del(&page_slot->page_list);	//从page_slot的list中删除
 				easy_to_free = 1;				
 				// // printk("PKSM : __pksm_exit : easy_to_free %p\n", page);
 			} else {
-				page_slot->invalid = true;		//把当前page_slot标记为无效	
 				list_move(&page_slot->page_list,	//现在只把他移动到遍历链表的下一个
 					&pksm_scan.page_slot->page_list);		//以后可以根据优先级队列的设计进行适配
+				// page_slot->invalid = true;		//把当前page_slot标记为无效	
 				// // printk("PKSM : __pksm_exit : not_easy_to_free %p\n", page);
 			}
 		}
 		spin_unlock(&pksm_pagelist_lock);
+
+		// remove_from_page_slots_hash(page_slot);
+		
 		// // printk("PKSM : __pksm_exit : pksm_pagelist_lock release by %p\n", page);
 
 		if (easy_to_free) {
