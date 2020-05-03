@@ -58,5 +58,8 @@ FINISHED
 有减，hash_del
 new_anon中fake wrong
 
+FINISHED
+    在new_anon中加入slot->invalid是否等于true的判断
+
 -------------------------------------------------------------------------------------
 exit中要求当前slot不等于scan_slot，为何
