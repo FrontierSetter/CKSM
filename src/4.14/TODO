@@ -79,3 +79,9 @@ DELAY
     发现问题出现在：try_to_merge_one_page_stable -> write_protect_page_stable -> page_vma_mapped_walk 中（见log-5-4-1）
     这里的操作对象是普通的page（原始状态，没有经过任何处理），同时这里不涉及PKSM相关的操作
     因此不是PKSM的问题，而且其影响并不显著（只有那几个页面会发生这种情况），所以暂时搁置
+
+-------------------------------------------------------------------------------------
+try_to_merge_two_pages中set与merge过程都可能会失败
+
+DELAY
+    与上个问题一样，发生在write_protect过程中（但是没有进一步深入探究）
