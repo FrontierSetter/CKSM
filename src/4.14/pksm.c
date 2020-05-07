@@ -679,9 +679,12 @@ static inline bool pksm_test_exit(struct page_slot *page_slot)
 	return (page_slot->invalid) || (page_count(page_slot->physical_page) == 0) || (page_mapcount(page_slot->physical_page) == 0);
 }
 
-static void break_cow(void)
+static void break_cow(struct page_slot* page_slot)
 {
-	printk("PKSM : empty_function : break_cow called\n");
+
+	printk("PKSM : break_cow called\n");
+	printk("PKSM : \tslot: %p, page: %p, refcount: %d, mapcount: %d\n", page_slot, page_slot->physical_page, page_ref_count(page_slot->physical_page), page_mapcount(page_slot->physical_page));
+
 	
 }
 
@@ -700,10 +703,13 @@ static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_n
 	struct hlist_node *nxt;
 	if(!hlist_empty(&(pksm_hash_node->rmap_list))){
 		hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
+			put_anon_vma(pksm_rmap_item->anon_vma);
 			free_pksm_rmap_item(pksm_rmap_item);
 			// --pksm_pages_sharing;
 		}
 		--pksm_pages_shared;
+		// 这里没有计数泄漏
+		// 因为slot->mapcount直接和sharing相关，如果使用page的真实count，其中可能会有没有遗漏的释放，导致减的太少
 		pksm_pages_sharing -= pksm_hash_node->page_slot->mapcount;
 	}
 }
@@ -1178,6 +1184,9 @@ static bool try_to_merge_one_page(struct page *page, struct vm_area_struct *vma,
 		pksm_rmap_item->anon_vma = vma->anon_vma;
 		pksm_rmap_item->mm = vma->vm_mm;
 		pksm_rmap_item->address = address;
+
+		//? 后来加上
+		get_anon_vma(vma->anon_vma);
 
 		hlist_add_head( &(pksm_rmap_item->hlist), &(pksm_hash_node->rmap_list));
 	}
@@ -1749,6 +1758,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 				// table_page_slot可以设置为invalid，因为原则上它*应该*已经不再被映射了才对
 				table_page_slot->invalid = true;
+
+				// remove不一定要立即做，可能会对anon的操作产生影响
+				// 事实上remove确实要立即做，但是会区分是否stable
 				remove_node_from_hashlist(table_page_slot);
 
 				// if (!stable_node) {
