@@ -670,6 +670,16 @@ static void remove_from_page_slots_hash(struct page_slot *page_slot)
 	hash_del(&page_slot->link);
 }
 
+static inline bool page_slot_not_in_hash_table(struct page_slot *page_slot)
+{
+	return (page_slot->page_item == NULL || page_slot->page_item == page_slot);
+}
+
+static inline bool page_slot_in_hash_table(struct page_slot *page_slot)
+{
+	return !page_slot_not_in_hash_table(page_slot);
+}
+
 // * pksm end
 
 
@@ -679,13 +689,133 @@ static inline bool pksm_test_exit(struct page_slot *page_slot)
 	return (page_slot->invalid) || (page_count(page_slot->physical_page) == 0) || (page_mapcount(page_slot->physical_page) == 0);
 }
 
-static void break_cow(struct page_slot* page_slot)
+static inline bool ksm_test_exit(struct mm_struct *mm)
+{
+	return atomic_read(&mm->mm_users) == 0;
+}
+
+static int count_rmap_item_num(struct pksm_hash_node* pksm_hash_node)
+{
+	int cnt = 0;
+	struct pksm_rmap_item* pksm_rmap_item;
+	struct hlist_node *nxt;
+
+	if(!hlist_empty(&(pksm_hash_node->rmap_list))){
+		hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
+			++cnt;
+		}
+	}
+
+	return cnt;
+}
+
+static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
+{
+	struct page *page;
+	int ret = 0;
+
+	do {
+		cond_resched();
+		// TODO: 因为我们操作的本来就是physical_page，这里可以直接把page传进来
+		page = follow_page(vma, addr,
+				FOLL_GET | FOLL_MIGRATION | FOLL_REMOTE);
+		if (IS_ERR_OR_NULL(page))
+			break;
+		if (PagePksm_inline(page))
+			ret = handle_mm_fault(vma, addr,
+					FAULT_FLAG_WRITE | FAULT_FLAG_REMOTE);
+		else
+			ret = VM_FAULT_WRITE;
+		put_page(page);
+	} while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV | VM_FAULT_OOM)));
+	/*
+	 * We must loop because handle_mm_fault() may back out if there's
+	 * any difficulty e.g. if pte accessed bit gets updated concurrently.
+	 *
+	 * VM_FAULT_WRITE is what we have been hoping for: it indicates that
+	 * COW has been broken, even if the vma does not permit VM_WRITE;
+	 * but note that a concurrent fault might break PageKsm for us.
+	 *
+	 * VM_FAULT_SIGBUS could occur if we race with truncation of the
+	 * backing file, which also invalidates anonymous pages: that's
+	 * okay, that truncation will have unmapped the PageKsm for us.
+	 *
+	 * VM_FAULT_OOM: at the time of writing (late July 2009), setting
+	 * aside mem_cgroup limits, VM_FAULT_OOM would only be set if the
+	 * current task has TIF_MEMDIE set, and will be OOM killed on return
+	 * to user; and ksmd, having no mm, would never be chosen for that.
+	 *
+	 * But if the mm is in a limited mem_cgroup, then the fault may fail
+	 * with VM_FAULT_OOM even if the current task is not TIF_MEMDIE; and
+	 * even ksmd can fail in this way - though it's usually breaking ksm
+	 * just to undo a merge it made a moment before, so unlikely to oom.
+	 *
+	 * That's a pity: we might therefore have more kernel pages allocated
+	 * than we're counting as nodes in the stable tree; but ksm_do_scan
+	 * will retry to break_cow on each pass, so should recover the page
+	 * in due course.  The important thing is to not let VM_MERGEABLE
+	 * be cleared while any such pages might remain in the area.
+	 */
+	return (ret & VM_FAULT_OOM) ? -ENOMEM : 0;
+}
+
+static struct vm_area_struct *find_mergeable_vma(struct mm_struct *mm,
+		unsigned long addr)
+{
+	struct vm_area_struct *vma;
+	if (ksm_test_exit(mm))
+		return NULL;
+	vma = find_vma(mm, addr);
+	if (!vma || vma->vm_start > addr)
+		return NULL;
+	// if (!(vma->vm_flags & VM_MERGEABLE) || !vma->anon_vma)
+	if (!vma->anon_vma)
+		return NULL;
+	return vma;
+}
+
+static void break_cow(struct page_slot* page_slot, struct pksm_hash_node* pksm_hash_node)
 {
 
-	printk("PKSM : break_cow called\n");
-	printk("PKSM : \tslot: %p, page: %p, refcount: %d, mapcount: %d\n", page_slot, page_slot->physical_page, page_ref_count(page_slot->physical_page), page_mapcount(page_slot->physical_page));
+	struct mm_struct *mm;
+	unsigned long addr;
+	struct vm_area_struct *vma;
+	struct pksm_rmap_item* pksm_rmap_item;
+	struct hlist_node *nxt;
+	int err = 0;
 
-	
+	// printk("PKSM : break_cow called\n");
+
+	if(count_rmap_item_num(pksm_hash_node) != 1){
+		printk("PKSM : \tbug occur not 1");
+		printk("PKSM : \tslot: %p, rmapcnt: %d, page: %p, refcount: %d, mapcount: %d, isPKSM: %d\n", page_slot, count_rmap_item_num(pksm_hash_node), page_slot->physical_page, page_ref_count(page_slot->physical_page), page_mapcount(page_slot->physical_page), PagePksm(page_slot->physical_page));
+	}else{
+		//TODO: 反正就一个元素，可以从循环里拆出来
+		hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
+			mm = pksm_rmap_item->mm;
+			addr = pksm_rmap_item->address;
+
+			put_anon_vma(pksm_rmap_item->anon_vma);
+
+			down_read(&mm->mmap_sem);
+			vma = find_mergeable_vma(mm, addr);
+			if (vma){
+				err = break_ksm(vma, addr);
+				// printk("PKSM : break_cow -> break_ksm: %d\n", err);
+			}else{
+				printk("PKSM : \tbug occur no vma");
+			}
+
+			up_read(&mm->mmap_sem);
+		}
+	}
+
+	// if(page_slot_not_in_hash_table(page_slot)){
+	// 	printk("PKSM : bug occur, count_rmap_item_num");
+		// printk("PKSM : \tslot: %p, page: %p, refcount: %d, mapcount: %d\n", page_slot, page_slot->physical_page, page_ref_count(page_slot->physical_page), page_mapcount(page_slot->physical_page));
+
+	// }else{
+	// }	
 }
 
 
@@ -714,15 +844,7 @@ static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_n
 	}
 }
 
-static inline bool page_slot_not_in_hash_table(struct page_slot *page_slot)
-{
-	return (page_slot->page_item == NULL || page_slot->page_item == page_slot);
-}
 
-static inline bool page_slot_in_hash_table(struct page_slot *page_slot)
-{
-	return !page_slot_not_in_hash_table(page_slot);
-}
 
 static void remove_node_from_hashlist(struct page_slot *page_slot)
 {
@@ -1076,10 +1198,6 @@ static int page_trans_compound_anon_split(struct page *page)
 	return ret;
 }
 
-static inline bool ksm_test_exit(struct mm_struct *mm)
-{
-	return atomic_read(&mm->mm_users) == 0;
-}
 
 /*
  * pksm中将指向一个page的pte指向另一个kpage的函数
@@ -1410,7 +1528,8 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 		 * pointing to it: so break it.
 		 */
 		if (err){
-			break_cow();
+			// 这里额外传入hash_node是因为此时page_slot->page_item必为空，因为在cmp_merge中首先将cur_page从table中移出
+			break_cow(page_slot, pksm_hash_node);
 		}else{
 			page_slot->mapcount = page_mapcount(page);
 		}
@@ -1601,6 +1720,7 @@ static struct page *stable_hash_search(struct page *page, unsigned int entryInde
 	return NULL;
 }
 
+// TODO: fail state
 static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage, struct pksm_hash_node *pksm_hash_node){
 	u32 cur_hash;
 	unsigned int entryIndex;
@@ -2120,10 +2240,11 @@ struct page *ksm_might_need_to_copy(struct page *page,
 	return new_page;
 }
 
-static inline bool mm_test_exit(struct mm_struct *mm)
-{
-	return atomic_read(&mm->mm_users) == 0;
-}
+// 我也不知道为什么会重复写这么一个函数
+// static inline bool mm_test_exit(struct mm_struct *mm)
+// {
+// 	return atomic_read(&mm->mm_users) == 0;
+// }
 
 
 /*
@@ -2156,7 +2277,7 @@ void rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
 	struct pksm_rmap_item *pksm_rmap_item;
 	int search_new_forks = 0;
 
-	printk("PKSM : rmap_walk_ksm called\n");
+	// printk("PKSM : rmap_walk_ksm called\n");
 
 
 	VM_BUG_ON_PAGE(!PageKsm(page), page);
@@ -2182,7 +2303,7 @@ again:
 			vma = vmac->vma;
 
 			// ! 这里处理在反向映射的时候某个进程已经退出的情况，作为pksm的页和反向映射的进程力度不一致的权宜之计
-			if(mm_test_exit(vma->vm_mm))
+			if(ksm_test_exit(vma->vm_mm))
 				continue;
 
 			if (pksm_rmap_item->address < vma->vm_start ||

@@ -338,6 +338,26 @@ write_cache = off
 
 -------------------------------------------------------------------------------------
 
+为什么rmap_item要记录anon_vma而不是vma
+    因为anon_vma设计的目的就是为了在反向映射时，为下层的物理页提供上层虚拟空间的抽象
+    因为上层虚拟空间（vma）常变，让下层指向它会造成问题，所以使用不常变的anon_vma作为抽象
+    pksm中的rmap同理
 
+为什么rmap_item要记录address
+    首先要明确vma+address是虚拟页面的表示方式（类似于物理页面和page结构的关系）
+    因此这里记录address就是相当于记录虚拟页面
+    通过anon_vma可以获得和这个anon_vma有关的所有vma，配合上address就可以获得所有虚拟页面
+
+        为什么这个页面在所有的进程地址空间里有相同的address？
+            一个rmap_item对应一个进程地址空间中的一个虚拟页面，所以不会发生冲突
+            rmap_item已经唯一确认一个虚拟页面，对应一个vma和一个address，后者直接记录，前者通过anon_vma的红黑树得到
+
+                为什么anon_vma的红黑树就一定可以获得对应的vma？有可能有多个vma啊，而且简单地通过address是否在vma区间内不能完全分辨
+
+anon_vma包含多个页面的虚拟地址空间
+
+-------------------------------------------------------------------------------------
+page_ref_count(page_slot->physical_page)
+page_mapcount(page_slot->physical_page)
 
 
