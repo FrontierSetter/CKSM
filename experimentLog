@@ -360,4 +360,10 @@ anon_vma包含多个页面的虚拟地址空间
 page_ref_count(page_slot->physical_page)
 page_mapcount(page_slot->physical_page)
 
+-------------------------------------------------------------------------------------
+使用perf lock 要设置lock_stat首先
+
+-------------------------------------------------------------------------------------
+docker stop $(docker ps -aq)
+
 

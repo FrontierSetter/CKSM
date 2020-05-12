@@ -827,8 +827,8 @@ static struct page *page_trans_compound_anon(struct page *page)
 }
 
 
-
-static inline void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_node){
+// 把inline去掉了
+static void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_node){
 	struct pksm_rmap_item* pksm_rmap_item;
 	struct hlist_node *nxt;
 	if(!hlist_empty(&(pksm_hash_node->rmap_list))){
@@ -1998,6 +1998,7 @@ static void pksm_do_scan(unsigned int scan_npages)
 
 		//? 下面这句不知道对不对
 		// // printk("PKSM : pksm_do_scan : going to put_page( %p )\n", page_slot->physical_page);
+		// TODO: 这里的put_page会进入mm子系统，重新获取pksm相关结构，浪费
 		put_page(page_slot->physical_page);
 		// // printk("PKSM : pksm_do_scan : finish put_page( %p )\n", page_slot->physical_page);
 	}
