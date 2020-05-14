@@ -43,6 +43,7 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
+#include <asm/barrier.h>
 
 // #define VERBOS_GET_PKSM_PAGE
 // #define VERBOS_TRY_TO_MERGE_ONE_PAGE
@@ -50,6 +51,17 @@
 // #define VERBOS_PKSM_EXIT
 // #define VERBOS_PKSM_NEW_ANON_PAGE
 // #define USE_ADVANCED_MEMCMP
+// #define perf_break_point_ON
+
+// #ifdef perf_break_point_ON
+
+
+
+// #else
+
+// #define perf_break_point(g, p)
+
+// #endif
 
 // #define crc32_sse42
 
@@ -541,6 +553,7 @@ static uint64_t super_fast_hash_64_unloop(const char * data, int len, uint64_t s
 // ============================ super fast hash end ======================================
 
 
+
 static u32 calc_hash(struct page *page, uint32_t *partial_hash)
 {
 	char *addr;
@@ -565,6 +578,11 @@ static u32 calc_hash(struct page *page, uint32_t *partial_hash)
 
 	kunmap_atomic(addr);
 	return checksum;
+}
+
+static noinline void perf_break_point(int group_number, int point_number){
+	__asm__ __volatile__("": : :"memory");
+	mb();
 }
 
 
@@ -1978,9 +1996,11 @@ static void pksm_do_scan(unsigned int scan_npages)
 
 	while (scan_npages-- && likely(!freezing(current))) {
 		cond_resched();
+		perf_break_point(0, 0);
 		page_slot = scan_get_next_page_slot();
 		// // printk("PKSM : pksm_do_scan : get page_slot %p\n", page_slot);
 
+		perf_break_point(0, 1);
 		if (!page_slot)
 			return;
 
@@ -1993,6 +2013,7 @@ static void pksm_do_scan(unsigned int scan_npages)
 
 		// printk("PKSM : pksm_do_scan : get page %p -> %p\n", page_slot, page_slot->physical_page);
 		pksm_cmp_and_merge_page(page_slot);
+		perf_break_point(0, 2);
 
 		// printk("PKSM : pksm_do_scan : page %p merge finished\n\n", page_slot->physical_page);
 
@@ -2000,6 +2021,7 @@ static void pksm_do_scan(unsigned int scan_npages)
 		// // printk("PKSM : pksm_do_scan : going to put_page( %p )\n", page_slot->physical_page);
 		// TODO: 这里的put_page会进入mm子系统，重新获取pksm相关结构，浪费
 		put_page(page_slot->physical_page);
+		perf_break_point(0, 3);
 		// // printk("PKSM : pksm_do_scan : finish put_page( %p )\n", page_slot->physical_page);
 	}
 }
@@ -2153,7 +2175,7 @@ void __pksm_exit(struct page *page)
 	struct page_slot *page_slot;
 	int easy_to_free = 0;
 
-	// // printk("PKSM : __pksm_exit evoked %p\n", page);
+	perf_break_point(1, 0);
 
 	/*
 	 * This process is exiting: if it's straightforward (as is the
@@ -2168,12 +2190,9 @@ void __pksm_exit(struct page *page)
 	if(pksm_run & PKSM_RUN_MERGE){
 #endif
 
-		// // printk("PKSM : __pksm_exit : page:%p count:%d mapcount:%d mapping:%p\n", \
-			page, atomic_read(&page->_count), page_mapcount(page), page->mapping);
-
 		spin_lock(&pksm_pagelist_lock);
 
-		// // printk("PKSM : __pksm_exit : pksm_pagelist_lock obtain by %p\n", page);
+		perf_break_point(1, 1);
 
 		page_slot = get_page_slot(page);
 		if (page_slot && pksm_scan.page_slot != page_slot) {
@@ -2183,21 +2202,22 @@ void __pksm_exit(struct page *page)
 				remove_from_page_slots_hash(page_slot);
 				// hash_del(&page_slot->link);			//从page -> page_slot映射表中删除
 				list_del(&page_slot->page_list);	//从page_slot的list中删除
-				easy_to_free = 1;				
-				// // printk("PKSM : __pksm_exit : easy_to_free %p\n", page);
+				easy_to_free = 1;	
+				perf_break_point(1, 2);	
 			} else {
 				list_move(&page_slot->page_list,	//现在只把他移动到遍历链表的下一个
 					&pksm_scan.page_slot->page_list);		//以后可以根据优先级队列的设计进行适配
 				// page_slot->invalid = true;		//把当前page_slot标记为无效	
-				// // printk("PKSM : __pksm_exit : not_easy_to_free %p\n", page);
+				perf_break_point(1, 3);
 			}
+		}else{
+
+			perf_break_point(1, 4);
 		}
 		spin_unlock(&pksm_pagelist_lock);
 
 		// remove_from_page_slots_hash(page_slot);
 		
-		// // printk("PKSM : __pksm_exit : pksm_pagelist_lock release by %p\n", page);
-
 		if (easy_to_free) {
 			free_page_slot(page_slot);
 		} else if (page_slot) {
@@ -2208,6 +2228,7 @@ void __pksm_exit(struct page *page)
 
 	}
 #endif
+	perf_break_point(1, 5);
 }
 
 struct page *ksm_might_need_to_copy(struct page *page,
