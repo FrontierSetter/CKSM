@@ -10,6 +10,6 @@ Session.vim
 relatedwork/**
 workload/pytorch/data/**
 workload/pytorch/pytorch-FCN-easiest-demo-master/**
-log/**
-!log/draw_tool/**
+log/*
+!log/draw_tool
 *.7z
