@@ -92,7 +92,7 @@ def trace_end():
 	print "total_time last: %15d sec, %15d nsec" % (total_sec_last, total_nsec_last)
 
 	for g in group_list:
-		print "============================================================================================================="
+		print "========================================================================================================================================================="
 		print "in %s:" % (group_name_dict[g] if g in group_name_dict else 'unknown')
 		for p in point_list[g]:
 			cur_time = get_from_dict(time_total_dict, g, p)
@@ -111,7 +111,7 @@ def trace_end():
 			avg_sec_str = "%5u.%09u"%(avg_nsec/(10 ** 9),avg_nsec%(10 ** 9))
 			print "g: %d\tp: %d\tnsec: %s\tmsec: %s\tsec: %s\ttime: %15d\tcount: %9d\tfreq_sec: %6d" % (g, p, avg_nsec_str, avg_msec_str, avg_sec_str, cur_time, cur_count, cur_count/(total_sec_last))
 			
-	print "============================================================================================================="
+	print "========================================================================================================================================================="
 
 
 

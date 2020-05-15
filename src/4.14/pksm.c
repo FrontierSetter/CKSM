@@ -2211,7 +2211,6 @@ void __pksm_exit(struct page *page)
 				perf_break_point(1, 3);
 			}
 		}else{
-
 			perf_break_point(1, 4);
 		}
 		spin_unlock(&pksm_pagelist_lock);
