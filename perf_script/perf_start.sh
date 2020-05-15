@@ -4,7 +4,7 @@ mem_usage=`free -g | grep Mem | awk '{print $3}'`
 pksm_thread=`ps -ef | grep -v grep | grep pksm | awk '{print $2}'`
 echo $pksm_thread
 
-while (($mem_usage < 6))
+while (($mem_usage < $1))
 do
     echo $mem_usage
     mem_usage=`free -g | grep Mem | awk '{print $3}'`
@@ -12,4 +12,4 @@ do
 done
 
 date +%s > start.timestamp
-perf record -e probe:perf_break_point -a -c 1 -p $pksm_thread 
+perf record -e probe:perf_break_point -a -c 1 -p $pksm_thread sleep $2

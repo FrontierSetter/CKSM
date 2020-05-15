@@ -17,7 +17,7 @@ from perf_trace_context import *
 from Core import *
 from Util import *
 
-group_name_dict = {0:'pksm_do_scan', 1:'__pksm_exit'}
+group_name_dict = {0:'pksm_do_scan', 1:'__pksm_exit', 2:'get_page_slot'}
 
 time_total_dict = autodict()
 count_total_dict = autodict()
@@ -109,7 +109,7 @@ def trace_end():
 			avg_nsec_str = "%14u"%(avg_nsec)
 			avg_msec_str = "%8u.%06u"%(avg_nsec/(10 ** 6),avg_nsec%(10 ** 6))
 			avg_sec_str = "%5u.%09u"%(avg_nsec/(10 ** 9),avg_nsec%(10 ** 9))
-			print "g: %d\tp: %d\tnsec: %s\tmsec: %s\tsec: %s\ttime: %15d\tcount: %9d\tfreq_sec: %6d" % (g, p, avg_nsec_str, avg_msec_str, avg_sec_str, cur_time, cur_count, cur_count/(total_sec_last))
+			print "g: %d\tp: %d\tnsec: %s\tmsec: %s\tsec: %s\ttime: %15d\tcount: %9d\tfreq_sec: %8d" % (g, p, avg_nsec_str, avg_msec_str, avg_sec_str, cur_time, cur_count, cur_count/(total_sec_last))
 			
 	print "========================================================================================================================================================="
 
@@ -151,6 +151,9 @@ def probe__perf_break_point(event_name, context, common_cpu,
 			else:
 				add_to_dict(time_total_dict, cur_timestamp-prev_timestamp, group_number, point_number)
 				add_to_dict(count_total_dict, 1, group_number, point_number)
+		else:
+			add_to_dict(count_total_dict, 1, group_number, point_number)
+
 
 		set_in_dict(prev_timestamp_dict, cur_timestamp, group_number)
 		

@@ -357,8 +357,11 @@ write_cache = off
 anon_vma包含多个页面的虚拟地址空间
 
 -------------------------------------------------------------------------------------
-page_ref_count(page_slot->physical_page)
-page_mapcount(page_slot->physical_page)
+page_ref_count(page_slot->physical_page) page_ref.h
+page_mapcount(page_slot->physical_page) mm.h
+May  4 19:49:38 ubuntu kernel: [  134.916562] PKSM : cur_page: ffffea000f0fb540 count: 3 mapcount: 2 mapping: ffff8803d7b0d0b1, hash: 31900333
+
+page_count = &compound_head(page)->_refcount page_ref.h
 
 -------------------------------------------------------------------------------------
 使用perf lock 要设置lock_stat首先
