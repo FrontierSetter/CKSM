@@ -2006,13 +2006,10 @@ static void pksm_do_scan(unsigned int scan_npages)
 	struct page_slot *page_slot;
 	// struct page_slot *pre_slot = NULL;
 
-	// printk("PKSM : pksm_do_scan evoked\n");
-
 	while (scan_npages-- && likely(!freezing(current))) {
 		cond_resched();
 		perf_break_point(0, 0);
 		page_slot = scan_get_next_page_slot();
-		// // printk("PKSM : pksm_do_scan : get page_slot %p\n", page_slot);
 
 		perf_break_point(0, 1);
 		if (!page_slot)
@@ -2025,14 +2022,10 @@ static void pksm_do_scan(unsigned int scan_npages)
 
 		// pre_slot = page_slot;
 
-		// printk("PKSM : pksm_do_scan : get page %p -> %p\n", page_slot, page_slot->physical_page);
 		pksm_cmp_and_merge_page(page_slot);
 		perf_break_point(0, 2);
 
-		// printk("PKSM : pksm_do_scan : page %p merge finished\n\n", page_slot->physical_page);
 
-		//? 下面这句不知道对不对
-		// // printk("PKSM : pksm_do_scan : going to put_page( %p )\n", page_slot->physical_page);
 		// TODO: 这里的put_page会进入mm子系统，重新获取pksm相关结构，浪费
 		if(page_ref_count(page_slot->physical_page) == 1){
 			put_page(page_slot->physical_page);
