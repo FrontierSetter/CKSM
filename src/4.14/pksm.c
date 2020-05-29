@@ -1773,6 +1773,36 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 	hlist_add_head(&(pksm_hash_node->hlist), &(stable_hash_table[entryIndex]));
 }
 
+void merge_pervade(struct page_slot *slot_1, struct page_slot *slot_2){
+	unsigned long pfn_1, pfn_2;
+	struct page *page_1;
+	struct page *page_2;
+
+	pfn_1 = page_to_pfn(slot_1->physical_page)+1;
+	pfn_2 = page_to_pfn(slot_2->physical_page)+1;
+
+	page_1 = pfn_to_page(pfn_1);
+	page_2 = pfn_to_page(pfn_2);
+
+	perf_break_point(4, 0);
+
+	if(!(PageAnon(page_1)&&PageAnon(page_2))){
+		return;
+	}
+	perf_break_point(4, 1);
+
+	if(!(get_page_slot(page_1)&&get_page_slot(page_2))){
+		return;
+	}
+	perf_break_point(4, 2);
+
+	if(!pages_identical(page_1, page_2)){
+		return;
+	}
+	perf_break_point(4, 3);
+
+}
+
 /*
  * 针对当前的page_slot对象对应的page结构寻找可以归并的归宿
  */
@@ -1874,7 +1904,8 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		perf_break_point(3, 10);
 		
 		if(unstable_page){
-			// printk("PKSM : pksm_cmp_and_merge_page : unstable_hash_search_insert found\n");
+			
+			merge_pervade(table_page_slot, cur_page_slot);
 
 			hash_node = alloc_hash_node();
 			if(!hash_node){
