@@ -1,3 +1,4 @@
+my_log="./" 
 name="elastic"
 # echo "" > ${my_log}"timestamp_elastic.log"
 
@@ -5,7 +6,7 @@ for ((i=0;i<$1;i++))
 do
     # str = "$name$i"
     echo "$name$i"
-	# date +%s >> ${my_log}"timestamp_elastic.log"
+	date +%s >> ${my_log}"timestamp_elastic.log"
 
     docker run -d -e "discovery.type=single-node" elasticsearch:7.6.2
     sleep 2

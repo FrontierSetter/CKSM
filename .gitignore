@@ -12,5 +12,6 @@ workload/pytorch/data/**
 workload/pytorch/pytorch-FCN-easiest-demo-master/**
 log/*
 !log/draw_tool
-*.7z
+!log/draw_tool_bac
+*_bac
 *.code-workspace
