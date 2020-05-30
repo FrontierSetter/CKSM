@@ -2550,14 +2550,17 @@ static int wp_page_copy(struct vm_fault *vmf)
 			page_remove_rmap(old_page, false);
 		}
 
-		// if(!vma_is_anonymous(vmf->vma)){
-		// 	printk("PKSM : wp_page_copy filecache\n");
-		// }
+		if(vma_is_anonymous(vmf->vma)){
+			if (ksm_cow_break_flag)
+				pksm_new_anon_page(new_page, false);
+			else if (ksm_cow_page_flag)
+				pksm_new_anon_page(new_page, true);
+		}
 
-		if (ksm_cow_break_flag)
-			pksm_new_anon_page(new_page, false);
-		else if (ksm_cow_page_flag)
-			pksm_new_anon_page(new_page, true);
+		// if (ksm_cow_break_flag)
+		// 	pksm_new_anon_page(new_page, false);
+		// else if (ksm_cow_page_flag)
+		// 	pksm_new_anon_page(new_page, true);
 
 		/* Free the old page.. */
 		new_page = old_page;
