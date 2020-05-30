@@ -1,8 +1,8 @@
 my_log="./test_data/" 
 pksm_thread=`ps -ef | grep -v grep | grep $1 | awk '{print $2}'`
 
-echo "" > ${my_log}"cpu_usage.log"
-echo "" > ${my_log}"mem_usage.log"
+echo > ${my_log}"cpu_usage.log"
+echo > ${my_log}"mem_usage.log"
 
 while true;
 do

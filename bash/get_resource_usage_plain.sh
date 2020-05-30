@@ -1,6 +1,6 @@
 my_log="./test_data/" 
 
-echo "" > ${my_log}"mem_usage.log"
+echo > ${my_log}"mem_usage.log"
 
 while true;
 do
