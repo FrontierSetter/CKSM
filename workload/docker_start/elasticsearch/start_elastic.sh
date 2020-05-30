@@ -1,6 +1,6 @@
 my_log="./" 
 name="elastic"
-echo > ${my_log}"timestamp_elastic.log"
+> ${my_log}"timestamp_elastic.log"
 
 for ((i=0;i<$1;i++))
 do

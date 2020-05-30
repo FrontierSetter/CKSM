@@ -1,5 +1,6 @@
 legacy/**
-UKSM-4.2/**
+UKSM_src
+uksm
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
 *.un~
