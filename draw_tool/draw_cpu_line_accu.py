@@ -15,6 +15,7 @@ for i in range(1, len(sys.argv)):
     baseArr = curFile.readline().strip('\n').split(',')
     baseTime = int(baseArr[0])
     baseCPU = float(baseArr[1])
+    lastTime = baseTime-1
 
     curAccu = 0.0
 
@@ -34,10 +35,14 @@ for i in range(1, len(sys.argv)):
 
         if curTime < baseTime:
             continue
+
+        if curTime-lastTime != 1:
+            print("gap %d" % (curTime-lastTime))
         
         xArr[i-1].append(curTime-baseTime)
-        curAccu += (float(curCPU-baseCPU)/100.0)
+        curAccu += (float(curCPU-baseCPU)/100.0*(curTime-lastTime))
         yArr[i-1].append(curAccu)
+        lastTime = curTime
 
 plt.figure(figsize=(9,6))
 
