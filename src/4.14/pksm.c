@@ -263,9 +263,27 @@ static unsigned long pksm_pages_inlist;
 
 static unsigned long pksm_node_items;
 
-static unsigned int ksm_thread_pages_to_scan = 200;
+// static unsigned int ksm_thread_pages_to_scan = 200;
 
-static unsigned int ksm_thread_sleep_millisecs = 20;
+// static unsigned int ksm_thread_sleep_millisecs = 20;
+
+/* PKSM进程进入睡眠前需要连续扫描到的不可归并页面的数量 */
+static unsigned int pksm_cont_unmerged_pages_threshold = 200;
+/* PKSM进程睡眠时间基准 */
+static unsigned int pksm_thread_sleep_millisecs_base = 50;
+/* PKSM进程真实睡眠时间基准 */
+static unsigned int pksm_thread_sleep_millisecs_real;
+static unsigned int pksm_thread_sleep_millisecs_low = 20;
+static unsigned int pksm_thread_sleep_millisecs_high = 1000;
+/* PKSM此趟归并数量 */
+static unsigned int pksm_cur_merged_pages;
+static unsigned int pksm_last_merged_pages = 1;
+/* PKSM此趟未归并数量 */
+static unsigned int pksm_cur_unmerged_pages;
+static unsigned int pksm_last_unmerged_pages = 1;
+/* 当前连续不可归并连续页面数量 */
+static unsigned int pksm_cur_cont_unmerged_pages;
+
 
 #ifdef CONFIG_NUMA
 /* Zeroed when merging across nodes is not allowed */
@@ -1800,6 +1818,11 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		return;
 	}else{
 
+		// * 不由分说先默认此次归并失败，这样可以避免之后的分支操作
+		// * 如果之后发现此次归并成功，再减掉
+		++pksm_cur_unmerged_pages;
+		++pksm_cur_cont_unmerged_pages;
+
 		cur_hash = calc_hash(cur_page, &partial_hash);
 
 		cur_page_slot->partial_hash = partial_hash;
@@ -1835,6 +1858,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 				// page 成功 merge 到一个pksmpage
 				// cur_page_slot->invalid = true;
+				--pksm_cur_unmerged_pages;
+				pksm_cur_cont_unmerged_pages = 0;
+				++pksm_cur_merged_pages;
 			}
 			put_page(kpage);
 
@@ -1903,6 +1929,10 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 				// remove不一定要立即做，可能会对anon的操作产生影响
 				// 事实上remove确实要立即做，但是会区分是否stable
 				remove_node_from_hashlist(table_page_slot);
+
+				--pksm_cur_unmerged_pages;
+				pksm_cur_cont_unmerged_pages = 0;
+				++pksm_cur_merged_pages;
 
 				// if (!stable_node) {
 				// 	break_cow();
@@ -1998,12 +2028,24 @@ static struct page_slot *scan_get_next_page_slot(void)
 	return NULL;
 }
 
-static void pksm_do_scan(unsigned int scan_npages)
+// TODO: 使休眠时间与进程实际工作时间相关
+static unsigned int get_time_to_sleep(void){
+	// return (unsigned int) ((unsigned long long) pksm_thread_sleep_millisecs_base *
+	//  		(unsigned long long) pksm_cur_unmerged_pages / 
+	//  		(unsigned long long) pksm_cur_merged_pages);
+	return pksm_thread_sleep_millisecs_base;
+}
+
+static void pksm_do_scan(void)
 {
 	struct page_slot *page_slot;
 	// struct page_slot *pre_slot = NULL;
+	pksm_cur_cont_unmerged_pages = 0;
+	// 默认为1，防止出现除零异常
+	pksm_cur_merged_pages = 1;
+	pksm_cur_unmerged_pages = 1;
 
-	while (scan_npages-- && likely(!freezing(current))) {
+	while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && likely(!freezing(current))) {
 		cond_resched();
 		// perf_break_point(0, 0);
 		page_slot = scan_get_next_page_slot();
@@ -2024,13 +2066,23 @@ static void pksm_do_scan(unsigned int scan_npages)
 
 
 		// TODO: 这里的put_page会进入mm子系统，重新获取pksm相关结构，浪费
-		if(page_ref_count(page_slot->physical_page) == 1){
-			put_page(page_slot->physical_page);
-			// perf_break_point(0, 3);
-		}else{
-			put_page(page_slot->physical_page);
-			// perf_break_point(0, 4);
-		}
+		put_page(page_slot->physical_page);
+		// if(page_ref_count(page_slot->physical_page) == 1){
+		// 	put_page(page_slot->physical_page);
+		// 	// perf_break_point(0, 3);
+		// }else{
+		// 	put_page(page_slot->physical_page);
+		// 	// perf_break_point(0, 4);
+		// }
+	}
+
+	pksm_thread_sleep_millisecs_real = get_time_to_sleep();
+	pksm_last_merged_pages = pksm_cur_merged_pages;
+	pksm_last_unmerged_pages = pksm_cur_unmerged_pages;
+	if(pksm_thread_sleep_millisecs_real < pksm_thread_sleep_millisecs_low){
+		pksm_thread_sleep_millisecs_real = pksm_thread_sleep_millisecs_low;
+	}else if(pksm_thread_sleep_millisecs_real > pksm_thread_sleep_millisecs_high){
+		pksm_thread_sleep_millisecs_real = pksm_thread_sleep_millisecs_high;
 	}
 }
 
@@ -2048,10 +2100,7 @@ static int pksmd_should_run(void)
 	
 }
 
-// static int ksmd_should_run(void)
-// {
-// 	return (pksm_run & PKSM_RUN_MERGE) && !list_empty(&ksm_mm_head.mm_list);
-// }
+
 
 static int pksm_scan_thread(void *nothing)
 {
@@ -2060,18 +2109,16 @@ static int pksm_scan_thread(void *nothing)
 
 	while (!kthread_should_stop()) {
 		mutex_lock(&pksm_thread_mutex);
-		// printk("PKSM : pksm_scan_thread : pksm_thread_mutex obtained\n");
 		wait_while_offlining();
 		if (pksmd_should_run())
-			pksm_do_scan(ksm_thread_pages_to_scan);
+			pksm_do_scan();
 		mutex_unlock(&pksm_thread_mutex);
-		// printk("PKSM : pksm_scan_thread : pksm_thread_mutex released\n");
 
 		try_to_freeze();
 
 		if (pksmd_should_run()) {
 			schedule_timeout_interruptible(
-				msecs_to_jiffies(ksm_thread_sleep_millisecs));
+				msecs_to_jiffies(pksm_thread_sleep_millisecs_real));
 		} else {
 			wait_event_freezable(pksm_thread_wait,
 				pksmd_should_run() || kthread_should_stop());
@@ -2102,13 +2149,10 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 	int needs_wakeup;
 	// struct page_slot *pre_slot;
 
-	// // printk("PKSM : pksm_new_anon_page evoked %p\n", page);
-
 #ifdef MANUAL_PAGE_ADD
 	if(pksm_run & PKSM_RUN_MERGE){
 #endif
 
-		// printk("PKSM : pksm_new_anon_page : actually add %p\n", page);
 		page_slot = get_page_slot(page);
 		if(page_slot && (page_slot->invalid == false)){ // 为什么还要第二个条件，因为有可能已经not_easy exit了
 				printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
@@ -2137,27 +2181,23 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		needs_wakeup = list_empty(&pksm_page_head.page_list);
 		
 		spin_lock(&pksm_pagelist_lock);
-		// // printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock obtain by %p\n", page);
 		insert_into_page_slots_hash(page, page_slot);
 
 		if (pksm_run & PKSM_RUN_UNMERGE)
 			list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 		else{
-			// // printk("PKSM : pksm_new_anon_page : pre_slot %p -> cur_slot %p ->scan_slot %p\n", pre_slot, page_slot, pksm_scan.page_slot);
 			// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			if(likely(high_priority)){
-				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
-				// list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}else{
 				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}
 
 			// pre_slot = list_prev_entry(page_slot, page_list);
-			// // printk("PKSM : pksm_new_anon_page : pksm_scan_slot %p = pre_slot %p -> cur_slot %p \n", pksm_scan.page_slot, pre_slot, page_slot);
 		}
 			
 		spin_unlock(&pksm_pagelist_lock);
-		// // printk("PKSM : pksm_new_anon_page : pksm_pagelist_lock release by %p\n", page);
 
 
 		// ? 在ksm里把一个进程加入ksm系统之后会增加其引用计数
@@ -2165,14 +2205,12 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		// atomic_inc(&mm->mm_count);
 
 		if (needs_wakeup){
-			// // printk("PKSM : pksm_new_anon_page : wake up\n");
 			wake_up_interruptible(&pksm_thread_wait);
 		}else{
 
 		}
 #ifdef MANUAL_PAGE_ADD
 	}else{
-		// // printk("PKSM : pksm_new_anon_page : not add\n");
 	}
 #endif
 
@@ -2445,7 +2483,7 @@ static void wait_while_offlining(void)
 static ssize_t sleep_millisecs_show(struct kobject *kobj,
 				    struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", ksm_thread_sleep_millisecs);
+	return sprintf(buf, "%u\n", pksm_thread_sleep_millisecs_base);
 }
 
 static ssize_t sleep_millisecs_store(struct kobject *kobj,
@@ -2459,7 +2497,7 @@ static ssize_t sleep_millisecs_store(struct kobject *kobj,
 	if (err || msecs > UINT_MAX)
 		return -EINVAL;
 
-	ksm_thread_sleep_millisecs = msecs;
+	pksm_thread_sleep_millisecs_base = msecs;
 
 	return count;
 }
@@ -2468,7 +2506,7 @@ PKSM_ATTR(sleep_millisecs);
 static ssize_t pages_to_scan_show(struct kobject *kobj,
 				  struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", ksm_thread_pages_to_scan);
+	return sprintf(buf, "%u\n", pksm_cont_unmerged_pages_threshold);
 }
 
 static ssize_t pages_to_scan_store(struct kobject *kobj,
@@ -2482,7 +2520,7 @@ static ssize_t pages_to_scan_store(struct kobject *kobj,
 	if (err || nr_pages > UINT_MAX)
 		return -EINVAL;
 
-	ksm_thread_pages_to_scan = nr_pages;
+	pksm_cont_unmerged_pages_threshold = nr_pages;
 
 	return count;
 }
@@ -2659,7 +2697,31 @@ static ssize_t pages_merged_show(struct kobject *kobj,
 }
 PKSM_ATTR_RO(pages_merged);
 
+static ssize_t sleep_real_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", pksm_thread_sleep_millisecs_real);
+}
+PKSM_ATTR_RO(sleep_real);
+
+static ssize_t last_merged_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", pksm_last_merged_pages);
+}
+PKSM_ATTR_RO(last_merged);
+
+static ssize_t last_unmerged_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", pksm_last_unmerged_pages);
+}
+PKSM_ATTR_RO(last_unmerged);
+
 static struct attribute *pksm_attrs[] = {
+	&last_unmerged_attr.attr,
+	&last_merged_attr.attr,
+	&sleep_real_attr.attr,
 	&sleep_millisecs_attr.attr,
 	&pages_to_scan_attr.attr,
 	&run_attr.attr,
