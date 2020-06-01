@@ -269,6 +269,7 @@ static unsigned long pksm_node_items;
 
 /* PKSM进程进入睡眠前需要连续扫描到的不可归并页面的数量 */
 static unsigned int pksm_cont_unmerged_pages_threshold = 200;
+static unsigned int pksm_scaned_pages_threshold = 10000;
 /* PKSM进程睡眠时间基准 */
 static unsigned int pksm_thread_sleep_millisecs_base = 50;
 /* PKSM进程真实睡眠时间基准 */
@@ -870,6 +871,7 @@ static void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_node){
 		hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
 			put_anon_vma(pksm_rmap_item->anon_vma);
 			free_pksm_rmap_item(pksm_rmap_item);
+			cond_resched();
 			// --pksm_pages_sharing;
 		}
 		--pksm_pages_shared;
@@ -2045,7 +2047,7 @@ static void pksm_do_scan(void)
 	pksm_cur_merged_pages = 1;
 	pksm_cur_unmerged_pages = 1;
 
-	while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && likely(!freezing(current))) {
+	while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && likely(!freezing(current)) && ((pksm_cur_merged_pages+pksm_cur_unmerged_pages) < pksm_scaned_pages_threshold)) {
 		cond_resched();
 		// perf_break_point(0, 0);
 		page_slot = scan_get_next_page_slot();
@@ -2373,9 +2375,11 @@ again:
 		struct anon_vma_chain *vmac;
 		struct vm_area_struct *vma;
 
+		cond_resched();
 		anon_vma_lock_read(anon_vma);
 		anon_vma_interval_tree_foreach(vmac, &anon_vma->rb_root,
 					       0, ULONG_MAX) {
+			cond_resched();
 			vma = vmac->vma;
 
 			// ! 这里处理在反向映射的时候某个进程已经退出的情况，作为pksm的页和反向映射的进程力度不一致的权宜之计
@@ -2503,10 +2507,33 @@ static ssize_t sleep_millisecs_store(struct kobject *kobj,
 }
 PKSM_ATTR(sleep_millisecs);
 
-static ssize_t pages_to_scan_show(struct kobject *kobj,
+static ssize_t unmerge_pages_to_scan_show(struct kobject *kobj,
 				  struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%u\n", pksm_cont_unmerged_pages_threshold);
+}
+
+static ssize_t unmerge_pages_to_scan_store(struct kobject *kobj,
+				   struct kobj_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int err;
+	unsigned long nr_pages;
+
+	err = kstrtoul(buf, 10, &nr_pages);
+	if (err || nr_pages > UINT_MAX)
+		return -EINVAL;
+
+	pksm_cont_unmerged_pages_threshold = nr_pages;
+
+	return count;
+}
+PKSM_ATTR(unmerge_pages_to_scan);
+
+static ssize_t pages_to_scan_show(struct kobject *kobj,
+				  struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", pksm_scaned_pages_threshold);
 }
 
 static ssize_t pages_to_scan_store(struct kobject *kobj,
@@ -2520,7 +2547,7 @@ static ssize_t pages_to_scan_store(struct kobject *kobj,
 	if (err || nr_pages > UINT_MAX)
 		return -EINVAL;
 
-	pksm_cont_unmerged_pages_threshold = nr_pages;
+	pksm_scaned_pages_threshold = nr_pages;
 
 	return count;
 }
@@ -2700,25 +2727,26 @@ PKSM_ATTR_RO(pages_merged);
 static ssize_t sleep_real_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", pksm_thread_sleep_millisecs_real);
+	return sprintf(buf, "%u\n", pksm_thread_sleep_millisecs_real);
 }
 PKSM_ATTR_RO(sleep_real);
 
 static ssize_t last_merged_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", pksm_last_merged_pages);
+	return sprintf(buf, "%u\n", pksm_last_merged_pages);
 }
 PKSM_ATTR_RO(last_merged);
 
 static ssize_t last_unmerged_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", pksm_last_unmerged_pages);
+	return sprintf(buf, "%u\n", pksm_last_unmerged_pages);
 }
 PKSM_ATTR_RO(last_unmerged);
 
 static struct attribute *pksm_attrs[] = {
+	&unmerge_pages_to_scan_attr.attr,
 	&last_unmerged_attr.attr,
 	&last_merged_attr.attr,
 	&sleep_real_attr.attr,
