@@ -205,6 +205,7 @@ struct page_slot {
 	struct hlist_node link;
 	unsigned long mapcount;
 	uint32_t partial_hash;
+	unsigned long add_stamp;
 };
 
 
@@ -243,6 +244,7 @@ static struct page_slot pksm_page_head = {
 
 static struct pksm_scan pksm_scan = {
 	.page_slot = &pksm_page_head,
+	.seqnr = 0,
 };
 
 static struct kmem_cache *pksm_hash_node_cache;
@@ -284,6 +286,10 @@ static unsigned int pksm_cur_unmerged_pages;
 static unsigned int pksm_last_unmerged_pages = 1;
 /* 当前连续不可归并连续页面数量 */
 static unsigned int pksm_cur_cont_unmerged_pages;
+
+/* 扫描的步长 */
+static unsigned int pksm_scan_step = 7;
+static unsigned int pksm_scan_status = 0;
 
 
 #ifdef CONFIG_NUMA
@@ -1822,8 +1828,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 		// * 不由分说先默认此次归并失败，这样可以避免之后的分支操作
 		// * 如果之后发现此次归并成功，再减掉
-		++pksm_cur_unmerged_pages;
-		++pksm_cur_cont_unmerged_pages;
+		
 
 		cur_hash = calc_hash(cur_page, &partial_hash);
 
@@ -1860,9 +1865,13 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 				// page 成功 merge 到一个pksmpage
 				// cur_page_slot->invalid = true;
-				--pksm_cur_unmerged_pages;
 				pksm_cur_cont_unmerged_pages = 0;
 				++pksm_cur_merged_pages;
+				++pksm_scan_status;
+			}else{
+				++pksm_cur_cont_unmerged_pages;
+				++pksm_cur_unmerged_pages;
+				pksm_scan_status >>= 1;
 			}
 			put_page(kpage);
 
@@ -1902,7 +1911,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 			// merge_pervade(table_page_slot, cur_page_slot);
 
 			hash_node = alloc_hash_node();
-			if(!hash_node){
+			if(unlikely(!hash_node)){
 				printk("PKSM : pksm_cmp_and_merge_page : unstable_hash_node alloc_fail");
 			}
 
@@ -1932,9 +1941,9 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 				// 事实上remove确实要立即做，但是会区分是否stable
 				remove_node_from_hashlist(table_page_slot);
 
-				--pksm_cur_unmerged_pages;
 				pksm_cur_cont_unmerged_pages = 0;
 				++pksm_cur_merged_pages;
+				++pksm_scan_status;
 
 				// if (!stable_node) {
 				// 	break_cow();
@@ -1945,12 +1954,18 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 				// ++pksm_page_shared;
 
 			}else{
+				++pksm_cur_cont_unmerged_pages;
+				++pksm_cur_unmerged_pages;
+				pksm_scan_status >>= 1;
 				// free_all_rmap_item_of_node(hash_node);
 				// free_hash_node(hash_node)
 			}
 
 			// perf_break_point(3, 11);
 		}else{
+			++pksm_cur_cont_unmerged_pages;
+			++pksm_cur_unmerged_pages;
+			pksm_scan_status >>= 1;
 			// perf_break_point(3, 12);
 		}
 
@@ -1961,31 +1976,34 @@ static struct page_slot *scan_get_next_page_slot(void)
 {
 	struct page_slot *cur_slot;
 	struct page *cur_page;
+	unsigned int remain_step;
 
 	if(list_empty(&(pksm_page_head.page_list))){
 		return NULL;
+	}
+
+	if(pksm_scan_status){
+		remain_step = 1;
+	}else{
+		remain_step = pksm_scan_step;
 	}
 
 	// 原则上pksm_scan.page_slot对应的是下一个待扫描对象
 	// slot对应当前扫描（处理）对象
 	// 在下面的一段代码中，主要是获取并移动slot，所以会发生短暂的两者重合
 	// 在next_page代码段中第一项工作就是移动pksm_scan.page_slot使两者重新分离
-
+next_step:
 	cur_slot = pksm_scan.page_slot;
 
 	if(cur_slot == &pksm_page_head){
 		spin_lock(&pksm_pagelist_lock);
-		// printk("PKSM : scan_get_next_page_slot : (pksm_page_head)\n");
+
 		pksm_scan.seqnr++;
 		cur_slot = list_entry(cur_slot->page_list.next, struct page_slot, page_list);
 		pksm_scan.page_slot = cur_slot;
 		spin_unlock(&pksm_pagelist_lock);
-		// // printk("PKSM : scan_get_next_page_slot : (pksm_page_head)\n");
-
 
 		if(cur_slot == &pksm_page_head){
-			// printk("PKSM : scan_get_next_page_slot : (empty list)\n");
-
 			return NULL;
 		}
 	}
@@ -1995,7 +2013,6 @@ static struct page_slot *scan_get_next_page_slot(void)
 	cur_page = cur_slot->physical_page;
 
 	spin_lock(&pksm_pagelist_lock);
-	// printk("PKSM : scan_get_next_page_slot : (normal)\n");
 
 	pksm_scan.page_slot = list_entry(pksm_scan.page_slot->page_list.next, struct page_slot, page_list);
 
@@ -2004,28 +2021,29 @@ static struct page_slot *scan_get_next_page_slot(void)
 		// hash_del(&cur_slot->link);			//从page -> page_slot映射表中删除
 		list_del(&cur_slot->page_list);
 		spin_unlock(&pksm_pagelist_lock);
-		// printk("PKSM : scan_get_next_page_slot : (exit)\n");
 
 		remove_node_from_hashlist(cur_slot);
 		free_page_slot(cur_slot);
 
 	}else{
 		spin_unlock(&pksm_pagelist_lock);
-		// printk("PKSM : scan_get_next_page_slot : (normal)\n");
 
-		get_page(cur_slot->physical_page);
-		// TODO: if(valid_pksm_page(cur_page)){
+		remain_step -= 1;
+		if(remain_step == 0){
+			get_page(cur_slot->physical_page);
+			// TODO: if(valid_pksm_page(cur_page)){
 			return cur_slot;
-		// } 
+			// } 
+		}
+
 	}
 
-	cur_slot = pksm_scan.page_slot;
-	if(cur_slot != &pksm_page_head){
-		goto next_page;
-	}
+	goto next_step;
 
-
-	// printk("PKSM : scan_get_next_page_slot : pksm_scan.seqnr = %lu\n", pksm_scan.seqnr);
+	// 即使碰到head也应该继续
+	// if(cur_slot != &pksm_page_head){
+	// 	goto next_page;
+	// }
 	
 	return NULL;
 }
@@ -2047,14 +2065,20 @@ static void pksm_do_scan(void)
 	pksm_cur_merged_pages = 1;
 	pksm_cur_unmerged_pages = 1;
 
-	while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && likely(!freezing(current)) && ((pksm_cur_merged_pages+pksm_cur_unmerged_pages) < pksm_scaned_pages_threshold)) {
+	//  && ((pksm_cur_merged_pages+pksm_cur_unmerged_pages) < pksm_scaned_pages_threshold)
+	while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && likely(!freezing(current))) {
 		cond_resched();
 		// perf_break_point(0, 0);
 		page_slot = scan_get_next_page_slot();
 
 		// perf_break_point(0, 1);
-		if (!page_slot)
+		if (unlikely(!page_slot))
 			return;
+
+		if(unlikely(page_slot == &pksm_page_head)){
+			printk("PKSM : bug occur get_next_slot return page_head");
+			continue;
+		}
 
 		// if(pre_slot != NULL && pre_slot == page_slot){
 		// 	printk("PKSM : pksm_do_scan : same slot %p\n", page_slot);
@@ -2156,7 +2180,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 #endif
 
 		page_slot = get_page_slot(page);
-		if(page_slot && (page_slot->invalid == false)){ // 为什么还要第二个条件，因为有可能已经not_easy exit了
+		if(unlikely(page_slot && (page_slot->invalid == false))){ // 为什么还要第二个条件，因为有可能已经not_easy exit了
 				printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
 				return;
 			// if(page_slot->invalid == true){
@@ -2168,7 +2192,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		}
 
 		page_slot = alloc_page_slot();
-		if(page_slot == NULL){
+		if(unlikely(page_slot == NULL)){
 			printk("PKSM : pksm_new_anon_page wrong, page_slot allocate fail\n");
 			// return -ENOMEM;
 		}
@@ -2179,6 +2203,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		page_slot->invalid = false;
 		page_slot->page_item = NULL;	// 这个字段是否为NULL代表了这个page是否已经纳入pksm系统
 										// 所以在初始化的时候确保他时NULL很重要
+		page_slot->add_stamp = pksm_scan.seqnr;
 
 		needs_wakeup = list_empty(&pksm_page_head.page_list);
 		
@@ -2188,12 +2213,13 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		if (pksm_run & PKSM_RUN_UNMERGE)
 			list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 		else{
-			// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			if(likely(high_priority)){
+				list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
-				list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				// list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}else{
-				list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
+				list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
+				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}
 
 			// pre_slot = list_prev_entry(page_slot, page_list);
@@ -2553,6 +2579,29 @@ static ssize_t pages_to_scan_store(struct kobject *kobj,
 }
 PKSM_ATTR(pages_to_scan);
 
+static ssize_t scan_step_show(struct kobject *kobj,
+				  struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", pksm_scan_step);
+}
+
+static ssize_t scan_step_store(struct kobject *kobj,
+				   struct kobj_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int err;
+	unsigned long nr_pages;
+
+	err = kstrtoul(buf, 10, &nr_pages);
+	if (err || nr_pages > UINT_MAX)
+		return -EINVAL;
+
+	pksm_scan_step = nr_pages;
+
+	return count;
+}
+PKSM_ATTR(scan_step);
+
 static ssize_t run_show(struct kobject *kobj, struct kobj_attribute *attr,
 			char *buf)
 {
@@ -2746,6 +2795,7 @@ static ssize_t last_unmerged_show(struct kobject *kobj,
 PKSM_ATTR_RO(last_unmerged);
 
 static struct attribute *pksm_attrs[] = {
+	&scan_step_attr.attr,
 	&unmerge_pages_to_scan_attr.attr,
 	&last_unmerged_attr.attr,
 	&last_merged_attr.attr,
