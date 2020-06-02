@@ -129,6 +129,27 @@ EXPORT_SYMBOL(zero_pfn);
 
 unsigned long highest_memmap_pfn __read_mostly;
 
+/* ZERO_PAGE used for pksm, in UKSM style */
+#ifdef CONFIG_KSM
+unsigned long pksm_zero_pfn __read_mostly;
+EXPORT_SYMBOL(pksm_zero_pfn);
+struct page *empty_pksm_zero_page;
+EXPORT_SYMBOL(empty_pksm_zero_page);
+
+static int __init setup_pksm_zero_page(void)
+{
+	empty_pksm_zero_page = alloc_pages(__GFP_ZERO & ~__GFP_MOVABLE, 0);
+	if (!empty_pksm_zero_page)
+		panic("Oh boy, that early out of memory?");
+
+	SetPageReserved(empty_pksm_zero_page);
+	pksm_zero_pfn = page_to_pfn(empty_pksm_zero_page);
+
+	return 0;
+}
+core_initcall(setup_pksm_zero_page);
+#endif
+
 /*
  * CONFIG_MMU architectures set up ZERO_PAGE in their paging_init()
  */

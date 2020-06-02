@@ -17,6 +17,10 @@ struct stable_node;
 struct mem_cgroup;
 
 #ifdef CONFIG_KSM
+extern unsigned long zero_pfn __read_mostly;
+extern unsigned long pksm_zero_pfn __read_mostly;
+extern struct page *empty_pksm_zero_page;
+
 int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
 		unsigned long end, int advice, unsigned long *vm_flags);
 // int __ksm_enter(struct mm_struct *mm);
