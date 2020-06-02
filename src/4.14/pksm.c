@@ -272,24 +272,46 @@ static unsigned long pksm_node_items;
 /* PKSM进程进入睡眠前需要连续扫描到的不可归并页面的数量 */
 static unsigned int pksm_cont_unmerged_pages_threshold = 200;
 static unsigned int pksm_scaned_pages_threshold = 10000;
+
 /* PKSM进程睡眠时间基准 */
 static unsigned int pksm_thread_sleep_millisecs_base = 50;
+
 /* PKSM进程真实睡眠时间基准 */
 static unsigned int pksm_thread_sleep_millisecs_real;
 static unsigned int pksm_thread_sleep_millisecs_low = 20;
 static unsigned int pksm_thread_sleep_millisecs_high = 1000;
+
 /* PKSM此趟归并数量 */
 static unsigned int pksm_cur_merged_pages;
 static unsigned int pksm_last_merged_pages = 1;
+
 /* PKSM此趟未归并数量 */
 static unsigned int pksm_cur_unmerged_pages;
 static unsigned int pksm_last_unmerged_pages = 1;
+
 /* 当前连续不可归并连续页面数量 */
 static unsigned int pksm_cur_cont_unmerged_pages;
 
 /* 扫描的步长 */
-static unsigned int pksm_scan_step = 7;
+static unsigned int pksm_scan_steps[5] = {3, 7, 17, 29, 41};
+static unsigned int pksm_cur_scan_step = 17;
+
+/* 当前扫描的状态 */
 static unsigned int pksm_scan_status = 0;
+
+/* 上一个获取的页面的时间戳 */
+// static unsigned int pksm_pre_stamp = 0;
+
+/* stamp差值与step的对应关系 */
+static unsigned int pksm_step_level[11] = {
+	4, 4,		/* 0, 1 */
+	3, 3,		/* 2, 3 */
+	2, 2, 2,	/* 4, 5, 6 */
+	1, 1, 1, 1	/* 7, 8, 9, 10 */
+};
+/* 在本次扫描过程中新加入的页面 */
+static unsigned long pksm_new_pages_inlist = 0;
+
 
 
 #ifdef CONFIG_NUMA
@@ -1972,6 +1994,20 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 	}
 }
 
+static void calc_scan_step(unsigned long cur_stamp){
+	unsigned long stamp_diff = pksm_scan.seqnr-cur_stamp;
+	if(pksm_new_pages_inlist > 32768){ //128MB
+	// if(pksm_new_pages_inlist > 32768‬){	//128MB
+		pksm_cur_scan_step = pksm_scan_steps[4];
+	}else{
+		if(stamp_diff <= 10){
+			pksm_cur_scan_step = pksm_scan_steps[pksm_step_level[stamp_diff]];
+		}else{
+			pksm_cur_scan_step = pksm_scan_steps[0];
+		}
+	}
+}
+
 static struct page_slot *scan_get_next_page_slot(void)
 {
 	struct page_slot *cur_slot;
@@ -1985,7 +2021,7 @@ static struct page_slot *scan_get_next_page_slot(void)
 	if(pksm_scan_status){
 		remain_step = 1;
 	}else{
-		remain_step = pksm_scan_step;
+		remain_step = pksm_cur_scan_step;
 	}
 
 	// 原则上pksm_scan.page_slot对应的是下一个待扫描对象
@@ -1999,6 +2035,7 @@ next_step:
 		spin_lock(&pksm_pagelist_lock);
 
 		pksm_scan.seqnr++;
+		pksm_new_pages_inlist = 0;
 		cur_slot = list_entry(cur_slot->page_list.next, struct page_slot, page_list);
 		pksm_scan.page_slot = cur_slot;
 		spin_unlock(&pksm_pagelist_lock);
@@ -2079,6 +2116,8 @@ static void pksm_do_scan(void)
 			printk("PKSM : bug occur get_next_slot return page_head");
 			continue;
 		}
+
+		calc_scan_step(page_slot->add_stamp);
 
 		// if(pre_slot != NULL && pre_slot == page_slot){
 		// 	printk("PKSM : pksm_do_scan : same slot %p\n", page_slot);
@@ -2209,16 +2248,19 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		
 		spin_lock(&pksm_pagelist_lock);
 		insert_into_page_slots_hash(page, page_slot);
+		++pksm_new_pages_inlist;
 
 		if (pksm_run & PKSM_RUN_UNMERGE)
 			list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 		else{
 			if(likely(high_priority)){
-				list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
+				list_add(&page_slot->page_list, &pksm_page_head.page_list);
+				// list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 				// list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}else{
-				list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
+				list_add(&page_slot->page_list, &pksm_page_head.page_list);
+				// list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}
 
@@ -2279,6 +2321,9 @@ void __pksm_exit(struct page *page)
 				list_del(&page_slot->page_list);	//从page_slot的list中删除
 				easy_to_free = 1;	
 				// perf_break_point(1, 3);	
+				if(page_slot->add_stamp == pksm_scan.seqnr){
+					--pksm_new_pages_inlist;
+				}
 			} else {
 				/*
 				 * 把工作延后到scan过程中有两个原因：
@@ -2582,7 +2627,7 @@ PKSM_ATTR(pages_to_scan);
 static ssize_t scan_step_show(struct kobject *kobj,
 				  struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", pksm_scan_step);
+	return sprintf(buf, "%u\n", pksm_cur_scan_step);
 }
 
 static ssize_t scan_step_store(struct kobject *kobj,
@@ -2596,7 +2641,7 @@ static ssize_t scan_step_store(struct kobject *kobj,
 	if (err || nr_pages > UINT_MAX)
 		return -EINVAL;
 
-	pksm_scan_step = nr_pages;
+	pksm_cur_scan_step = nr_pages;
 
 	return count;
 }
