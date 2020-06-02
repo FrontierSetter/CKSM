@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 xArr = []
 yArr = []
 typeArr = []
+compArr = []
 
 for i in range(1, len(sys.argv)):
+    foundComp = False
     curFilePath = sys.argv[i]
     print(curFilePath)
     curFile = open(curFilePath, 'r')
@@ -14,6 +16,9 @@ for i in range(1, len(sys.argv)):
     baseArr = curFile.readline().strip('\n').split(',')
     baseTime = int(baseArr[0])
     baseMem = int(baseArr[1])
+
+    compTime = int(baseArr[2])
+    compTime += ((compTime-baseTime)/9)-2
 
     xArr.append([])
     yArr.append([])
@@ -35,10 +40,15 @@ for i in range(1, len(sys.argv)):
         xArr[i-1].append(curTime-baseTime)
         yArr[i-1].append(float(curMem-baseMem)/1024.0/1024.0/1024.0)
 
+        if curTime >= compTime and foundComp == False:
+            compArr.append(((curTime-baseTime), (float(curMem-baseMem)/1024.0/1024.0/1024.0)))
+            foundComp = True
+
 plt.figure(figsize=(9,6))
 
 for i in range(len(sys.argv)-1):
     plt.plot(xArr[i],yArr[i], label=typeArr[i], linewidth=3)
+    plt.annotate('', compArr[i],xytext=(compArr[i][0]-6, compArr[i][1]+0.6), arrowprops=dict(arrowstyle='-|>',connectionstyle='arc3',color='red'))
 
 plt.legend(fontsize=16)
 plt.xticks(fontsize=16)

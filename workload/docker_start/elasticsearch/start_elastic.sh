@@ -12,5 +12,6 @@ do
     sleep 2
     # docker run -d kibana:7.5.1
     # sleep 6
-    
 done
+
+date +%s >> ${my_log}"timestamp_elastic.log"
