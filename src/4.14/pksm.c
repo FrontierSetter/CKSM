@@ -1274,19 +1274,18 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 		goto out_mn;
 	}
 
+	flush_cache_page(vma, addr, pte_pfn(*ptep));
+	ptep_clear_flush_notify(vma, addr, ptep);
+	newpte = mk_pte(kpage, vma->vm_page_prot);
 
-
-	if (is_zero_pfn(page_to_pfn(kpage))) {
-		newpte = pte_mkspecial(pfn_pte(page_to_pfn(kpage),
-					       vma->vm_page_prot));
+	if ((page_to_pfn(kpage) == uksm_zero_pfn) || is_zero_pfn(page_to_pfn(kpage))) {
+		newpte = pte_mkspecial(newpte);
+		dec_mm_counter(mm, MM_ANONPAGES);
 	} else {
 		get_page(kpage);
 		page_add_anon_rmap(kpage, vma, addr, false);
-		newpte = mk_pte(kpage, vma->vm_page_prot);
 	}
 
-	flush_cache_page(vma, addr, pte_pfn(*ptep));
-	ptep_clear_flush_notify(vma, addr, ptep);
 	set_pte_at_notify(mm, addr, ptep, newpte);
 
 	page_remove_rmap(page, false);
@@ -1338,7 +1337,7 @@ static bool try_to_merge_zero_page(struct page *page, struct vm_area_struct *vma
 		     unsigned long address, void *arg)
 {
 
-	struct page *zero_page = ZERO_PAGE(address);
+	struct page *zero_page = empty_pksm_zero_page;
 	pte_t orig_pte = __pte(0);
 	int err = -EFAULT;
 
