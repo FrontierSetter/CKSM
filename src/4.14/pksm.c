@@ -571,7 +571,7 @@ static uint64_t super_fast_hash_64(const char * data, int len, uint64_t seed)
 
     if (len <= 0 || data == NULL) return 0;
 
-	printk("PKSM : super_fast_hash_64 : %p\n", data);
+	// printk("PKSM : super_fast_hash_64 : %p\n", data);
 
 	// __builtin_prefetch(data, 0, 3);
 
@@ -903,8 +903,8 @@ static void break_cow(struct page_slot* page_slot, struct pksm_hash_node* pksm_h
 	// printk("PKSM : break_cow called\n");
 
 	if(count_rmap_item_num(pksm_hash_node) != 1){
-		printk("PKSM : \tbug occur not 1");
-		printk("PKSM : \tslot: %p, rmapcnt: %d, page: %p, refcount: %d, mapcount: %d, isPKSM: %d\n", page_slot, count_rmap_item_num(pksm_hash_node), page_slot->physical_page, page_ref_count(page_slot->physical_page), page_mapcount(page_slot->physical_page), PagePksm(page_slot->physical_page));
+		printk(KERN_ALERT "PKSM : \tbug occur not 1");
+		printk(KERN_ALERT "PKSM : \tslot: %p, rmapcnt: %d, page: %p, refcount: %d, mapcount: %d, isPKSM: %d\n", page_slot, count_rmap_item_num(pksm_hash_node), page_slot->physical_page, page_ref_count(page_slot->physical_page), page_mapcount(page_slot->physical_page), PagePksm(page_slot->physical_page));
 	}else{
 		//TODO: 反正就一个元素，可以从循环里拆出来
 		hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
@@ -919,7 +919,7 @@ static void break_cow(struct page_slot* page_slot, struct pksm_hash_node* pksm_h
 				err = break_ksm(vma, addr);
 				// printk("PKSM : break_cow -> break_ksm: %d\n", err);
 			}else{
-				printk("PKSM : \tbug occur no vma");
+				printk(KERN_ALERT "PKSM : \tbug occur no vma");
 			}
 
 			up_read(&mm->mmap_sem);
@@ -937,7 +937,7 @@ static void break_cow(struct page_slot* page_slot, struct pksm_hash_node* pksm_h
 
 static struct page *page_trans_compound_anon(struct page *page)
 {
-	printk("PKSM : empty_function : page_trans_compound_anon evoked\n");
+	printk(KERN_ALERT "PKSM : empty_function : page_trans_compound_anon evoked\n");
 	return NULL;
 	
 }
@@ -1866,7 +1866,7 @@ static void stable_hash_insert(struct page_slot *kpage_slot, struct page *kpage,
 	uint32_t partial_hash;
 
 	if(page_slot_in_hash_table(kpage_slot)){
-		printk("PKSM : bug occur, stable_hash_insert with kpage_slot->page_item != NULL\n");
+		printk(KERN_ALERT "PKSM : bug occur, stable_hash_insert with kpage_slot->page_item != NULL\n");
 		remove_node_from_hashlist(kpage_slot);
 	}
 
@@ -2041,7 +2041,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 
 			hash_node = alloc_hash_node();
 			if(unlikely(!hash_node)){
-				printk("PKSM : pksm_cmp_and_merge_page : unstable_hash_node alloc_fail");
+				printk(KERN_ALERT "PKSM : pksm_cmp_and_merge_page : unstable_hash_node alloc_fail");
 			}
 
 			hash_node->kpfn = page_to_pfn(cur_page);
@@ -2222,7 +2222,7 @@ static void pksm_do_scan(void)
 			return;
 
 		if(unlikely(page_slot == &pksm_page_head)){
-			printk("PKSM : bug occur get_next_slot return page_head");
+			printk(KERN_ALERT "PKSM : bug occur get_next_slot return page_head");
 			continue;
 		}
 
@@ -2337,7 +2337,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 
 		page_slot = get_page_slot(page);
 		if(unlikely(page_slot && (page_slot->invalid == false))){ // 为什么还要第二个条件，因为有可能已经not_easy exit了
-				printk("PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
+				printk(KERN_ALERT "PKSM : pksm_new_anon_page wrong, page %p already in list slot %p\n", page, page_slot);
 				return;
 			// if(page_slot->invalid == true){
 			// 	printk("PKSM : pksm_new_anon_page fake wrong, page %p in list slot %p\n", page, page_slot);
@@ -2349,7 +2349,7 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 
 		page_slot = alloc_page_slot();
 		if(unlikely(page_slot == NULL)){
-			printk("PKSM : pksm_new_anon_page wrong, page_slot allocate fail\n");
+			printk(KERN_ALERT "PKSM : pksm_new_anon_page wrong, page_slot allocate fail\n");
 			// return -ENOMEM;
 		}
 
@@ -2546,7 +2546,7 @@ void rmap_walk_ksm(struct page *page, struct rmap_walk_control *rwc)
 	// printk("PKSM : rmap_walk_ksm called\n");
 
 	if(unlikely(page = ZERO_PAGE(0))){
-		printk("PKSM : bug occur, rmap_zero")
+		printk(KERN_ALERT "PKSM : bug occur, rmap_zero");
 	}
 
 
@@ -2644,19 +2644,19 @@ void ksm_migrate_page(struct page *newpage, struct page *oldpage)
 #ifdef CONFIG_MEMORY_HOTREMOVE
 static void wait_while_offlining(void)
 {
-	printk("PKSM : empty_function : HOTREMOVE_enabled wait_while_offlining evoked\n");
+	printk(KERN_ALERT "PKSM : empty_function : HOTREMOVE_enabled wait_while_offlining evoked\n");
 }
 
 static void ksm_check_stable_tree(unsigned long start_pfn,
 				  unsigned long end_pfn)
 {
-	printk("PKSM : empty_function : HOTREMOVE_enabled ksm_check_stable_tree evoked\n");
+	printk(KERN_ALERT "PKSM : empty_function : HOTREMOVE_enabled ksm_check_stable_tree evoked\n");
 }
 
 static int ksm_memory_callback(struct notifier_block *self,
 			       unsigned long action, void *arg)
 {
-	printk("PKSM : empty_function : HOTREMOVE_enabled ksm_memory_callback evoked\n");
+	printk(KERN_ALERT "PKSM : empty_function : HOTREMOVE_enabled ksm_memory_callback evoked\n");
 	return NOTIFY_OK;
 }
 #else
@@ -2799,7 +2799,7 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 	wait_while_offlining();
 	if (pksm_run != flags) {
 		pksm_run = flags;
-		printk("PKSM : run_store : now pksm_run = %lu\n", pksm_run);
+		printk(KERN_ALERT "PKSM : run_store : now pksm_run = %lu\n", pksm_run);
 		if (flags & PKSM_RUN_UNMERGE) {
 			// printk("PKSM : run_store PKSM_RUN_UNMERGE\n");
 			// set_current_oom_origin();
