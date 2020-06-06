@@ -383,3 +383,9 @@ linux/compiler.h linux/compiler-gcc.h 函数修饰符宏
 
 -------------------------------------------------------------------------------------
 CONFIG_PREEMPT
+
+
+-------------------------------------------------------------------------------------
+python .\draw_cpu_line_accu.py '..\log\5-29-2(10elastic_anon)\out_cpu_usage.log' '..\log\5-30-1(10elastic_uksm)\out_cpu_usage.log' '..\log\6-2-1(10elastic_dynastep)\out_cpu_usage.log' '..\log\6-2-3(10elastic_zero2)\out_cpu_usage.log' '..\log\6-6-1(10elsatic_zero_nobug)\out_cpu_usage.log'
+
+python .\draw_mem_line.py '..\log\5-29-1(10elastic_plain)\out_mem_usage.log' '..\log\5-30-1(10elastic_uksm)\out_mem_usage.log' '..\log\6-2-1(10elastic_dynastep)\out_mem_usage.log' '..\log\6-2-3(10elastic_zero2)\out_mem_usage.log' '..\log\6-6-1(10elsatic_zero_nobug)\out_mem_usage.log'

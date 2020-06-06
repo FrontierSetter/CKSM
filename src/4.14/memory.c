@@ -2487,7 +2487,9 @@ static int wp_page_copy(struct vm_fault *vmf)
 		goto oom;
 
 	if (is_zero_pfn(pte_pfn(vmf->orig_pte))) {
-		// printk("old_page : %p", old_page);
+		// if(unlikely(!old_page)){
+		// 	printk(KERN_ALERT "PKSM : bug occur no old_page, %p", old_page);
+		// }
 		new_page = alloc_zeroed_user_highpage_movable(vma,
 							      vmf->address);
 		if (!new_page)
