@@ -145,6 +145,8 @@ static int __init setup_pksm_zero_page(void)
 	SetPageReserved(empty_pksm_zero_page);
 	pksm_zero_pfn = page_to_pfn(empty_pksm_zero_page);
 
+	printk("PKSM : pksm_zero_pfn: %lu")
+
 	return 0;
 }
 core_initcall(setup_pksm_zero_page);

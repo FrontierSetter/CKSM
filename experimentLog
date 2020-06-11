@@ -386,6 +386,37 @@ CONFIG_PREEMPT
 
 
 -------------------------------------------------------------------------------------
-python .\draw_cpu_line_accu.py '..\log\5-29-2(10elastic_anon)\out_cpu_usage.log' '..\log\5-30-1(10elastic_uksm)\out_cpu_usage.log' '..\log\6-2-1(10elastic_dynastep)\out_cpu_usage.log' '..\log\6-2-3(10elastic_zero2)\out_cpu_usage.log' '..\log\6-6-1(10elsatic_zero_nobug)\out_cpu_usage.log'
+python .\draw_cpu_line_accu.py '..\log\5-29-2(10elastic_anon)\out_cpu_usage.log' '..\log\6-6-5(10elastic_uksm_pree)\out_cpu_usage.log' '..\log\6-6-1(10elsatic_zero_nobug)\out_cpu_usage.log' '..\log\6-6-3(10elastic_zero_uksm_good)\out_cpu_usage.log' '..\log\6-6-4(10elastic_uksmzero_assem)\out_cpu_usage.log' '..\log\5-30-1(10elastic_uksm)\out_cpu_usage.log'
 
-python .\draw_mem_line.py '..\log\5-29-1(10elastic_plain)\out_mem_usage.log' '..\log\5-30-1(10elastic_uksm)\out_mem_usage.log' '..\log\6-2-1(10elastic_dynastep)\out_mem_usage.log' '..\log\6-2-3(10elastic_zero2)\out_mem_usage.log' '..\log\6-6-1(10elsatic_zero_nobug)\out_mem_usage.log'
+python .\draw_mem_line.py '..\log\5-29-1(10elastic_plain)\out_mem_usage.log' '..\log\6-6-5(10elastic_uksm_pree)\out_mem_usage.log' '..\log\6-6-1(10elsatic_zero_nobug)\out_mem_usage.log' '..\log\6-6-3(10elastic_zero_uksm_good)\out_mem_usage.log'  '..\log\6-6-4(10elastic_uksmzero_assem)\out_mem_usage.log' '..\log\5-30-1(10elastic_uksm)\out_mem_usage.log'
+
+
+This option reduces the latency of the kernel by making                                                                                                                         │
+  │ all kernel code (that is not executing in a critical section)                                                                                                                   │
+  │ preemptible.  This allows reaction to interactive events by                                                                                                                     │
+  │ permitting a low priority process to be preempted involuntarily                                                                                                                 │
+  │ even if it is in kernel mode executing a system call and would                                                                                                                  │
+  │ otherwise not be about to reach a natural preemption point.                                                                                                                     │
+  │ This allows applications to run more 'smoothly' even when the                                                                                                                   │
+  │ system is under load, at the cost of slightly lower throughput                                                                                                                  │
+  │ and a slight runtime overhead to kernel code.  
+
+
+-------------------------------------------------------------------------------------
+sudo apt-get install qemu-kvm
+sudo apt-get install qemu
+sudo apt-get install virt-manager
+sudo apt-get install virt-viewer
+sudo apt-get install libvirt-bin
+
+sudo apt-get install bridge-utils
+
+-------------------------------------------------------------------------------------
+sudo virt-clone -o test0 -n test3 --auto-clone &&
+sudo virt-clone -o test0 -n test4 --auto-clone &&
+sudo virt-clone -o test0 -n test5 --auto-clone &&
+sudo virt-clone -o test0 -n test6 --auto-clone
+&& 
+
+-------------------------------------------------------------------------------------
+find . -type f | while read x; do echo "${x} = $(cat ${x})"; done

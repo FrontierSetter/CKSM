@@ -50,7 +50,7 @@
 // #define MANUAL_PAGE_ADD
 // #define VERBOS_PKSM_EXIT
 // #define VERBOS_PKSM_NEW_ANON_PAGE
-// #define USE_ADVANCED_MEMCMP
+#define USE_ADVANCED_MEMCMP
 // #define // perf_break_point_ON
 
 // #ifdef // perf_break_point_ON
@@ -1278,7 +1278,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	ptep_clear_flush_notify(vma, addr, ptep);
 	newpte = mk_pte(kpage, vma->vm_page_prot);
 
-	if ((page_to_pfn(kpage) == uksm_zero_pfn) || is_zero_pfn(page_to_pfn(kpage))) {
+	if ((page_to_pfn(kpage) == pksm_zero_pfn) || (page_to_pfn(kpage) == zero_pfn)) {
 		newpte = pte_mkspecial(newpte);
 		dec_mm_counter(mm, MM_ANONPAGES);
 	} else {
@@ -2799,6 +2799,11 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 	if (pksm_run != flags) {
 		pksm_run = flags;
 		printk(KERN_ALERT "PKSM : run_store : now pksm_run = %lu\n", pksm_run);
+
+		#ifdef USE_ADVANCED_MEMCMP
+		printk(KERN_ALERT "PKSM : USE_ADVANCED_MEMCMP defined\n");
+		#endif
+
 		if (flags & PKSM_RUN_UNMERGE) {
 			// printk("PKSM : run_store PKSM_RUN_UNMERGE\n");
 			// set_current_oom_origin();
