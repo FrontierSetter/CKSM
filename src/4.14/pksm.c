@@ -327,15 +327,15 @@ static unsigned int pksm_thread_sleep_millisecs_low = 20;
 static unsigned int pksm_thread_sleep_millisecs_high = 1000;
 
 /* PKSM此趟归并数量 */
-static unsigned int pksm_cur_merged_pages;
+static unsigned int pksm_cur_merged_pages = 1;
 static unsigned int pksm_last_merged_pages = 1;
 
 /* PKSM此趟未归并数量 */
-static unsigned int pksm_cur_unmerged_pages;
+static unsigned int pksm_cur_unmerged_pages = 1;
 static unsigned int pksm_last_unmerged_pages = 1;
 
 /* 当前连续不可归并连续页面数量 */
-static unsigned int pksm_cur_cont_unmerged_pages;
+static unsigned int pksm_cur_cont_unmerged_pages = 0;
 
 /* 扫描的步长 */
 static unsigned int pksm_scan_steps[5] = {3, 7, 17, 29, 41};
@@ -831,7 +831,7 @@ static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
 	int ret = 0;
 
 	do {
-		cond_resched();
+		// cond_resched();
 		// TODO: 因为我们操作的本来就是physical_page，这里可以直接把page传进来
 		page = follow_page(vma, addr,
 				FOLL_GET | FOLL_MIGRATION | FOLL_REMOTE);
@@ -951,7 +951,7 @@ static void free_all_rmap_item_of_node(struct pksm_hash_node *pksm_hash_node){
 		hlist_for_each_entry_safe(pksm_rmap_item, nxt, &(pksm_hash_node->rmap_list), hlist){
 			put_anon_vma(pksm_rmap_item->anon_vma);
 			free_pksm_rmap_item(pksm_rmap_item);
-			cond_resched();
+			// cond_resched();
 			// --pksm_pages_sharing;
 		}
 		--pksm_pages_shared;
@@ -2203,15 +2203,16 @@ static void pksm_do_scan(void)
 {
 	struct page_slot *page_slot;
 	// struct page_slot *pre_slot = NULL;
-	pksm_cur_cont_unmerged_pages = 0;
-	// 默认为1，防止出现除零异常
-	pksm_cur_merged_pages = 1;
-	pksm_cur_unmerged_pages = 1;
+	// pksm_cur_cont_unmerged_pages = 0;
+	// // 默认为1，防止出现除零异常
+	// pksm_cur_merged_pages = 1;
+	// pksm_cur_unmerged_pages = 1;
 
 	get_page(empty_pksm_zero_page);
 
-	//  && ((pksm_cur_merged_pages+pksm_cur_unmerged_pages) < pksm_scaned_pages_threshold)
-	while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && likely(!freezing(current))) {
+	 
+	while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && ((pksm_cur_merged_pages+pksm_cur_unmerged_pages) < pksm_scaned_pages_threshold) && likely(!freezing(current))) {
+	// while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && likely(!freezing(current))) {
 		cond_resched();
 		// perf_break_point(0, 0);
 		page_slot = scan_get_next_page_slot();
@@ -2291,8 +2292,16 @@ static int pksm_scan_thread(void *nothing)
 	while (!kthread_should_stop()) {
 		mutex_lock(&pksm_thread_mutex);
 		wait_while_offlining();
-		if (pksmd_should_run())
+		if (pksmd_should_run()){
+			if(pksm_cur_cont_unmerged_pages >= pksm_cont_unmerged_pages_threshold){
+				pksm_cur_cont_unmerged_pages = 0;
+			}
+			// 默认为1，防止出现除零异常
+			pksm_cur_merged_pages = 1;
+			pksm_cur_unmerged_pages = 1;
+			
 			pksm_do_scan();
+		}
 		mutex_unlock(&pksm_thread_mutex);
 
 		try_to_freeze();
