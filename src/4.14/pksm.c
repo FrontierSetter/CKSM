@@ -753,7 +753,7 @@ static inline struct page_slot *alloc_page_slot(void)
 	if (!page_slot_cache)	/* initialization failed */
 		return NULL;
 	++pksm_pages_inlist;
-	return kmem_cache_zalloc(page_slot_cache, GFP_KERNEL);
+	return kmem_cache_zalloc(page_slot_cache, GFP_ATOMIC);	//KERNEL会造成阻塞，在缺页中断中产生带锁调度导致死锁
 }
 
 static inline void free_page_slot(struct page_slot *page_slot)
@@ -2119,6 +2119,7 @@ static struct page_slot *scan_get_next_page_slot(void)
 	struct page_slot *cur_slot;
 	struct page *cur_page;
 	unsigned int remain_step;
+	unsigned long irq_flags;
 
 	if(list_empty(&(pksm_page_head.page_list))){
 		return NULL;
@@ -2138,13 +2139,16 @@ next_step:
 	cur_slot = pksm_scan.page_slot;
 
 	if(cur_slot == &pksm_page_head){
-		spin_lock(&pksm_pagelist_lock);
+		// printk("PKSM : scan_get_next_page_slot CPU# %d try lock", smp_processor_id());
+		spin_lock_irqsave(&pksm_pagelist_lock, irq_flags);
+		// printk("PKSM : scan_get_next_page_slot CPU# %d acquire lock", smp_processor_id());
 
 		pksm_scan.seqnr++;
 		pksm_new_pages_inlist = 0;
 		cur_slot = list_entry(cur_slot->page_list.next, struct page_slot, page_list);
 		pksm_scan.page_slot = cur_slot;
-		spin_unlock(&pksm_pagelist_lock);
+		spin_unlock_irqrestore(&pksm_pagelist_lock, irq_flags);
+		// printk("PKSM : scan_get_next_page_slot CPU# %d unlock", smp_processor_id());
 
 		if(cur_slot == &pksm_page_head){
 			return NULL;
@@ -2155,7 +2159,9 @@ next_step:
 
 	cur_page = cur_slot->physical_page;
 
-	spin_lock(&pksm_pagelist_lock);
+	// printk("PKSM : scan_get_next_page_slot CPU# %d try lock", smp_processor_id());
+	spin_lock_irqsave(&pksm_pagelist_lock, irq_flags);
+	// printk("PKSM : scan_get_next_page_slot CPU# %d acquire lock", smp_processor_id());
 
 	pksm_scan.page_slot = list_entry(pksm_scan.page_slot->page_list.next, struct page_slot, page_list);
 
@@ -2163,13 +2169,15 @@ next_step:
 		remove_from_page_slots_hash(cur_slot);
 		// hash_del(&cur_slot->link);			//从page -> page_slot映射表中删除
 		list_del(&cur_slot->page_list);
-		spin_unlock(&pksm_pagelist_lock);
+		spin_unlock_irqrestore(&pksm_pagelist_lock, irq_flags);
+		// printk("PKSM : scan_get_next_page_slot CPU# %d unlock", smp_processor_id());
 
 		remove_node_from_hashlist(cur_slot);
 		free_page_slot(cur_slot);
 
 	}else{
-		spin_unlock(&pksm_pagelist_lock);
+		spin_unlock_irqrestore(&pksm_pagelist_lock, irq_flags);
+		// printk("PKSM : scan_get_next_page_slot CPU# %d unlock", smp_processor_id());
 
 		remain_step -= 1;
 		if(remain_step == 0){
@@ -2337,6 +2345,7 @@ int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
 void pksm_new_anon_page(struct page *page, bool high_priority){
 	struct page_slot *page_slot;
 	int needs_wakeup;
+	unsigned long irq_flags;
 	// struct page_slot *pre_slot;
 
 #ifdef MANUAL_PAGE_ADD
@@ -2357,8 +2366,8 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 
 		page_slot = alloc_page_slot();
 		if(unlikely(page_slot == NULL)){
-			printk(KERN_ALERT "PKSM : pksm_new_anon_page wrong, page_slot allocate fail\n");
-			// return -ENOMEM;
+			printk(KERN_ALERT "PKSM : pksm_new_anon_page wrong, page_slot allocate fail, page: %p\n", page);
+			return;
 		}
 
 		page_slot->mapcount = 0;
@@ -2371,7 +2380,10 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 
 		needs_wakeup = list_empty(&pksm_page_head.page_list);
 		
-		spin_lock(&pksm_pagelist_lock);
+		// printk("PKSM : pksm_new_anon_page CPU# %d try lock", smp_processor_id());
+		spin_lock_irqsave(&pksm_pagelist_lock, irq_flags);
+		// printk("PKSM : pksm_new_anon_page CPU# %d acquire lock", smp_processor_id());
+
 		insert_into_page_slots_hash(page, page_slot);
 		++pksm_new_pages_inlist;
 
@@ -2392,8 +2404,8 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 			// pre_slot = list_prev_entry(page_slot, page_list);
 		}
 			
-		spin_unlock(&pksm_pagelist_lock);
-
+		spin_unlock_irqrestore(&pksm_pagelist_lock, irq_flags);
+		// printk("PKSM : pksm_new_anon_page CPU# %d unlock", smp_processor_id());
 
 		// ? 在ksm里把一个进程加入ksm系统之后会增加其引用计数
 		// 在pksm中是否需要同步增加其引用计数
@@ -2430,8 +2442,10 @@ void __pksm_exit(struct page *page)
 #ifdef MANUAL_PAGE_ADD
 	if(pksm_run & PKSM_RUN_MERGE){
 #endif
-
+		//TODO: 这个函数本来就会在softirq中运行，再屏蔽一次不知道会不会有问题
+		// printk("PKSM : __pksm_exit CPU# %d try lock", smp_processor_id());
 		spin_lock(&pksm_pagelist_lock);
+		// printk("PKSM : __pksm_exit CPU# %d acquire lock", smp_processor_id());
 		// perf_break_point(1, 1);
 
 		page_slot = get_page_slot(page);
@@ -2467,6 +2481,7 @@ void __pksm_exit(struct page *page)
 		}
 
 		spin_unlock(&pksm_pagelist_lock);
+		// printk("PKSM : __pksm_exit CPU# %d unlock", smp_processor_id());
 
 		// remove_from_page_slots_hash(page_slot);
 		
@@ -3015,6 +3030,7 @@ static int __init pksm_init(void)
 	int err;
 	uint32_t partial_hash;
 
+	printk(KERN_ALERT "PKSM : page_list_lock%p\n", &pksm_pagelist_lock);
 
 	zero_hash = calc_hash(ZERO_PAGE(0), &partial_hash);
 

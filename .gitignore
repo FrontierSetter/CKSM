@@ -16,3 +16,4 @@ log/*
 !log/draw_tool_bac
 *_bac
 *.code-workspace
+venv

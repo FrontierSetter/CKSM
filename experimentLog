@@ -96,6 +96,8 @@ mm/page_alloc.c
 include/linux/pksm.h
 kernel/fork.c
     __mmput
+include/asm-generic/pgtable.h
+    is_zero_pfn
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -423,3 +425,65 @@ find . -type f | while read x; do echo "${x} = $(cat ${x})"; done
 
 -------------------------------------------------------------------------------------
 perf record
+
+-------------------------------------------------------------------------------------
+很多变量比如 panic watchdog_thresh softlockup_all_cpu_backtrace都可以通过以下两种方式修改：
+    1、/proc/sys/kernel/xxxxxx
+    2、/etc/sysctl.conf kernel.xxxxxx
+
+-------------------------------------------------------------------------------------
+https://www.cnblogs.com/lshs/p/6038935.html
+既然没有配置DEBUG_INFO时候编译的内核可以kdump，配置DEBUG_INFO后编译的内核反而不能kdump，那么在安装尝试把DEBUG信息去掉
+
+objcopy --strip-debug ./vmlinux.o  （建议先备份vmlinux.o）
+
+make  modules_install INSTALL_MOD_STRIP=1 install
+
+make -j8 && make modules_install && make install &&
+cp ./vmlinux.o ./vmlinux.o.ori &&
+objcopy --strip-debug ./vmlinux.o && make  modules_install INSTALL_MOD_STRIP=1 install
+
+make -j8 &&
+cp ./vmlinux.o ./vmlinux.o.ori && objcopy --strip-debug ./vmlinux.o && 
+make  modules_install INSTALL_MOD_STRIP=1 install
+
+-------------------------------------------------------------------------------------
+make menuconfig时无法删除填入的数值，就按着Ctrl+<--（ctrl加退格键 即可删除）
+
+-------------------------------------------------------------------------------------
+.\venv\Scripts\activate
+
+虚拟环境¶
+建议在开发环境和生产环境下都使用虚拟环境来管理项目的依赖。
+
+为什么要使用虚拟环境？随着你的 Python 项目越来越多，你会发现不同的项目会需要 不同的版本的 Python 库。同一个 Python 库的不同版本可能不兼容。
+
+虚拟环境可以为每一个项目安装独立的 Python 库，这样就可以隔离不同项目之间的 Python 库，也可以隔离项目与操作系统之间的 Python 库。
+
+Python 3 内置了用于创建虚拟环境的 venv 模块。如果你使用的是较新的 Python 版本，那么请接着阅读本文下面的内容。
+
+如果你使用 Python 2 ，请首先参阅 安装 virtualenv 。
+
+创建一个虚拟环境
+创建一个项目文件夹，然后创建一个虚拟环境。创建完成后项目文件夹中会有一个 venv 文件夹：
+
+$ mkdir myproject
+$ cd myproject
+$ python3 -m venv venv
+在 Windows 下：
+
+$ py -3 -m venv venv
+在老版本的 Python 中要使用下面的命令创建虚拟环境：
+
+$ python2 -m virtualenv venv
+在 Windows 下：
+
+> \Python27\Scripts\virtualenv.exe venv
+激活虚拟环境
+在开始工作前，先要激活相应的虚拟环境：
+
+$ . venv/bin/activate
+在 Windows 下：
+
+> venv\Scripts\activate
+激活后，你的终端提示符会显示虚拟环境的名称。
