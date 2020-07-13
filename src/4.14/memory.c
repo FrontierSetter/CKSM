@@ -145,7 +145,7 @@ static int __init setup_pksm_zero_page(void)
 	SetPageReserved(empty_pksm_zero_page);
 	pksm_zero_pfn = page_to_pfn(empty_pksm_zero_page);
 
-	printk("PKSM : pksm_zero_pfn: %lu", pksm_zero_pfn)
+	printk("PKSM : pksm_zero_pfn: %lu", pksm_zero_pfn);
 
 	return 0;
 }
@@ -2577,6 +2577,9 @@ static int wp_page_copy(struct vm_fault *vmf)
 		}
 
 		if(vma_is_anonymous(vmf->vma)){
+			if(vma->vm_flags & VM_SHARED){
+				printk(KERN_ALERT "PKSM : wrong wp_page_copy VM_SHARED");
+			}
 			if (ksm_cow_break_flag)
 				pksm_new_anon_page(new_page, false);
 			else if (ksm_cow_page_flag)
