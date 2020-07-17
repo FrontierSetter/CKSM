@@ -6,6 +6,8 @@ yArr = []
 typeArr = []
 compArr = []
 
+totalContainerNum = 64
+
 for i in range(1, len(sys.argv)):
     foundComp = False
     curFilePath = sys.argv[i]
@@ -18,7 +20,7 @@ for i in range(1, len(sys.argv)):
     baseMem = int(baseArr[1])
 
     compTime = int(baseArr[2])
-    compTime += ((compTime-baseTime)/9)-2
+    compTime += (float(compTime-baseTime)/(totalContainerNum-1.0))-2
 
     xArr.append([])
     yArr.append([])

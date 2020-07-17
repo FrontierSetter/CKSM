@@ -488,3 +488,69 @@ $ . venv/bin/activate
 
 > venv\Scripts\activate
 激活后，你的终端提示符会显示虚拟环境的名称。
+
+-------------------------------------------------------------------------------------
+export BERT_BASE_DIR=/home/l/workload/bert/bert/pre_model/uncased_L-12_H-768_A-12
+export SQUAD_DIR=/home/l/workload/bert/bert/dataset/SQuAD_1_1
+
+python run_squad.py \
+  --vocab_file=$BERT_BASE_DIR/vocab.txt \
+  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
+  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
+  --do_train=True \
+  --train_file=$SQUAD_DIR/train-v1.1.json \
+  --do_predict=True \
+  --predict_file=$SQUAD_DIR/dev-v1.1.json \
+  --train_batch_size=24 \
+  --learning_rate=3e-5 \
+  --num_train_epochs=2.0 \
+  --max_seq_length=384 \
+  --doc_stride=128 \
+  --output_dir=/tmp/squad_base/
+
+
+-------------------------------------------------------------------------------------
+  838  mkdir systemtap
+  839  mkdir elfutils
+  840  cd systemtap/
+  841  wget https://sourceware.org/systemtap/ftp/releases/systemtap-4.3.tar.gz
+  842  ls
+  843  tar -xvf systemtap-4.3.tar.gz
+  844  ls
+  845  cd systemtap-4.3/
+  846  ls
+  847  cd ../../elfutils/
+  848  wget https://sourceware.org/elfutils/ftp/0.180/elfutils-0.180.tar.bz2
+  849  tar -xvf elfutils-0.180.tar.bz2
+  850  ls
+  851  cd elfutils-0.180/
+  852  ls
+  853  cd ../../systemtap/systemtap-4.3/
+  854  ./configure --help
+  855  sudo su
+
+ 1004  ./configure  --with-elfutils=/home/l/elfutils/elfutils-0.180
+ 1005  ./configure  '--with-elfutils=/home/l/elfutils/elfutils-0.180' python='/usr/bin/python2' pyexecdir='${exec_prefix}/lib/python2.7/dist-packages' python3='/usr/bin/python3' py3execdir='${exec_prefix}/lib/python3.5/site-packages' --prefix=/root/systemtap-4.3-4390
+ 1006  make
+ 1007  make -j8
+ 1008  python -v
+ 1009  python -V
+ 1010  python setup.py build
+ 1011  sudo apt-get install python-setuptools
+ 1012  make -j8
+ 1013  make install
+ 1014  stap -ve 'probe begin { log("hello world") exit() }'
+ 1015  reboot
+ 1016  history
+ 1017  cd /root/systemtap-4.3-4390/
+ 1018  ls
+ 1019  cd bin/
+ 1020  ls
+ 1021  ./stap -ve 'probe begin { log("hello world") exit() }'
+ 1022  pwd
+ 1023  vim /etc/profile
+ 1024  vim /etc/environment
+ 1025  reboot
+ 1026  stap -ve 'probe begin { log("hello world") exit() }'
+ 1027  stap -h
+
