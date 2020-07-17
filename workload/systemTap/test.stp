@@ -1,0 +1,13 @@
+global sends
+
+probe begin{
+  log("hello world")
+}
+
+probe kernel.function("pksm_new_anon_page").return {
+  sends <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe timer.s(10) {
+  print(@hist_log(sends))
+}

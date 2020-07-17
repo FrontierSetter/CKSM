@@ -651,7 +651,7 @@ static uint64_t super_fast_hash_64_unloop(const char * data, int len, uint64_t s
 
 
 
-static u32 calc_hash(struct page *page, uint32_t *partial_hash)
+static noinline u32 calc_hash(struct page *page, uint32_t *partial_hash)
 {
 	char *addr;
 	u32 checksum;
@@ -1516,7 +1516,7 @@ static int pksm_page_not_mapped(struct page *page)
 	return !page_mapped(page);
 };
 
-static int pksm_try_to_merge_zero_page(struct page *page)
+static noinline int pksm_try_to_merge_zero_page(struct page *page)
 {
 	int ret;
 
@@ -1593,7 +1593,7 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
  * 但是设置pksm和归并pksm时的hash_node来源不同（kpage参数也不同），强行搞成一个函数没有必要
  * 在这一步就可以完全获得hash_node和kpage，下一步的merge_one_page就不需要再拆分
  */
-static int try_to_set_this_pksm_page(struct page_slot *page_slot, 
+static noinline int try_to_set_this_pksm_page(struct page_slot *page_slot, 
 					  struct page *page, struct pksm_hash_node *pksm_hash_node)
 {
 	int err = -EFAULT;
@@ -1626,7 +1626,7 @@ out:
 	return err;
 }
 
-static int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
+static noinline int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
 					  struct page *page, struct page *kpage)
 {
 	int err = -EFAULT;
@@ -1682,7 +1682,7 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 	return err ? NULL : page;
 }
 
-static struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, 
+static noinline struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, 
 								unsigned int entryIndex, uint32_t partial_hash, struct page_slot **table_page_slot)
 {
 	struct pksm_hash_node *unstable_node;
@@ -1793,7 +1793,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 	return NULL;
 }
 
-static struct page *stable_hash_search(struct page *page, unsigned int entryIndex, uint32_t partial_hash)
+static noinline struct page *stable_hash_search(struct page *page, unsigned int entryIndex, uint32_t partial_hash)
 {
 	struct pksm_hash_node *stable_node;
 	struct hlist_node *nxt;
@@ -2114,7 +2114,7 @@ static void calc_scan_step(unsigned long cur_stamp){
 	}
 }
 
-static struct page_slot *scan_get_next_page_slot(void)
+static noinline struct page_slot *scan_get_next_page_slot(void)
 {
 	struct page_slot *cur_slot;
 	struct page *cur_page;
@@ -2207,7 +2207,7 @@ static unsigned int get_time_to_sleep(void){
 	return pksm_thread_sleep_millisecs_base;
 }
 
-static void pksm_do_scan(void)
+static noinline void pksm_do_scan(void)
 {
 	struct page_slot *page_slot;
 	// struct page_slot *pre_slot = NULL;
@@ -2216,6 +2216,7 @@ static void pksm_do_scan(void)
 	// pksm_cur_merged_pages = 1;
 	// pksm_cur_unmerged_pages = 1;
 
+	//TODO：这两个是否需要
 	get_page(empty_pksm_zero_page);
 
 	 
