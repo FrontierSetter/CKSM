@@ -3,6 +3,8 @@ global scan_time
 global hash_time, stable_search_time, unstable_search_time
 global zero_merge_time, pksm_merge_time, pksm_set_time
 
+global map_count_normal, map_count_zero
+
 probe begin{
   log("hello world")
 }
@@ -19,6 +21,17 @@ probe end{
   printf("zero_merge_time: sum = %d, cnt = %d\n", @sum(zero_merge_time), @count(zero_merge_time))
   printf("pksm_merge_time: sum = %d, cnt = %d\n", @sum(pksm_merge_time), @count(pksm_merge_time))
   printf("pksm_set_time: sum = %d, cnt = %d\n", @sum(pksm_set_time), @count(pksm_set_time))
+
+  printf("============ map_count_normal =============\n")
+  // print(@hist_log(map_count_normal))
+
+  print(@hist_linear(map_count_normal, 0, 32, 1))
+
+  printf("\n============ map_count_zero =============\n")
+  // print(@hist_log(map_count_zero))
+
+  print(@hist_linear(map_count_zero, 0, 32, 1))
+
 }
 
 # total
@@ -58,16 +71,25 @@ probe kernel.function("try_to_set_this_pksm_page@mm/ksm.c").return {
   pksm_set_time <<< gettimeofday_us() - @entry(gettimeofday_us())
 }
 
-probe timer.s(10) {
-  printf("total_time: sum = %d, cnt = %d\n", @sum(total_time), @count(total_time))
-  
-  printf("scan_time: sum = %d, cnt = %d\n", @sum(scan_time), @count(scan_time))
-
-  printf("hash_time: sum = %d, cnt = %d\n", @sum(hash_time), @count(hash_time))
-  printf("stable_search_time: sum = %d, cnt = %d\n", @sum(stable_search_time), @count(stable_search_time))
-  printf("unstable_search_time: sum = %d, cnt = %d\n", @sum(unstable_search_time), @count(unstable_search_time))
-  
-  printf("zero_merge_time: sum = %d, cnt = %d\n", @sum(zero_merge_time), @count(zero_merge_time))
-  printf("pksm_merge_time: sum = %d, cnt = %d\n", @sum(pksm_merge_time), @count(pksm_merge_time))
-  printf("pksm_set_time: sum = %d, cnt = %d\n", @sum(pksm_set_time), @count(pksm_set_time))
+# map_count
+probe kernel.function("try_to_merge_with_pksm_page@mm/ksm.c") {
+  map_count_normal <<< $page->_mapcount->counter
 }
+
+probe kernel.function("pksm_try_to_merge_zero_page@mm/ksm.c") {
+  map_count_zero <<< $page->_mapcount->counter
+}
+
+// probe timer.s(10) {
+//   printf("total_time: sum = %d, cnt = %d\n", @sum(total_time), @count(total_time))
+  
+//   printf("scan_time: sum = %d, cnt = %d\n", @sum(scan_time), @count(scan_time))
+
+//   printf("hash_time: sum = %d, cnt = %d\n", @sum(hash_time), @count(hash_time))
+//   printf("stable_search_time: sum = %d, cnt = %d\n", @sum(stable_search_time), @count(stable_search_time))
+//   printf("unstable_search_time: sum = %d, cnt = %d\n", @sum(unstable_search_time), @count(unstable_search_time))
+  
+//   printf("zero_merge_time: sum = %d, cnt = %d\n", @sum(zero_merge_time), @count(zero_merge_time))
+//   printf("pksm_merge_time: sum = %d, cnt = %d\n", @sum(pksm_merge_time), @count(pksm_merge_time))
+//   printf("pksm_set_time: sum = %d, cnt = %d\n", @sum(pksm_set_time), @count(pksm_set_time))
+// }
