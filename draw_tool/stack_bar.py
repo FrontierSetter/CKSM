@@ -29,6 +29,10 @@ for i in range(1, len(sys.argv)):
 
         curArr = curLine.strip('\n').split()
         curEntry = curArr[0]
+
+        if curEntry == '#':
+            continue
+
         curValue = int(curArr[1])
 
         if curEntry not in entryArr:
