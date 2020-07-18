@@ -554,3 +554,6 @@ python run_squad.py \
  1026  stap -ve 'probe begin { log("hello world") exit() }'
  1027  stap -h
 
+-------------------------------------------------------------------------------------
+elasticsearch stage bar
+python .\stack_bar.py '..\log\7-17-1(pksm_elastic10)\out_total.log' '..\log\7-18-2(uksm_elastic10)\out_total.log' '..\log\7-18-3(pksm_elastic10_newzero)\out_total.log' '..\log\7-18-4(pksm_elastic10_unlock)\out_total.log' '..\log\7-18-5(pksm_elastic10_normap)\out_total.log' '..\log\7-18-6(pksm_elastic10_normap_2)\out_total.log'

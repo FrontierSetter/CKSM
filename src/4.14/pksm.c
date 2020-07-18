@@ -45,6 +45,8 @@
 
 #include <asm/barrier.h>
 
+#define SYST_NOINLINE noinline
+
 // #define VERBOS_GET_PKSM_PAGE
 // #define VERBOS_TRY_TO_MERGE_ONE_PAGE
 // #define MANUAL_PAGE_ADD
@@ -651,7 +653,7 @@ static uint64_t super_fast_hash_64_unloop(const char * data, int len, uint64_t s
 
 
 
-static noinline u32 calc_hash(struct page *page, uint32_t *partial_hash)
+static SYST_NOINLINE u32 calc_hash(struct page *page, uint32_t *partial_hash)
 {
 	char *addr;
 	u32 checksum;
@@ -1333,69 +1335,35 @@ static int page_trans_compound_anon_split(struct page *page)
 	return ret;
 }
 
-static bool try_to_merge_zero_page(struct page *page, struct vm_area_struct *vma,
+static noinline
+bool try_to_merge_zero_page(struct page *page, struct vm_area_struct *vma,
 		     unsigned long address, void *arg)
 {
-
 	struct page *zero_page = empty_pksm_zero_page;
+	struct mm_struct *mm = vma->vm_mm;
 	pte_t orig_pte = __pte(0);
 	int err = -EFAULT;
 
-	if (page == zero_page)			/* ksm page forked */
-		return 0;
-
-	if(ksm_test_exit(vma->vm_mm)){
-		return true;
-	}
-	
-
-	// 这里是ksm用于判断这个虚地址空间是否应该参与merge的标志
-	// pksm里不用，直接全部merge
-	// if (!(vma->vm_flags & VM_MERGEABLE))
-	// 	goto out;
-
-	
-	if (PageTransCompound(page) && page_trans_compound_anon_split(page))
-		goto out;
-	
-	BUG_ON(PageTransCompound(page));
-
-	//TODO: 私有文件映射
-	if (!PageAnon(page))
+	if (ksm_test_exit(mm))
 		goto out;
 
-
-	/*
-	 * We need the page lock to read a stable PageSwapCache in
-	 * write_protect_page().  We use trylock_page() instead of
-	 * lock_page() because we don't want to wait here - we
-	 * prefer to continue scanning and merging different pages,
-	 * then come back to this page when it is unlocked.
-	 */
 	if (!trylock_page(page))
 		goto out;
-	/*
-	 * If this anonymous page is mapped only here, its pte may need
-	 * to be write-protected.  If it's mapped elsewhere, all of its
-	 * ptes are necessarily already write-protected.  But in either
-	 * case, we need to lock and check page_count is not raised.
-	 */
+
+	if (!PageAnon(page))
+		goto out_unlock;
+
+	if (PageTransCompound(page)) {
+		err = split_huge_page(page);
+		if (err)
+			goto out_unlock;
+	}
+
 	if (write_protect_page(vma, page, &orig_pte) == 0) {
-		if (is_page_full_zero(page)){
+		if (is_page_full_zero(page))
 			err = replace_page(vma, page, zero_page, orig_pte);
-		}
 	}
 
-
-	if ((vma->vm_flags & VM_LOCKED) && !err) {
-		munlock_vma_page(page);
-		if (!PageMlocked(zero_page)) {
-			unlock_page(page);
-			lock_page(zero_page);
-			mlock_vma_page(zero_page);
-			page = zero_page;		/* for final unlock */
-		}
-	}
 out_unlock:
 	unlock_page(page);
 out:
@@ -1407,6 +1375,81 @@ out:
 							//? 只是一次失败就需要终止整个遍历过程吗？
 	}
 }
+
+// static bool try_to_merge_zero_page(struct page *page, struct vm_area_struct *vma,
+// 		     unsigned long address, void *arg)
+// {
+
+// 	struct page *zero_page = empty_pksm_zero_page;
+// 	pte_t orig_pte = __pte(0);
+// 	int err = -EFAULT;
+
+// 	if (page == zero_page)			/* ksm page forked */
+// 		return 0;
+
+// 	if(ksm_test_exit(vma->vm_mm)){
+// 		return true;
+// 	}
+	
+
+// 	// 这里是ksm用于判断这个虚地址空间是否应该参与merge的标志
+// 	// pksm里不用，直接全部merge
+// 	// if (!(vma->vm_flags & VM_MERGEABLE))
+// 	// 	goto out;
+
+	
+// 	if (PageTransCompound(page) && page_trans_compound_anon_split(page))
+// 		goto out;
+	
+// 	BUG_ON(PageTransCompound(page));
+
+// 	//TODO: 私有文件映射
+// 	if (!PageAnon(page))
+// 		goto out;
+
+
+// 	/*
+// 	 * We need the page lock to read a stable PageSwapCache in
+// 	 * write_protect_page().  We use trylock_page() instead of
+// 	 * lock_page() because we don't want to wait here - we
+// 	 * prefer to continue scanning and merging different pages,
+// 	 * then come back to this page when it is unlocked.
+// 	 */
+// 	if (!trylock_page(page))
+// 		goto out;
+// 	/*
+// 	 * If this anonymous page is mapped only here, its pte may need
+// 	 * to be write-protected.  If it's mapped elsewhere, all of its
+// 	 * ptes are necessarily already write-protected.  But in either
+// 	 * case, we need to lock and check page_count is not raised.
+// 	 */
+// 	if (write_protect_page(vma, page, &orig_pte) == 0) {
+// 		if (is_page_full_zero(page)){
+// 			err = replace_page(vma, page, zero_page, orig_pte);
+// 		}
+// 	}
+
+
+// 	if ((vma->vm_flags & VM_LOCKED) && !err) {
+// 		munlock_vma_page(page);
+// 		if (!PageMlocked(zero_page)) {
+// 			unlock_page(page);
+// 			lock_page(zero_page);
+// 			mlock_vma_page(zero_page);
+// 			page = zero_page;		/* for final unlock */
+// 		}
+// 	}
+// out_unlock:
+// 	unlock_page(page);
+// out:
+// 	if(err == 0){			// err==0代表操作成功
+// 		++pksm_pages_sharing;
+// 		return true;	// 反向映射模块定义的标志字段，代表此次操作成功，继续遍历
+// 	}else{
+// 		return false;	// 此次操作失败，反向映射遍历终止
+// 							//? 只是一次失败就需要终止整个遍历过程吗？
+// 	}
+// }
 
 // TODO:KSM中merge_ksm/two_page中，在merge_one调用之前会调用down_read(mmap_sem)
 /*
@@ -1516,7 +1559,7 @@ static int pksm_page_not_mapped(struct page *page)
 	return !page_mapped(page);
 };
 
-static noinline int pksm_try_to_merge_zero_page(struct page *page)
+static SYST_NOINLINE int pksm_try_to_merge_zero_page(struct page *page)
 {
 	int ret;
 
@@ -1527,7 +1570,7 @@ static noinline int pksm_try_to_merge_zero_page(struct page *page)
 		.anon_lock = page_lock_anon_vma_read,
 	};
 
-	rmap_walk_locked(page, &rwc);	//? 这里是否需要lock存疑，以前是lock的，所以继续lock
+	rmap_walk(page, &rwc);	//? 这里是否需要lock存疑，以前是lock的，所以继续lock
 
 	return !page_mapcount(page) ? 0 : 1;
 		
@@ -1593,7 +1636,7 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
  * 但是设置pksm和归并pksm时的hash_node来源不同（kpage参数也不同），强行搞成一个函数没有必要
  * 在这一步就可以完全获得hash_node和kpage，下一步的merge_one_page就不需要再拆分
  */
-static noinline int try_to_set_this_pksm_page(struct page_slot *page_slot, 
+static SYST_NOINLINE int try_to_set_this_pksm_page(struct page_slot *page_slot, 
 					  struct page *page, struct pksm_hash_node *pksm_hash_node)
 {
 	int err = -EFAULT;
@@ -1626,7 +1669,7 @@ out:
 	return err;
 }
 
-static noinline int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
+static SYST_NOINLINE int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
 					  struct page *page, struct page *kpage)
 {
 	int err = -EFAULT;
@@ -1682,7 +1725,7 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 	return err ? NULL : page;
 }
 
-static noinline struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, 
+static SYST_NOINLINE struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, 
 								unsigned int entryIndex, uint32_t partial_hash, struct page_slot **table_page_slot)
 {
 	struct pksm_hash_node *unstable_node;
@@ -1793,7 +1836,7 @@ static noinline struct page *unstable_hash_search_insert(struct page_slot *page_
 	return NULL;
 }
 
-static noinline struct page *stable_hash_search(struct page *page, unsigned int entryIndex, uint32_t partial_hash)
+static SYST_NOINLINE struct page *stable_hash_search(struct page *page, unsigned int entryIndex, uint32_t partial_hash)
 {
 	struct pksm_hash_node *stable_node;
 	struct hlist_node *nxt;
@@ -2114,7 +2157,7 @@ static void calc_scan_step(unsigned long cur_stamp){
 	}
 }
 
-static noinline struct page_slot *scan_get_next_page_slot(void)
+static SYST_NOINLINE struct page_slot *scan_get_next_page_slot(void)
 {
 	struct page_slot *cur_slot;
 	struct page *cur_page;
@@ -2217,7 +2260,7 @@ static noinline void pksm_do_scan(void)
 	// pksm_cur_unmerged_pages = 1;
 
 	//TODO：这两个是否需要
-	get_page(empty_pksm_zero_page);
+	// get_page(empty_pksm_zero_page);
 
 	 
 	while ((pksm_cur_cont_unmerged_pages < pksm_cont_unmerged_pages_threshold) && ((pksm_cur_merged_pages+pksm_cur_unmerged_pages) < pksm_scaned_pages_threshold) && likely(!freezing(current))) {
@@ -2273,7 +2316,7 @@ static noinline void pksm_do_scan(void)
 		pksm_thread_sleep_millisecs_real = pksm_thread_sleep_millisecs_high;
 	}
 
-	put_page(empty_pksm_zero_page);
+	// put_page(empty_pksm_zero_page);
 
 }
 

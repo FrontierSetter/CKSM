@@ -17,3 +17,4 @@ log/*
 *_bac
 *.code-workspace
 venv
+fig

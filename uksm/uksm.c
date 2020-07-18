@@ -1427,7 +1427,7 @@ static inline void inc_rshash_neg(unsigned long delta)
 }
 
 
-static inline u32 page_hash(struct page *page, unsigned long hash_strength,
+static noinline u32 page_hash(struct page *page, unsigned long hash_strength,
 			    int cost_accounting)
 {
 	u32 val;
@@ -1745,7 +1745,7 @@ static inline int check_collision(struct rmap_item *rmap_item,
  *
  * @return 0 if the pages were merged, -EFAULT otherwise.
  */
-static int try_to_merge_with_uksm_page(struct rmap_item *rmap_item,
+static noinline int try_to_merge_with_uksm_page(struct rmap_item *rmap_item,
 				      struct page *kpage, u32 hash)
 {
 	struct vm_area_struct *vma = rmap_item->slot->vma;
@@ -1880,7 +1880,7 @@ out:
  *         changed since it's hashed. MERGE_ERR_PGERR otherwise.
  *
  */
-static int try_to_merge_two_pages(struct rmap_item *rmap_item,
+static noinline int try_to_merge_two_pages(struct rmap_item *rmap_item,
 				  struct rmap_item *tree_rmap_item,
 				  u32 hash)
 {
@@ -2030,7 +2030,7 @@ static inline u32 rmap_item_hash_max(struct rmap_item *item, u32 hash)
  * @return	the page we have found, NULL otherwise. The page returned has
  *			been gotten.
  */
-static struct page *stable_tree_search(struct rmap_item *item, u32 hash)
+static noinline struct page *stable_tree_search(struct rmap_item *item, u32 hash)
 {
 	struct rb_node *node = root_stable_treep->rb_node;
 	struct tree_node *tree_node;
@@ -2520,7 +2520,7 @@ static inline int get_tree_rmap_item_page(struct rmap_item *tree_rmap_item)
  * unstable_tree_search_insert() - search an unstable tree rmap_item with the
  * same hash value. Get its page and trylock the mmap_sem
  */
-static inline
+static noinline
 struct rmap_item *unstable_tree_search_insert(struct rmap_item *rmap_item,
 					      u32 hash)
 
@@ -2827,12 +2827,12 @@ static inline void inc_uksm_pages_scanned(void)
 	uksm_pages_scanned++;
 }
 
-static inline int find_zero_page_hash(int strength, u32 hash)
+static noinline int find_zero_page_hash(int strength, u32 hash)
 {
 	return (zero_hash_table[strength] == hash);
 }
 
-static
+static noinline
 int cmp_and_merge_zero_page(struct vm_area_struct *vma, struct page *page)
 {
 	struct page *zero_page = empty_uksm_zero_page;
@@ -3298,7 +3298,7 @@ static inline int vma_fully_scanned(struct vma_slot *slot)
  * its random permutation. This function is embedded with the random
  * permutation index management code.
  */
-static struct rmap_item *get_next_rmap_item(struct vma_slot *slot, u32 *hash)
+static noinline struct rmap_item *get_next_rmap_item(struct vma_slot *slot, u32 *hash)
 {
 	unsigned long rand_range, addr, swap_index, scan_index;
 	struct rmap_item *item = NULL;
@@ -4482,6 +4482,116 @@ static inline int hash_round_finished(void)
 
 #define UKSM_MMSEM_BATCH	5
 #define BUSY_RETRY		100
+
+// static noinline void scan_worker(void){
+// 	for (i = 0; i < SCAN_LADDER_SIZE;) {
+// 		struct scan_rung *rung = &uksm_scan_ladder[i];
+// 		unsigned long ratio;
+// 		int busy_retry;
+
+// 		if (!rung->pages_to_scan) {
+// 			i++;
+// 			continue;
+// 		}
+
+// 		if (!rung->vma_root.num) {
+// 			rung->pages_to_scan = 0;
+// 			i++;
+// 			continue;
+// 		}
+
+// 		ratio = rung_real_ratio(rung->cpu_ratio);
+// 		if (ratio > max_cpu_ratio)
+// 			max_cpu_ratio = ratio;
+
+// 		busy_retry = BUSY_RETRY;
+// 		/*
+// 		 * Do not consider rung_round_finished() here, just used up the
+// 		 * rung->pages_to_scan quota.
+// 		 */
+// 		while (rung->pages_to_scan && rung->vma_root.num &&
+// 		       likely(!freezing(current))) {
+// 			int reset = 0;
+
+// 			slot = rung->current_scan;
+
+// 			BUG_ON(vma_fully_scanned(slot));
+
+// 			if (mmsem_batch)
+// 				err = 0;
+// 			else
+// 				err = try_down_read_slot_mmap_sem(slot);
+
+// 			if (err == -ENOENT) {
+// rm_slot:
+// 				rung_rm_slot(slot);
+// 				continue;
+// 			}
+
+// 			busy_mm = slot->mm;
+
+// 			if (err == -EBUSY) {
+// 				/* skip other vmas on the same mm */
+// 				do {
+// 					reset = advance_current_scan(rung);
+// 					iter = rung->current_scan;
+// 					busy_retry--;
+// 					if (iter->vma->vm_mm != busy_mm ||
+// 					    !busy_retry || reset)
+// 						break;
+// 				} while (1);
+
+// 				if (iter->vma->vm_mm != busy_mm) {
+// 					continue;
+// 				} else {
+// 					/* scan round finsished */
+// 					break;
+// 				}
+// 			}
+
+// 			BUG_ON(!vma_can_enter(slot->vma));
+// 			if (uksm_test_exit(slot->vma->vm_mm)) {
+// 				mmsem_batch = 0;
+// 				up_read(&slot->vma->vm_mm->mmap_sem);
+// 				goto rm_slot;
+// 			}
+
+// 			if (mmsem_batch)
+// 				mmsem_batch--;
+// 			else
+// 				mmsem_batch = UKSM_MMSEM_BATCH;
+
+// 			/* Ok, we have take the mmap_sem, ready to scan */
+// 			scan_vma_one_page(slot);
+// 			rung->pages_to_scan--;
+// 			vpages++;
+
+// 			if (rung->current_offset + rung->step > slot->pages - 1
+// 			    || vma_fully_scanned(slot)) {
+// 				up_read(&slot->vma->vm_mm->mmap_sem);
+// 				judge_slot(slot);
+// 				mmsem_batch = 0;
+// 			} else {
+// 				rung->current_offset += rung->step;
+// 				if (!mmsem_batch)
+// 					up_read(&slot->vma->vm_mm->mmap_sem);
+// 			}
+
+// 			busy_retry = BUSY_RETRY;
+// 			cond_resched();
+// 		}
+
+// 		if (mmsem_batch) {
+// 			up_read(&slot->vma->vm_mm->mmap_sem);
+// 			mmsem_batch = 0;
+// 		}
+
+// 		if (freezing(current))
+// 			break;
+
+// 		cond_resched();
+// 	}
+// }
 
 /**
  * uksm_do_scan()  - the main worker function.
