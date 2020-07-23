@@ -679,6 +679,20 @@ static SYST_NOINLINE u32 calc_hash(struct page *page, uint32_t *partial_hash)
 	return checksum;
 }
 
+static SYST_NOINLINE u32 calc_partial_hash(struct page *page)
+{
+	char *addr;
+	u32 checksum;
+
+	addr = kmap_atomic(page);
+
+	checksum = super_fast_hash_64_unloop(addr, PARTIAL_HASH_LEN, TOTAL_HASH_LEN);
+
+	kunmap_atomic(addr);
+
+	return checksum;
+}
+
 // static noinline void perf_break_point(int group_number, int point_number){
 // 	__asm__ __volatile__("": : :"memory");
 // 	mb();
@@ -2060,17 +2074,17 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 		// ? 当然也可以先把这个node挂载page_slot上，但是这样会造成不一致性，暂时先不这么搞
 
 		// printk("PKSM : partial_hash start\n");
-		cur_hash = calc_hash(cur_page, &partial_hash);
+		partial_hash = calc_partial_hash(cur_page);
 		// printk("PKSM : partial_hash end\n");
 
-		if((cur_page_slot->partial_hash != partial_hash) || (entryIndex != (cur_hash & PAGE_HASH_MASK))){
+		if((cur_page_slot->partial_hash != partial_hash)){
 			// printk("PKSM : pksm_cmp_and_merge_page : volatile %u -> %u\n", cur_page_slot->partial_hash, partial_hash);
 			cur_page_slot->partial_hash = partial_hash;
 			// perf_break_point(3, 8);
 			return;
 		}
 
-		entryIndex = cur_hash & PAGE_HASH_MASK;
+		// entryIndex = cur_hash & PAGE_HASH_MASK;
 		// perf_break_point(3, 9);
 
 
