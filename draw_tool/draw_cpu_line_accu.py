@@ -36,7 +36,7 @@ for i in range(1, len(sys.argv)):
         curCPU = float(curArr[1])
 
         compTime = int(baseArr[2])
-        compTime += ((compTime-baseTime)/9)-2
+        # compTime += ((compTime-baseTime)/9)-2
 
         if curTime < baseTime:
             continue

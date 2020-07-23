@@ -22,11 +22,13 @@ probe end{
   printf("zero_merge_time: sum = %d, cnt = %d\n", @sum(zero_merge_time), @count(zero_merge_time))
   printf("stable_merge_time: sum = %d, cnt = %d\n", @sum(stable_merge_time), @count(stable_merge_time))
   printf("unstable_merge_time: sum = %d, cnt = %d\n", @sum(unstable_merge_time), @count(unstable_merge_time))
+  printf("map_count_normal: sum = %d, cnt = %d\n", @sum(map_count_normal), @count(map_count_normal))
+  printf("map_count_zero: sum = %d, cnt = %d\n", @sum(map_count_zero), @count(map_count_zero))
 
   printf("============ map_count_normal =============\n")
   // print(@hist_log(map_count_normal))
 
-  print(@hist_linear(map_count_normal, 0, 32, 1))
+  print(@hist_linear(map_count_normal, 0, 120, 1))
 
   printf("\n============ map_count_zero =============\n")
   // print(@hist_log(map_count_zero))

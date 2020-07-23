@@ -557,3 +557,24 @@ python run_squad.py \
 -------------------------------------------------------------------------------------
 elasticsearch stage bar
 python .\stack_bar.py '..\log\7-17-1(pksm_elastic10)\out_total.log' '..\log\7-18-2(uksm_elastic10)\out_total.log' '..\log\7-18-3(pksm_elastic10_newzero)\out_total.log' '..\log\7-18-4(pksm_elastic10_unlock)\out_total.log' '..\log\7-18-5(pksm_elastic10_normap)\out_total.log' '..\log\7-18-6(pksm_elastic10_normap_2)\out_total.log'
+python .\stack_bar.py '..\log\7-18-9(pksm_nginx64)\out_total.log' '..\log\7-18-10(uksm_nginx64)\out_total.log' '..\log\7-18-11(pksm_nginx64_lesshash)\out_total.log'
+python .\stack_bar.py '..\log\7-18-12(uksm_nginx_multimap)\out_total2.log' '..\log\7-18-10(uksm_nginx64)\out_total_multi.log' '..\log\7-19-1(uksm_scalability4)\out_total.log'
+python .\draw_mem_line.py '..\log\7-20-1(spark_9_3_base)\out_mem_usage.log' '..\log\7-20-3(spark_9_3_uksm)\out_mem_usage.log' '..\log\7-20-2(spark_9_3_pksm)\out_mem_usage.log'
+
+
+-------------------------------------------------------------------------------------
+2020-07-19T17:05:14.839+08:00| vcpu-0| I125: Vix: [vmxCommands.c:7193]: VMAutomation_HandleCLIHLTEvent. Do nothing.
+2020-07-19T17:05:14.840+08:00| vcpu-0| I125: MsgHint: msg.monitorevent.halt
+2020-07-19T17:05:14.840+08:00| vcpu-0| I125+ The CPU has been disabled by the guest operating system. Power off or reset the virtual machine.
+2020-07-19T17:05:14.840+08:00| vcpu-0| I125+ ---------------------------------------
+2020-07-19T17:05:16.141+08:00| vcpu-1| I125: Triple fault.
+2020-07-19T17:05:16.142+08:00| vcpu-1| I125: MsgHint: msg.monitorEvent.tripleFault
+2020-07-19T17:05:16.142+08:00| vcpu-1| I125+ A fault has occurred causing a virtual CPU to enter the shutdown state. If this fault had occurred outside of a virtual machine, it would have caused the physical machine to restart. The shutdown state can be reached by incorrectly configuring the virtual machine, a bug in the guest operating system, or a problem in VMware Workstation.---------------------------------------
+
+
+-------------------------------------------------------------------------------------
+docker-compose up -d
+docker-compose scale spark-master=1 spark-worker=5 -d
+docker run -e ENABLE_INIT_DAEMON=false --link spark-master:spark-master --net eurospark_default -v /home/l/workload/spark/euro_spark/txt/input.txt:/app/input.txt -d bde/spark-app
+
+

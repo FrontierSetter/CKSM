@@ -6,7 +6,7 @@ yArr = []
 typeArr = []
 compArr = []
 
-totalContainerNum = 64
+totalContainerNum = 3
 
 for i in range(1, len(sys.argv)):
     foundComp = False
@@ -20,7 +20,7 @@ for i in range(1, len(sys.argv)):
     baseMem = int(baseArr[1])
 
     compTime = int(baseArr[2])
-    compTime += (float(compTime-baseTime)/(totalContainerNum-1.0))-2
+    # compTime += (float(compTime-baseTime)/(totalContainerNum-1.0))
 
     xArr.append([])
     yArr.append([])

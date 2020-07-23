@@ -1,0 +1,25 @@
+version: '2'
+services:
+  spark-master:
+    image: bde2020/spark-master:2.4.0-hadoop2.7
+    container_name: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - ENABLE_INIT_DAEMON=false
+      - SPARK_WORKER_MEMORY=2g
+    volumes:
+      - "/home/l/workload/spark/euro_spark/txt:/app"
+  spark-worker:
+    image: bde2020/spark-worker:2.4.0-hadoop2.7
+    depends_on:
+      - spark-master
+    expose:
+      - "8081"
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - ENABLE_INIT_DAEMON=false
+      - SPARK_WORKER_MEMORY=2g
+    volumes:
+      - "/home/l/workload/spark/euro_spark/txt:/app"      
