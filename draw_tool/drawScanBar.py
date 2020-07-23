@@ -28,5 +28,5 @@ plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
 plt.axhline(y=1,ls="--",c="red")#添加水平直线
 # plt.savefig('scan_overhead.pdf')
 
-
+plt.savefig('sparse_scan.pdf')
 plt.show()

@@ -3,10 +3,41 @@ global scan_time
 global hash_time, zero_search_time, stable_search_time, unstable_search_time
 global zero_merge_time, stable_merge_time, unstable_merge_time
 
-global map_count_normal, map_count_zero
+global map_count_normal, map_count_zero, map_count_aggressive
 
 probe begin{
   log("hello world")
+}
+
+probe timer.s(10) {
+  printf("total_time: sum = %d, cnt = %d\n", @sum(total_time), @count(total_time))
+  
+  printf("scan_time: sum = %d, cnt = %d\n", @sum(scan_time), @count(scan_time))
+
+  printf("hash_time: sum = %d, cnt = %d\n", @sum(hash_time), @count(hash_time))
+  printf("zero_search_time: sum = %d, cnt = %d\n", @sum(zero_search_time), @count(zero_search_time))
+  printf("stable_search_time: sum = %d, cnt = %d\n", @sum(stable_search_time), @count(stable_search_time))
+  printf("unstable_search_time: sum = %d, cnt = %d\n", @sum(unstable_search_time), @count(unstable_search_time))
+  
+  printf("zero_merge_time: sum = %d, cnt = %d\n", @sum(zero_merge_time), @count(zero_merge_time))
+  printf("stable_merge_time: sum = %d, cnt = %d\n", @sum(stable_merge_time), @count(stable_merge_time))
+  printf("unstable_merge_time: sum = %d, cnt = %d\n", @sum(unstable_merge_time), @count(unstable_merge_time))
+  printf("map_count_normal: sum = %d, cnt = %d\n", @sum(map_count_normal), @count(map_count_normal))
+  printf("map_count_zero: sum = %d, cnt = %d\n", @sum(map_count_zero), @count(map_count_zero))
+  printf("map_count_aggressive: sum = %d, cnt = %d\n", @sum(map_count_aggressive), @count(map_count_aggressive))
+
+  printf("============ map_count_normal =============\n")
+  // print(@hist_log(map_count_normal))
+
+  print(@hist_linear(map_count_normal, 0, 500, 5))
+
+  printf("\n============ map_count_zero =============\n")
+  // print(@hist_log(map_count_zero))
+
+  print(@hist_linear(map_count_zero, 0, 500, 5))
+
+  printf("\n============ map_count_aggressive =============\n")
+  print(@hist_linear(map_count_aggressive, 0, 500, 5))
 }
 
 probe end{
@@ -24,16 +55,20 @@ probe end{
   printf("unstable_merge_time: sum = %d, cnt = %d\n", @sum(unstable_merge_time), @count(unstable_merge_time))
   printf("map_count_normal: sum = %d, cnt = %d\n", @sum(map_count_normal), @count(map_count_normal))
   printf("map_count_zero: sum = %d, cnt = %d\n", @sum(map_count_zero), @count(map_count_zero))
+  printf("map_count_aggressive: sum = %d, cnt = %d\n", @sum(map_count_aggressive), @count(map_count_aggressive))
 
   printf("============ map_count_normal =============\n")
   // print(@hist_log(map_count_normal))
 
-  print(@hist_linear(map_count_normal, 0, 120, 1))
+  print(@hist_linear(map_count_normal, 0, 500, 5))
 
   printf("\n============ map_count_zero =============\n")
   // print(@hist_log(map_count_zero))
 
-  print(@hist_linear(map_count_zero, 0, 32, 1))
+  print(@hist_linear(map_count_zero, 0, 500, 5))
+
+  printf("\n============ map_count_aggressive =============\n")
+  print(@hist_linear(map_count_aggressive, 0, 500, 5))
 
 }
 
@@ -88,6 +123,10 @@ probe kernel.function("try_to_merge_two_pages@mm/uksm.c") {
 
 probe kernel.function("cmp_and_merge_zero_page@mm/uksm.c") {
   map_count_zero <<< $page->_mapcount->counter
+}
+
+probe kernel.function("cmp_and_merge_page@mm/uksm.c") {
+  map_count_aggressive <<< $rmap_item->page->_mapcount->counter
 }
 
 // probe timer.s(10) {

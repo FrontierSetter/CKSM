@@ -2875,7 +2875,7 @@ out:
  * @page: the page that we are searching identical page to.
  * @rmap_item: the reverse mapping into the virtual address of this page
  */
-static void cmp_and_merge_page(struct rmap_item *rmap_item, u32 hash)
+static noinline void cmp_and_merge_page(struct rmap_item *rmap_item, u32 hash)
 {
 	struct rmap_item *tree_rmap_item;
 	struct page *page;
