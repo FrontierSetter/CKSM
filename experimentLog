@@ -559,8 +559,17 @@ elasticsearch stage bar
 python .\stack_bar.py '..\log\7-18-9(pksm_nginx64)\out_total.log' '..\log\7-18-10(uksm_nginx64)\out_total.log' '..\log\7-18-11(pksm_nginx64_lesshash)\out_total.log'
 python .\stack_bar.py '..\log\7-18-10(uksm_nginx64)\out_total_multi.log' '..\log\7-19-1(uksm_scalability4)\out_total.log'
 python .\draw_mem_line.py '..\log\7-20-1(spark_9_3_base)\out_mem_usage.log' '..\log\7-20-3(spark_9_3_uksm)\out_mem_usage.log' '..\log\7-20-2(spark_9_3_pksm)\out_mem_usage.log'
-python .\stack_bar.py '..\log\7-18-2(uksm_elastic10)\out_total.log' '..\log\7-18-3(pksm_elastic10_newzero)\out_total.log' '..\log\7-23-1(elastic10)\stage_stack.log'
+python .\stack_bar.py '..\log\7-18-2(uksm_elastic10)\out_total.log'  '..\log\7-23-1(elastic10)\stage_stack.log'
     |-python .\stack_bar.py '..\log\7-17-1(pksm_elastic10)\out_total.log' '..\log\7-18-2(uksm_elastic10)\out_total.log' '..\log\7-18-3(pksm_elastic10_newzero)\out_total.log' '..\log\7-18-4(pksm_elastic10_unlock)\out_total.log' '..\log\7-18-5(pksm_elastic10_normap)\out_total.log' '..\log\7-18-6(pksm_elastic10_normap_2)\out_total.log'
+
+扩展性实验 内存图
+python .\draw_mem_line.py '..\log\7-29-1(large_128_base)\out_mem_usage.log' '..\log\7-29-2(large_128_uksm)\out_mem_usage.log' '..\log\7-29-3(large_128_pksm)\out_mem_usage.log'
+
+扩展性实验 handler箱图
+python .\dedi_handler_time_box.py '..\log\7-29-3(large_128_pksm)\out_add_handler_time.log' '..\log\7-29-1(large_128_base)\out_add_handler_time.log' '..\log\7-29-2(large_128_uksm)\out_add_handler_time.log' '..\log\7-29-3(large_128_pksm)\out_exit_handler_time.log' '..\log\7-29-1(large_128_base)\out_exit_handler_time.log' '..\log\7-29-2(large_128_uksm)\out_exit_handler_time.log' 
+
+扩展性实验 meta图
+python .\draw_mem_line.py '..\log\7-29-2(large_128_uksm)\out_meta_usage.log'  '..\log\7-29-3(large_128_pksm)\out_meta_usage.log'
 
 -------------------------------------------------------------------------------------
 2020-07-19T17:05:14.839+08:00| vcpu-0| I125: Vix: [vmxCommands.c:7193]: VMAutomation_HandleCLIHLTEvent. Do nothing.
@@ -580,3 +589,7 @@ docker run -e ENABLE_INIT_DAEMON=false --link spark-master:spark-master --net eu
 -------------------------------------------------------------------------------------
 为了装docker的memory-limit功能引入了cgroup，在/etc/default/grub里加入了新的cmd
 导致开机shift界面会多一次选择
+
+-------------------------------------------------------------------------------------
+ulimit -n 65536
+stap -g ./pksm_meta.stp  --suppress-time-limits > meta.log

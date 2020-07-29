@@ -1,0 +1,42 @@
+global exit_time
+global add_time
+global anonymous_time, wp_time
+
+probe begin{
+  log("hello world")
+}
+
+probe end{
+  printf("now: %d\n", gettimeofday_s())
+  printf("exit_time: sum = %d, cnt = %d, avg = %d\n", @sum(exit_time), @count(exit_time), @avg(exit_time))
+  printf("add_time: sum = %d, cnt = %d, avg = %d\n", @sum(add_time), @count(add_time), @avg(add_time))
+  printf("anonymous_time: sum = %d, cnt = %d, avg = %d\n", @sum(anonymous_time), @count(anonymous_time), @avg(anonymous_time))
+  printf("wp_time: sum = %d, cnt = %d, avg = %d\n", @sum(wp_time), @count(wp_time), @avg(wp_time))
+}
+
+
+probe timer.s(1) {
+  printf("now: %d\n", gettimeofday_s())
+  printf("exit_time: sum = %d, cnt = %d, avg = %d\n", @sum(exit_time), @count(exit_time), @avg(exit_time))
+  printf("add_time: sum = %d, cnt = %d, avg = %d\n", @sum(add_time), @count(add_time), @avg(add_time))
+  printf("anonymous_time: sum = %d, cnt = %d, avg = %d\n", @sum(anonymous_time), @count(anonymous_time), @avg(anonymous_time))
+  printf("wp_time: sum = %d, cnt = %d, avg = %d\n", @sum(wp_time), @count(wp_time), @avg(wp_time))
+  delete exit_time
+  delete add_time
+  delete anonymous_time
+  delete wp_time
+}
+
+probe kernel.function("free_hot_cold_page@mm/page_alloc.c").return {
+  exit_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("do_anonymous_page@mm/memory.c").return {
+  add_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+  anonymous_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("do_wp_page@mm/memory.c").return {
+  add_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+  wp_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}

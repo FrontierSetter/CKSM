@@ -1,0 +1,43 @@
+conn1 Open
+conn2 Open
+conn2 Insert 5,6
+conn1 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+3	LZQ	17	F	OW
+4	LZQ	20	M	OW
+
+conn2 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+3	LZQ	17	F	OW
+4	LZQ	20	M	OW
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+conn2 Delete 3,4
+conn1 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+3	LZQ	17	F	OW
+4	LZQ	20	M	OW
+
+conn2 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+conn2 Commit
+conn1 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+conn2 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+

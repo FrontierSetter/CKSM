@@ -1,0 +1,72 @@
+conn1 Open
+cursor1 created
+cursor1 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+3	LZQ	17	F	OW
+4	LZQ	20	M	OW
+
+cursor1 Insert 5,6
+cursor2 created
+cursor1 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+3	LZQ	17	F	OW
+4	LZQ	20	M	OW
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+cursor2 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+3	LZQ	17	F	OW
+4	LZQ	20	M	OW
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+cursor1 Delete 3,4
+cursor3 created
+cursor1 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+cursor2 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+cursor3 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+conn1 Commit
+cursor4 created
+cursor1 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+cursor2 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+cursor3 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+
+cursor4 read as:
+1	BYX	17	F	DOTA
+2	BYX	20	M	DOTA
+5	QYF	17	F	DNF
+6	QYF	20	M	DNF
+

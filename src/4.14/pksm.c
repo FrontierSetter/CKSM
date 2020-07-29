@@ -45,7 +45,8 @@
 
 #include <asm/barrier.h>
 
-#define SYST_NOINLINE noinline
+// #define SYST_NOINLINE noinline
+#define SYST_NOINLINE
 
 // #define VERBOS_GET_PKSM_PAGE
 // #define VERBOS_TRY_TO_MERGE_ONE_PAGE
@@ -1349,7 +1350,7 @@ static int page_trans_compound_anon_split(struct page *page)
 	return ret;
 }
 
-static noinline
+static
 bool try_to_merge_zero_page(struct page *page, struct vm_area_struct *vma,
 		     unsigned long address, void *arg)
 {

@@ -1,0 +1,408 @@
+
+DEFERRED	DoNothing	DEFERRED	Read
+Success
+
+DEFERRED	DoNothing	DEFERRED	Write-Un
+Success
+
+DEFERRED	DoNothing	DEFERRED	Write-Co
+Success
+
+DEFERRED	Read	DEFERRED	Read
+Success
+
+DEFERRED	Read	DEFERRED	Write-Un
+Success
+
+DEFERRED	Read	DEFERRED	Write-Co
+Success
+
+DEFERRED	Uncommitted	DEFERRED	Read
+Success
+
+DEFERRED	Uncommitted	DEFERRED	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+DEFERRED	Uncommitted	DEFERRED	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+DEFERRED	Committed	DEFERRED	Read
+Success
+
+DEFERRED	Committed	DEFERRED	Write-Un
+Success
+
+DEFERRED	Committed	DEFERRED	Write-Co
+Success
+
+DEFERRED	DoNothing	IMMEDIATE	Read
+Success
+
+DEFERRED	DoNothing	IMMEDIATE	Write-Un
+Success
+
+DEFERRED	DoNothing	IMMEDIATE	Write-Co
+Success
+
+DEFERRED	Read	IMMEDIATE	Read
+Success
+
+DEFERRED	Read	IMMEDIATE	Write-Un
+Success
+
+DEFERRED	Read	IMMEDIATE	Write-Co
+Success
+
+DEFERRED	Uncommitted	IMMEDIATE	Read
+Success
+
+DEFERRED	Uncommitted	IMMEDIATE	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+DEFERRED	Uncommitted	IMMEDIATE	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+DEFERRED	Committed	IMMEDIATE	Read
+Success
+
+DEFERRED	Committed	IMMEDIATE	Write-Un
+Success
+
+DEFERRED	Committed	IMMEDIATE	Write-Co
+Success
+
+DEFERRED	DoNothing	EXCLUSIVE	Read
+Success
+
+DEFERRED	DoNothing	EXCLUSIVE	Write-Un
+Success
+
+DEFERRED	DoNothing	EXCLUSIVE	Write-Co
+Success
+
+DEFERRED	Read	EXCLUSIVE	Read
+Success
+
+DEFERRED	Read	EXCLUSIVE	Write-Un
+Success
+
+DEFERRED	Read	EXCLUSIVE	Write-Co
+Success
+
+DEFERRED	Uncommitted	EXCLUSIVE	Read
+Success
+
+DEFERRED	Uncommitted	EXCLUSIVE	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+DEFERRED	Uncommitted	EXCLUSIVE	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+DEFERRED	Committed	EXCLUSIVE	Read
+Success
+
+DEFERRED	Committed	EXCLUSIVE	Write-Un
+Success
+
+DEFERRED	Committed	EXCLUSIVE	Write-Co
+Success
+
+IMMEDIATE	DoNothing	DEFERRED	Read
+Success
+
+IMMEDIATE	DoNothing	DEFERRED	Write-Un
+Success
+
+IMMEDIATE	DoNothing	DEFERRED	Write-Co
+Success
+
+IMMEDIATE	Read	DEFERRED	Read
+Success
+
+IMMEDIATE	Read	DEFERRED	Write-Un
+Success
+
+IMMEDIATE	Read	DEFERRED	Write-Co
+Success
+
+IMMEDIATE	Uncommitted	DEFERRED	Read
+Success
+
+IMMEDIATE	Uncommitted	DEFERRED	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+IMMEDIATE	Uncommitted	DEFERRED	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+IMMEDIATE	Committed	DEFERRED	Read
+Success
+
+IMMEDIATE	Committed	DEFERRED	Write-Un
+Success
+
+IMMEDIATE	Committed	DEFERRED	Write-Co
+Success
+
+IMMEDIATE	DoNothing	IMMEDIATE	Read
+Success
+
+IMMEDIATE	DoNothing	IMMEDIATE	Write-Un
+Success
+
+IMMEDIATE	DoNothing	IMMEDIATE	Write-Co
+Success
+
+IMMEDIATE	Read	IMMEDIATE	Read
+Success
+
+IMMEDIATE	Read	IMMEDIATE	Write-Un
+Success
+
+IMMEDIATE	Read	IMMEDIATE	Write-Co
+Success
+
+IMMEDIATE	Uncommitted	IMMEDIATE	Read
+Success
+
+IMMEDIATE	Uncommitted	IMMEDIATE	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+IMMEDIATE	Uncommitted	IMMEDIATE	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+IMMEDIATE	Committed	IMMEDIATE	Read
+Success
+
+IMMEDIATE	Committed	IMMEDIATE	Write-Un
+Success
+
+IMMEDIATE	Committed	IMMEDIATE	Write-Co
+Success
+
+IMMEDIATE	DoNothing	EXCLUSIVE	Read
+Success
+
+IMMEDIATE	DoNothing	EXCLUSIVE	Write-Un
+Success
+
+IMMEDIATE	DoNothing	EXCLUSIVE	Write-Co
+Success
+
+IMMEDIATE	Read	EXCLUSIVE	Read
+Success
+
+IMMEDIATE	Read	EXCLUSIVE	Write-Un
+Success
+
+IMMEDIATE	Read	EXCLUSIVE	Write-Co
+Success
+
+IMMEDIATE	Uncommitted	EXCLUSIVE	Read
+Success
+
+IMMEDIATE	Uncommitted	EXCLUSIVE	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+IMMEDIATE	Uncommitted	EXCLUSIVE	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+IMMEDIATE	Committed	EXCLUSIVE	Read
+Success
+
+IMMEDIATE	Committed	EXCLUSIVE	Write-Un
+Success
+
+IMMEDIATE	Committed	EXCLUSIVE	Write-Co
+Success
+
+EXCLUSIVE	DoNothing	DEFERRED	Read
+Success
+
+EXCLUSIVE	DoNothing	DEFERRED	Write-Un
+Success
+
+EXCLUSIVE	DoNothing	DEFERRED	Write-Co
+Success
+
+EXCLUSIVE	Read	DEFERRED	Read
+Success
+
+EXCLUSIVE	Read	DEFERRED	Write-Un
+Success
+
+EXCLUSIVE	Read	DEFERRED	Write-Co
+Success
+
+EXCLUSIVE	Uncommitted	DEFERRED	Read
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 68, in <module>
+    conn2.execute("SELECT * FROM STUDENT")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Uncommitted	DEFERRED	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Uncommitted	DEFERRED	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Committed	DEFERRED	Read
+Success
+
+EXCLUSIVE	Committed	DEFERRED	Write-Un
+Success
+
+EXCLUSIVE	Committed	DEFERRED	Write-Co
+Success
+
+EXCLUSIVE	DoNothing	IMMEDIATE	Read
+Success
+
+EXCLUSIVE	DoNothing	IMMEDIATE	Write-Un
+Success
+
+EXCLUSIVE	DoNothing	IMMEDIATE	Write-Co
+Success
+
+EXCLUSIVE	Read	IMMEDIATE	Read
+Success
+
+EXCLUSIVE	Read	IMMEDIATE	Write-Un
+Success
+
+EXCLUSIVE	Read	IMMEDIATE	Write-Co
+Success
+
+EXCLUSIVE	Uncommitted	IMMEDIATE	Read
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 68, in <module>
+    conn2.execute("SELECT * FROM STUDENT")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Uncommitted	IMMEDIATE	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Uncommitted	IMMEDIATE	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Committed	IMMEDIATE	Read
+Success
+
+EXCLUSIVE	Committed	IMMEDIATE	Write-Un
+Success
+
+EXCLUSIVE	Committed	IMMEDIATE	Write-Co
+Success
+
+EXCLUSIVE	DoNothing	EXCLUSIVE	Read
+Success
+
+EXCLUSIVE	DoNothing	EXCLUSIVE	Write-Un
+Success
+
+EXCLUSIVE	DoNothing	EXCLUSIVE	Write-Co
+Success
+
+EXCLUSIVE	Read	EXCLUSIVE	Read
+Success
+
+EXCLUSIVE	Read	EXCLUSIVE	Write-Un
+Success
+
+EXCLUSIVE	Read	EXCLUSIVE	Write-Co
+Success
+
+EXCLUSIVE	Uncommitted	EXCLUSIVE	Read
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 68, in <module>
+    conn2.execute("SELECT * FROM STUDENT")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Uncommitted	EXCLUSIVE	Write-Un
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 70, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Uncommitted	EXCLUSIVE	Write-Co
+Traceback (most recent call last):
+  File ".\6_1_link&lock.py", line 72, in <module>
+    conn2.execute("INSERT INTO STUDENT (ID,NAME,AGE,GENDER,MAJOR) VALUES (5, 'QYF', 21, 'M', 'DNF')")
+sqlite3.OperationalError: database is locked
+
+
+EXCLUSIVE	Committed	EXCLUSIVE	Read
+Success
+
+EXCLUSIVE	Committed	EXCLUSIVE	Write-Un
+Success
+
+EXCLUSIVE	Committed	EXCLUSIVE	Write-Co
+Success
