@@ -1,0 +1,44 @@
+global scan_step, scan_pervage
+
+probe begin{
+  log("hello world")
+}
+
+probe end{
+  printf("now: %d\n", gettimeofday_s())
+  printf("scan_step_stub:\n")
+  print(@hist_linear(scan_step, 0, 45, 1))
+  printf("scan_pervage_stub:\n")
+  print(@hist_linear(scan_pervage, 0, 45, 1))
+  delete scan_step
+  delete scan_pervage
+}
+
+probe timer.s(1) {
+  printf("now: %d\n", gettimeofday_s())
+  printf("scan_step_stub:\n")
+  print(@hist_linear(scan_step, 0, 45, 1))
+  printf("scan_pervage_stub:\n")
+  print(@hist_linear(scan_pervage, 0, 45, 1))
+  delete scan_step
+  delete scan_pervage
+}
+
+# map_count
+probe kernel.function("try_to_merge_with_pksm_page@mm/ksm.c") {
+  if (@var("pksm_scan_status@mm/ksm.c") > 0){
+    scan_pervage <<< 1
+  }else{
+    scan_pervage <<< @var("pksm_cur_scan_step@mm/ksm.c")
+  }
+  scan_step <<< @var("pksm_cur_scan_step@mm/ksm.c")
+}
+
+probe kernel.function("pksm_try_to_merge_zero_page@mm/ksm.c") {
+  if (@var("pksm_scan_status@mm/ksm.c") > 0){
+    scan_pervage <<< 1
+  }else{
+    scan_pervage <<< @var("pksm_cur_scan_step@mm/ksm.c")
+  }
+  scan_step <<< @var("pksm_cur_scan_step@mm/ksm.c")
+}
