@@ -45,8 +45,7 @@
 
 #include <asm/barrier.h>
 
-// #define SYST_NOINLINE noinline
-#define SYST_NOINLINE
+// #define SYST_NOINLINE
 
 // #define VERBOS_GET_PKSM_PAGE
 // #define VERBOS_TRY_TO_MERGE_ONE_PAGE
@@ -343,6 +342,9 @@ static unsigned int pksm_cur_cont_unmerged_pages = 0;
 /* 扫描的步长 */
 static unsigned int pksm_scan_steps[5] = {3, 7, 17, 29, 41};
 static unsigned int pksm_cur_scan_step = 17;
+
+static unsigned int pksm_scan_step_cnts[5] = {0, 0, 0, 0, 0};
+static unsigned int pksm_scan_step_pervage_cnts[6] = {0, 0, 0, 0, 0, 0};
 
 /* 当前扫描的状态 */
 static unsigned int pksm_scan_status = 0;
@@ -653,8 +655,11 @@ static uint64_t super_fast_hash_64_unloop(const char * data, int len, uint64_t s
 // ============================ super fast hash end ======================================
 
 
-
-static SYST_NOINLINE u32 calc_hash(struct page *page, uint32_t *partial_hash)
+#ifdef SYST_NOINLINE
+static noinline u32 calc_hash(struct page *page, uint32_t *partial_hash)
+#else
+static u32 calc_hash(struct page *page, uint32_t *partial_hash)
+#endif
 {
 	char *addr;
 	u32 checksum;
@@ -680,7 +685,11 @@ static SYST_NOINLINE u32 calc_hash(struct page *page, uint32_t *partial_hash)
 	return checksum;
 }
 
-static SYST_NOINLINE u32 calc_partial_hash(struct page *page)
+#ifdef SYST_NOINLINE
+static noinlie u32 calc_partial_hash(struct page *page)
+#else
+static u32 calc_partial_hash(struct page *page)
+#endif
 {
 	char *addr;
 	u32 checksum;
@@ -1574,7 +1583,11 @@ static int pksm_page_not_mapped(struct page *page)
 	return !page_mapped(page);
 };
 
-static SYST_NOINLINE int pksm_try_to_merge_zero_page(struct page *page)
+#ifdef SYST_NOINLINE
+static noinline int pksm_try_to_merge_zero_page(struct page *page)
+#else
+static int pksm_try_to_merge_zero_page(struct page *page)
+#endif
 {
 	int ret;
 
@@ -1586,6 +1599,28 @@ static SYST_NOINLINE int pksm_try_to_merge_zero_page(struct page *page)
 	};
 
 	rmap_walk(page, &rwc);	//? 这里是否需要lock存疑，以前是lock的，所以继续lock
+
+	switch(pksm_cur_scan_step){
+		case 3: pksm_scan_step_cnts[0]+=1; break;
+		case 7: pksm_scan_step_cnts[1]+=1; break;
+		case 17: pksm_scan_step_cnts[2]+=1; break;
+		case 29: pksm_scan_step_cnts[3]+=1; break;
+		case 41: pksm_scan_step_cnts[4]+=1; break;
+		default: printk(KERN_ALERT "PKSM : pksm_cur_scan_step wrong\n"); break;
+	}
+
+	if(pksm_scan_status){
+		pksm_scan_step_pervage_cnts[5] += 1;
+	}else{
+		switch(pksm_cur_scan_step){
+			case 3: pksm_scan_step_pervage_cnts[0]+=1; break;
+			case 7: pksm_scan_step_pervage_cnts[1]+=1; break;
+			case 17: pksm_scan_step_pervage_cnts[2]+=1; break;
+			case 29: pksm_scan_step_pervage_cnts[3]+=1; break;
+			case 41: pksm_scan_step_pervage_cnts[4]+=1; break;
+			default: printk(KERN_ALERT "PKSM : pksm_cur_scan_step wrong\n"); break;
+		}
+	}
 
 	return !page_mapcount(page) ? 0 : 1;
 		
@@ -1651,8 +1686,13 @@ static int pksm_try_to_merge_one_page(struct page *page, struct page *kpage, str
  * 但是设置pksm和归并pksm时的hash_node来源不同（kpage参数也不同），强行搞成一个函数没有必要
  * 在这一步就可以完全获得hash_node和kpage，下一步的merge_one_page就不需要再拆分
  */
-static SYST_NOINLINE int try_to_set_this_pksm_page(struct page_slot *page_slot, 
+#ifdef SYST_NOINLINE
+static noinline int try_to_set_this_pksm_page(struct page_slot *page_slot, 
 					  struct page *page, struct pksm_hash_node *pksm_hash_node)
+#else
+static int try_to_set_this_pksm_page(struct page_slot *page_slot, 
+					  struct page *page, struct pksm_hash_node *pksm_hash_node)
+#endif
 {
 	int err = -EFAULT;
 	
@@ -1684,8 +1724,13 @@ out:
 	return err;
 }
 
-static SYST_NOINLINE int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
+#ifdef SYST_NOINLINE
+static noinline int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
 					  struct page *page, struct page *kpage)
+#else
+static int try_to_merge_with_pksm_page(struct page_slot *page_slot, 
+					  struct page *page, struct page *kpage)
+#endif
 {
 	int err = -EFAULT;
 	
@@ -1708,6 +1753,27 @@ static SYST_NOINLINE int try_to_merge_with_pksm_page(struct page_slot *page_slot
 
 	++pksm_pages_merged;
 
+	switch(pksm_cur_scan_step){
+		case 3: pksm_scan_step_cnts[0]+=1; break;
+		case 7: pksm_scan_step_cnts[1]+=1; break;
+		case 17: pksm_scan_step_cnts[2]+=1; break;
+		case 29: pksm_scan_step_cnts[3]+=1; break;
+		case 41: pksm_scan_step_cnts[4]+=1; break;
+		default: printk(KERN_ALERT "PKSM : pksm_cur_scan_step wrong\n"); break;
+	}
+
+	if(pksm_scan_status){
+		pksm_scan_step_pervage_cnts[5] += 1;
+	}else{
+		switch(pksm_cur_scan_step){
+			case 3: pksm_scan_step_pervage_cnts[0]+=1; break;
+			case 7: pksm_scan_step_pervage_cnts[1]+=1; break;
+			case 17: pksm_scan_step_pervage_cnts[2]+=1; break;
+			case 29: pksm_scan_step_pervage_cnts[3]+=1; break;
+			case 41: pksm_scan_step_pervage_cnts[4]+=1; break;
+			default: printk(KERN_ALERT "PKSM : pksm_cur_scan_step wrong\n"); break;
+		}
+	}
 
 
 out:
@@ -1740,8 +1806,13 @@ static struct page * pksm_try_to_merge_two_pages(struct page_slot *page_slot, st
 	return err ? NULL : page;
 }
 
-static SYST_NOINLINE struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, 
+#ifdef SYST_NOINLINE
+static noinline struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, 
 								unsigned int entryIndex, uint32_t partial_hash, struct page_slot **table_page_slot)
+#else
+static struct page *unstable_hash_search_insert(struct page_slot *page_slot, struct page *page, 
+								unsigned int entryIndex, uint32_t partial_hash, struct page_slot **table_page_slot)
+#endif
 {
 	struct pksm_hash_node *unstable_node;
 	struct hlist_node *nxt;
@@ -1851,7 +1922,11 @@ static SYST_NOINLINE struct page *unstable_hash_search_insert(struct page_slot *
 	return NULL;
 }
 
-static SYST_NOINLINE struct page *stable_hash_search(struct page *page, unsigned int entryIndex, uint32_t partial_hash)
+#ifdef SYST_NOINLINE
+static noinline struct page *stable_hash_search(struct page *page, unsigned int entryIndex, uint32_t partial_hash)
+#else
+static struct page *stable_hash_search(struct page *page, unsigned int entryIndex, uint32_t partial_hash)
+#endif
 {
 	struct pksm_hash_node *stable_node;
 	struct hlist_node *nxt;
@@ -2172,7 +2247,11 @@ static void calc_scan_step(unsigned long cur_stamp){
 	}
 }
 
-static SYST_NOINLINE struct page_slot *scan_get_next_page_slot(void)
+#ifdef SYST_NOINLINE
+static noinline struct page_slot *scan_get_next_page_slot(void)
+#else
+static struct page_slot *scan_get_next_page_slot(void)
+#endif
 {
 	struct page_slot *cur_slot;
 	struct page *cur_page;
@@ -2887,6 +2966,10 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 		printk(KERN_ALERT "PKSM : USE_ADVANCED_MEMCMP defined\n");
 		#endif
 
+		#ifdef SYST_NOINLINE
+		printk(KERN_ALERT "PKSM : SYST_NOINLINE defined\n");
+		#endif
+
 		if (flags & PKSM_RUN_UNMERGE) {
 			// printk("PKSM : run_store PKSM_RUN_UNMERGE\n");
 			// set_current_oom_origin();
@@ -3054,6 +3137,42 @@ static ssize_t zero_merged_show(struct kobject *kobj,
 }
 PKSM_ATTR_RO(zero_merged);
 
+static ssize_t scan_step_cnt_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
+{
+	int i, size;
+	char *p = buf;
+
+	for (i = 0; i < 5; i++) {
+		size = sprintf(p, "%u ", pksm_scan_step_cnts[i]);
+		p += size;
+	}
+
+	*p++ = '\n';
+	*p = '\0';
+
+	return p - buf;
+}
+PKSM_ATTR_RO(scan_step_cnt);
+
+static ssize_t scan_step_pervage_cnt_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
+{
+	int i, size;
+	char *p = buf;
+
+	for (i = 0; i < 6; i++) {
+		size = sprintf(p, "%u ", pksm_scan_step_pervage_cnts[i]);
+		p += size;
+	}
+
+	*p++ = '\n';
+	*p = '\0';
+
+	return p - buf;
+}
+PKSM_ATTR_RO(scan_step_pervage_cnt);
+
 static struct attribute *pksm_attrs[] = {
 	&zero_merged_attr.attr,
 	&scan_step_attr.attr,
@@ -3071,6 +3190,8 @@ static struct attribute *pksm_attrs[] = {
 	&pages_inlist_attr.attr,
 	// &pages_volatile_attr.attr,
 	&full_scans_attr.attr,
+	&scan_step_cnt_attr.attr,
+	&scan_step_pervage_cnt_attr.attr,
 #ifdef CONFIG_NUMA
 	&merge_across_nodes_attr.attr,
 #endif
