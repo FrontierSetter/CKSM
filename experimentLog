@@ -593,3 +593,10 @@ docker run -e ENABLE_INIT_DAEMON=false --link spark-master:spark-master --net eu
 -------------------------------------------------------------------------------------
 ulimit -n 65536
 stap -g ./pksm_meta.stp  --suppress-time-limits > meta.log
+-------------------------------------------------------------------------------------
+
+docker pull postgres &&
+docker pull httpd &&
+docker pull bitnami/mongodb &&
+docker pull mysql &&
+docker pull couchbase
