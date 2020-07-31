@@ -46,6 +46,7 @@
 #include <asm/barrier.h>
 
 // #define SYST_NOINLINE
+// #define SCAN_STEP_CNT
 
 // #define VERBOS_GET_PKSM_PAGE
 // #define VERBOS_TRY_TO_MERGE_ONE_PAGE
@@ -318,7 +319,7 @@ static unsigned long pksm_node_items;
 
 /* PKSM进程进入睡眠前需要连续扫描到的不可归并页面的数量 */
 static unsigned int pksm_cont_unmerged_pages_threshold = 200;
-static unsigned int pksm_scaned_pages_threshold = 10000;
+static unsigned int pksm_scaned_pages_threshold = 10000000;
 
 /* PKSM进程睡眠时间基准 */
 static unsigned int pksm_thread_sleep_millisecs_base = 50;
@@ -1600,6 +1601,7 @@ static int pksm_try_to_merge_zero_page(struct page *page)
 
 	rmap_walk(page, &rwc);	//? 这里是否需要lock存疑，以前是lock的，所以继续lock
 
+#ifdef SCAN_STEP_CNT
 	switch(pksm_cur_scan_step){
 		case 3: pksm_scan_step_cnts[0]+=1; break;
 		case 7: pksm_scan_step_cnts[1]+=1; break;
@@ -1621,6 +1623,7 @@ static int pksm_try_to_merge_zero_page(struct page *page)
 			default: printk(KERN_ALERT "PKSM : pksm_cur_scan_step wrong\n"); break;
 		}
 	}
+#endif
 
 	return !page_mapcount(page) ? 0 : 1;
 		
@@ -1753,6 +1756,7 @@ static int try_to_merge_with_pksm_page(struct page_slot *page_slot,
 
 	++pksm_pages_merged;
 
+#ifdef SCAN_STEP_CNT
 	switch(pksm_cur_scan_step){
 		case 3: pksm_scan_step_cnts[0]+=1; break;
 		case 7: pksm_scan_step_cnts[1]+=1; break;
@@ -1774,7 +1778,7 @@ static int try_to_merge_with_pksm_page(struct page_slot *page_slot,
 			default: printk(KERN_ALERT "PKSM : pksm_cur_scan_step wrong\n"); break;
 		}
 	}
-
+#endif
 
 out:
 	return err;
