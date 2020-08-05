@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
+# python .\dedi_multimap.py '..\log\7-18-10(uksm_nginx64)\out_total_multi.log' '..\log\7-19-1(uksm_scalability4)\out_total.log'
+
 nameArr = []
 entryArr = []
 oriDict = {}
@@ -33,7 +35,7 @@ for i in range(1, len(sys.argv)):
         if curEntry == '#':
             continue
 
-        curValue = int(curArr[1]) if len(curArr) == 2 else int(curArr[1])*int(curArr[2])
+        curValue = int(curArr[1])
 
         if curEntry not in entryArr:
             entryArr.append(curEntry)
@@ -71,14 +73,14 @@ for curEntry in entryArr:
             if curEntry not in oriDict[curName]:
                 allArr[curEntry].append(0.0)
             else:
-                allArr[curEntry].append(oriDict[curName][curEntry]/unitCast/oriDict[curName]['cnt'])
+                allArr[curEntry].append(oriDict[curName][curEntry]/unitCast/oriDict[curName]['cnt']*100)
 
 plt.figure(figsize=(9,6))
 
 ind = np.arange(len(nameArr))
 plt.xticks(ind, nameArr)
 
-plt.ylabel('time(ns)')
+plt.ylabel('proportion(%)')
 
 width = 0.35
 
@@ -96,5 +98,6 @@ for curEntry in allArr:
 
 plt.legend(legendArr, legendEntryArr)
 
+plt.savefig('multi_map.pdf')
 plt.show()
 

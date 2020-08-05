@@ -58,7 +58,7 @@ for i in range(1, 4):
         if curTime > compTime:
             break
         
-        for i in range(curCnt):
+        for i in range(1):
             yArr_add[-1].append(float(curOverhead-baseOverhead))
 
 for i in range(4, 7):
@@ -101,7 +101,7 @@ for i in range(4, 7):
         if curTime > compTime:
             break
         
-        for i in range(curCnt):
+        for i in range(1):
             yArr_exit[-1].append(float(curOverhead-baseOverhead))
 
 plt.figure(figsize=(9,6))
@@ -121,7 +121,7 @@ f=plt.boxplot(
     widths=0.65,
     whis=3,
     showfliers=False,
-    meanprops={'marker':'D','markerfacecolor':'#ffd166','markeredgecolor':"#ffd166"},#设置均值点的属性，点的颜色和形状
+    meanprops={'marker':'D','markerfacecolor':'#ffd166'},#设置均值点的属性，点的颜色和形状
     medianprops={"linestyle":'--','color':'#f5cac3','linewidth':2},#设置中位数线的属性，线的类型和颜色
 
 )
@@ -152,14 +152,13 @@ f=plt.boxplot(
     widths=0.65,
     whis=3,
     showfliers=False,
-    meanprops={'marker':'D','markerfacecolor':'#ffd166','markeredgecolor':"#ffd166"},#设置均值点的属性，点的颜色和形状
+    meanprops={'marker':'D','markerfacecolor':'#ffd166'},#设置均值点的属性，点的颜色和形状
     medianprops={"linestyle":'--','color':'#f5cac3','linewidth':2},#设置中位数线的属性，线的类型和颜色
 
 )
 
 for box, c in zip(f['boxes'], color):
     box.set(facecolor =c)
-
 
 # xfmt = ScalarFormatter(useMathText=True)
 # xfmt.set_powerlimits((0, 0))

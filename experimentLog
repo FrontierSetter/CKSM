@@ -583,7 +583,7 @@ python .\draw_mem_line.py '..\log\7-29-2(large_128_uksm)\out_meta_usage.log'  '.
 
 -------------------------------------------------------------------------------------
 docker-compose up -d
-docker-compose scale spark-master=1 spark-worker=5 -d
+docker-compose scale spark-master=1 spark-worker=15 -d
 docker run -e ENABLE_INIT_DAEMON=false --link spark-master:spark-master --net eurospark_default -v /home/l/workload/spark/euro_spark/txt/input.txt:/app/input.txt -d bde/spark-app
 
 -------------------------------------------------------------------------------------

@@ -20,16 +20,15 @@ while True:
         break
 
     curTime = int(curLine)
-    curMeta = 0.0
+    curMerge = 0.0
 
-    for i in range(3):
+    for i in range(2):
         inputFile.readline()
-        curSize = int(inputFile.readline())
         curNum = int(inputFile.readline())
-        curMeta += curSize*curNum
+        curMerge += curNum
     
 
-    outputFile.write("%d,%d\n" % (curTime, curMeta))
+    outputFile.write("%d,%d\n" % (curTime, curMerge))
 
 outputFile.close()
 inputFile.close()

@@ -18,3 +18,5 @@ log/*
 *.code-workspace
 venv
 fig
+
+*.pdf

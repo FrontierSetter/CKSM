@@ -507,6 +507,15 @@ static unsigned long uksm_pages_sharing;
 /* The number of nodes in the unstable tree */
 static unsigned long uksm_pages_unshared;
 
+static unsigned long uksm_pages_merged;
+static unsigned long uksm_pages_zero_merged;
+
+static unsigned long uksm_meta_node_vma;
+static unsigned long uksm_meta_vma_slot;
+static unsigned long uksm_meta_rmap_item;
+static unsigned long uksm_meta_stable_node;
+static unsigned long uksm_meta_tree_node;
+
 /*
  * Milliseconds ksmd should sleep between scans,
  * >= 100ms to be consistent with
@@ -690,6 +699,8 @@ static inline struct node_vma *alloc_node_vma(void)
 {
 	struct node_vma *node_vma;
 
+	++uksm_meta_node_vma;
+
 	node_vma = kmem_cache_zalloc(node_vma_cache, GFP_KERNEL |
 				     __GFP_NORETRY | __GFP_NOWARN);
 	if (node_vma) {
@@ -702,6 +713,7 @@ static inline struct node_vma *alloc_node_vma(void)
 static inline void free_node_vma(struct node_vma *node_vma)
 {
 	kmem_cache_free(node_vma_cache, node_vma);
+	--uksm_meta_node_vma;
 }
 
 
@@ -716,6 +728,7 @@ static inline struct vma_slot *alloc_vma_slot(void)
 	if (!vma_slot_cache)
 		return NULL;
 
+	++uksm_meta_vma_slot;
 	slot = kmem_cache_zalloc(vma_slot_cache, GFP_KERNEL |
 				 __GFP_NORETRY | __GFP_NOWARN);
 	if (slot) {
@@ -729,6 +742,7 @@ static inline struct vma_slot *alloc_vma_slot(void)
 static inline void free_vma_slot(struct vma_slot *vma_slot)
 {
 	kmem_cache_free(vma_slot_cache, vma_slot);
+	--uksm_meta_vma_slot;
 }
 
 
@@ -737,6 +751,7 @@ static inline struct rmap_item *alloc_rmap_item(void)
 {
 	struct rmap_item *rmap_item;
 
+	++uksm_meta_rmap_item;
 	rmap_item = kmem_cache_zalloc(rmap_item_cache, GFP_KERNEL |
 				      __GFP_NORETRY | __GFP_NOWARN);
 	if (rmap_item) {
@@ -750,12 +765,14 @@ static inline void free_rmap_item(struct rmap_item *rmap_item)
 {
 	rmap_item->slot = NULL;	/* debug safety */
 	kmem_cache_free(rmap_item_cache, rmap_item);
+	--uksm_meta_rmap_item;
 }
 
 static inline struct stable_node *alloc_stable_node(void)
 {
 	struct stable_node *node;
 
+	++uksm_meta_stable_node;
 	node = kmem_cache_alloc(stable_node_cache, GFP_KERNEL |
 				__GFP_NORETRY | __GFP_NOWARN);
 	if (!node)
@@ -770,12 +787,14 @@ static inline void free_stable_node(struct stable_node *stable_node)
 {
 	list_del(&stable_node->all_list);
 	kmem_cache_free(stable_node_cache, stable_node);
+	--uksm_meta_stable_node;
 }
 
 static inline struct tree_node *alloc_tree_node(struct list_head *list)
 {
 	struct tree_node *node;
 
+	++uksm_meta_tree_node;
 	node = kmem_cache_zalloc(tree_node_cache, GFP_KERNEL |
 				 __GFP_NORETRY | __GFP_NOWARN);
 	if (!node)
@@ -789,6 +808,7 @@ static inline void free_tree_node(struct tree_node *node)
 {
 	list_del(&node->all_list);
 	kmem_cache_free(tree_node_cache, node);
+	--uksm_meta_tree_node;
 }
 
 static void uksm_drop_anon_vma(struct rmap_item *rmap_item)
@@ -1790,8 +1810,10 @@ static noinline int try_to_merge_with_uksm_page(struct rmap_item *rmap_item,
 	 * case, we need to lock and check page_count is not raised.
 	 */
 	if (write_protect_page(vma, page, &orig_pte, NULL) == 0) {
-		if (pages_identical(page, kpage))
+		if (pages_identical(page, kpage)){
 			err = replace_page(vma, page, kpage, orig_pte);
+			uksm_pages_merged++;
+		}
 		else
 			err = check_collision(rmap_item, hash);
 	}
@@ -1954,6 +1976,8 @@ static noinline int try_to_merge_two_pages(struct rmap_item *rmap_item,
 			unlock_page(tree_page);
 			goto restore_out;
 		}
+		uksm_pages_merged++;
+
 
 		if ((vma2->vm_flags & VM_LOCKED)) {
 			munlock_vma_page(tree_page);
@@ -2856,8 +2880,10 @@ int cmp_and_merge_zero_page(struct vm_area_struct *vma, struct page *page)
 	}
 
 	if (write_protect_page(vma, page, &orig_pte, 0) == 0) {
-		if (is_page_full_zero(page))
+		if (is_page_full_zero(page)){
 			err = replace_page(vma, page, zero_page, orig_pte);
+			uksm_pages_zero_merged++;
+		}
 	}
 
 out_unlock:
@@ -5343,6 +5369,20 @@ static ssize_t pages_unshared_show(struct kobject *kobj,
 }
 UKSM_ATTR_RO(pages_unshared);
 
+static ssize_t pages_merged_show(struct kobject *kobj,
+				   struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", uksm_pages_merged);
+}
+UKSM_ATTR_RO(pages_merged);
+
+static ssize_t pages_zero_merged_show(struct kobject *kobj,
+				   struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", uksm_pages_zero_merged);
+}
+UKSM_ATTR_RO(pages_zero_merged);
+
 static ssize_t full_scans_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
@@ -5396,8 +5436,17 @@ static ssize_t sleep_times_show(struct kobject *kobj,
 }
 UKSM_ATTR_RO(sleep_times);
 
+static ssize_t uksm_meta_show(struct kobject *kobj,
+				  struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "node_vma\n%lu\nvma_slot\n%lu\nrmap_item\n%lu\nstable_node\n%lu\ntree_node\n%lu\n", 
+		uksm_meta_node_vma, uksm_meta_vma_slot, uksm_meta_rmap_item, uksm_meta_stable_node, uksm_meta_tree_node);
+}
+UKSM_ATTR_RO(uksm_meta);
+
 
 static struct attribute *uksm_attrs[] = {
+	&uksm_meta_attr.attr,
 	&max_cpu_percentage_attr.attr,
 	&sleep_millisecs_attr.attr,
 	&cpu_governor_attr.attr,
@@ -5406,6 +5455,8 @@ static struct attribute *uksm_attrs[] = {
 	&pages_shared_attr.attr,
 	&pages_sharing_attr.attr,
 	&pages_unshared_attr.attr,
+	&pages_merged_attr.attr,
+	&pages_zero_merged_attr.attr,
 	&full_scans_attr.attr,
 	&pages_scanned_attr.attr,
 	&hash_strength_attr.attr,

@@ -1,0 +1,26 @@
+global hash_node, rmap_item
+
+probe begin{
+  log("hello world")
+}
+
+probe kernel.function("alloc_hash_node@mm/ksm.c"){
+  hash_node += 1
+  log("hash_node alloc")
+  // printf("hash_node alloc: %d", hash_node)
+}
+
+probe kernel.function("free_hash_node@mm/ksm.c"){
+  hash_node -= 1
+  // printf("hash_node free: %d", hash_node)
+}
+
+probe kernel.function("alloc_pksm_rmap_item@mm/ksm.c"){
+  rmap_item += 1
+  // printf("rmap_item alloc: %d", rmap_item)
+}
+
+probe kernel.function("free_pksm_rmap_item@mm/ksm.c"){
+  rmap_item -= 1
+  // printf("rmap_item free: %d", rmap_item)
+}

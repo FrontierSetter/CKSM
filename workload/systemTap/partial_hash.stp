@@ -1,0 +1,95 @@
+global unstable_total, unstable_find
+global unstable_cnt_bucket, unstable_stale_bucket, unstable_partial_hash_skip
+global stable_total, stable_find
+global stable_cnt_bucket, stable_stale_bucket, stable_partial_hash_skip
+global unstable_partial_cmp, stable_partial_cmp
+global hash_time, partial_hash_time
+
+probe begin{
+    log("hello world")
+}
+
+probe end{
+    printf("unstable_total: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_total), @count(unstable_total), @avg(unstable_total))
+    printf("unstable_find: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_find), @count(unstable_find), @avg(unstable_find))
+    printf("unstable_cnt_bucket: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_cnt_bucket), @count(unstable_cnt_bucket), @avg(unstable_cnt_bucket))
+    printf("unstable_stale_bucket: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_stale_bucket), @count(unstable_stale_bucket), @avg(unstable_stale_bucket))
+    printf("unstable_partial_hash_skip: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_partial_hash_skip), @count(unstable_partial_hash_skip), @avg(unstable_partial_hash_skip))
+
+    printf("stable_total: sum = %d, cnt = %d, avg = %d\n", @sum(stable_total), @count(stable_total), @avg(stable_total))
+    printf("stable_find: sum = %d, cnt = %d, avg = %d\n", @sum(stable_find), @count(stable_find), @avg(stable_find))
+    printf("stable_cnt_bucket: sum = %d, cnt = %d, avg = %d\n", @sum(stable_cnt_bucket), @count(stable_cnt_bucket), @avg(stable_cnt_bucket))
+    printf("stable_stale_bucket: sum = %d, cnt = %d, avg = %d\n", @sum(stable_stale_bucket), @count(stable_stale_bucket), @avg(stable_stale_bucket))
+    printf("stable_partial_hash_skip: sum = %d, cnt = %d, avg = %d\n", @sum(stable_partial_hash_skip), @count(stable_partial_hash_skip), @avg(stable_partial_hash_skip))
+
+    printf("unstable_partial_cmp: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_partial_cmp), @count(unstable_partial_cmp), @avg(unstable_partial_cmp))
+    printf("stable_partial_cmp: sum = %d, cnt = %d, avg = %d\n", @sum(stable_partial_cmp), @count(stable_partial_cmp), @avg(stable_partial_cmp))
+    
+    printf("hash_time: sum = %d, cnt = %d, avg = %d\n", @sum(hash_time), @count(hash_time), @avg(hash_time))
+    printf("partial_hash_time: sum = %d, cnt = %d, avg = %d\n", @sum(partial_hash_time), @count(partial_hash_time), @avg(partial_hash_time))
+    printf("\n")
+}
+
+probe timer.s(10) {
+    printf("unstable_total: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_total), @count(unstable_total), @avg(unstable_total))
+    printf("unstable_find: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_find), @count(unstable_find), @avg(unstable_find))
+    printf("unstable_cnt_bucket: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_cnt_bucket), @count(unstable_cnt_bucket), @avg(unstable_cnt_bucket))
+    printf("unstable_stale_bucket: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_stale_bucket), @count(unstable_stale_bucket), @avg(unstable_stale_bucket))
+    printf("unstable_partial_hash_skip: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_partial_hash_skip), @count(unstable_partial_hash_skip), @avg(unstable_partial_hash_skip))
+
+    printf("stable_total: sum = %d, cnt = %d, avg = %d\n", @sum(stable_total), @count(stable_total), @avg(stable_total))
+    printf("stable_find: sum = %d, cnt = %d, avg = %d\n", @sum(stable_find), @count(stable_find), @avg(stable_find))
+    printf("stable_cnt_bucket: sum = %d, cnt = %d, avg = %d\n", @sum(stable_cnt_bucket), @count(stable_cnt_bucket), @avg(stable_cnt_bucket))
+    printf("stable_stale_bucket: sum = %d, cnt = %d, avg = %d\n", @sum(stable_stale_bucket), @count(stable_stale_bucket), @avg(stable_stale_bucket))
+    printf("stable_partial_hash_skip: sum = %d, cnt = %d, avg = %d\n", @sum(stable_partial_hash_skip), @count(stable_partial_hash_skip), @avg(stable_partial_hash_skip))
+
+    printf("unstable_partial_cmp: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_partial_cmp), @count(unstable_partial_cmp), @avg(unstable_partial_cmp))
+    printf("stable_partial_cmp: sum = %d, cnt = %d, avg = %d\n", @sum(stable_partial_cmp), @count(stable_partial_cmp), @avg(stable_partial_cmp))
+    
+    printf("hash_time: sum = %d, cnt = %d, avg = %d\n", @sum(hash_time), @count(hash_time), @avg(hash_time))
+    printf("partial_hash_time: sum = %d, cnt = %d, avg = %d\n", @sum(partial_hash_time), @count(partial_hash_time), @avg(partial_hash_time))
+    printf("\n")
+}
+
+probe kernel.function("unstable_hash_search_insert@mm/ksm.c").return{
+    unstable_total <<< @var("unstable_cnt_bucket@mm/ksm.c")+@var("unstable_stale_bucket@mm/ksm.c")+@var("unstable_partial_hash_skip@mm/ksm.c")
+    if($return){
+        unstable_find <<< 1
+        unstable_cnt_bucket <<< @var("unstable_cnt_bucket@mm/ksm.c")-1
+    }else{
+        unstable_find <<< 0
+        unstable_cnt_bucket <<< @var("unstable_cnt_bucket@mm/ksm.c")
+    }
+    unstable_stale_bucket <<< @var("unstable_stale_bucket@mm/ksm.c")
+    unstable_partial_hash_skip <<< @var("unstable_partial_hash_skip@mm/ksm.c")
+}
+
+probe kernel.function("stable_hash_search@mm/ksm.c").return{
+    stable_total <<< @var("stable_cnt_bucket@mm/ksm.c")+@var("stable_stale_bucket@mm/ksm.c")+@var("stable_partial_hash_skip@mm/ksm.c")
+    if($return){
+        stable_find <<< 1
+        stable_cnt_bucket <<< @var("stable_cnt_bucket@mm/ksm.c")-1
+    }else{
+        stable_find <<< 0
+        stable_cnt_bucket <<< @var("stable_cnt_bucket@mm/ksm.c")
+    }
+    stable_cnt_bucket <<< @var("stable_cnt_bucket@mm/ksm.c")
+    stable_stale_bucket <<< @var("stable_stale_bucket@mm/ksm.c")
+    stable_partial_hash_skip <<< @var("stable_partial_hash_skip@mm/ksm.c")
+}
+
+probe kernel.function("partial_test_cmp@mm/ksm.c").return{
+    unstable_partial_cmp <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("stable_partial_test_cmp@mm/ksm.c").return{
+    stable_partial_cmp <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("calc_hash@mm/ksm.c").return {
+  hash_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("calc_partial_hash@mm/ksm.c").return {
+  partial_hash_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
