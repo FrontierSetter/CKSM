@@ -20,20 +20,20 @@ int main (int argc,char *argv[])
     int group_idx = atoi(argv[4]);
 
     // 4KB * 10240 = 40MB
-    // int* result = (int*)malloc(1024*page_num*sizeof(int));
-    int* result = mmap(NULL,1024*page_num*sizeof(int),PROT_READ | PROT_WRITE,MAP_ANONYMOUS | MAP_PRIVATE,-1,0);
+    int* result = (int*)malloc(1024*page_num*sizeof(int));
+    // int* result = mmap(NULL,1024*page_num*sizeof(int),PROT_READ | PROT_WRITE,MAP_ANONYMOUS | MAP_PRIVATE,-1,0);
     int tem;
     int fpid;
 
-    int rc = madvise(result, 1024*page_num*sizeof(int), MADV_MERGEABLE );
+    // int rc = madvise(result, 1024*page_num*sizeof(int), MADV_MERGEABLE );
 
 
     memset(result, 128, 1024*page_num*sizeof(int));
 
 
-    if(rc == -1){
-        printf("madvise error\n");
-    }
+    // if(rc == -1){
+    //     printf("madvise error\n");
+    // }
 
     printf("group %d start\n", group_idx);
 

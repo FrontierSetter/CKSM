@@ -306,6 +306,7 @@ static unsigned long pksm_pages_shared;
 static unsigned long pksm_pages_sharing;
 
 static unsigned long pksm_pages_merged;
+static unsigned long pksm_pages_cowed;
 
 /* The number of page slots additionally sharing those nodes */
 
@@ -342,7 +343,8 @@ static unsigned int pksm_last_unmerged_pages = 1;
 static unsigned int pksm_cur_cont_unmerged_pages = 0;
 
 /* 扫描的步长 */
-static unsigned int pksm_scan_steps[5] = {3, 7, 17, 29, 41};
+static unsigned int pksm_scan_steps[5] = {1, 7, 17, 29, 41};
+// static unsigned int pksm_scan_steps[5] = {3, 7, 17, 29, 41};
 static unsigned int pksm_cur_scan_step = 17;
 
 static unsigned int pksm_scan_step_cnts[5] = {0, 0, 0, 0, 0};
@@ -354,6 +356,8 @@ static unsigned int pksm_scan_status = 0;
 /* 发生零归并的次数 */
 static unsigned long pksm_zero_merged = 0;
 
+static int unstable_cnt_bucket = 0;
+static int stable_cnt_bucket = 0;
 
 /* 零页面的哈希 */
 static u32 zero_hash __read_mostly;
@@ -688,7 +692,7 @@ static u32 calc_hash(struct page *page, uint32_t *partial_hash)
 }
 
 #ifdef SYST_NOINLINE
-static noinlie u32 calc_partial_hash(struct page *page)
+static noinline u32 calc_partial_hash(struct page *page)
 #else
 static u32 calc_partial_hash(struct page *page)
 #endif
@@ -1833,6 +1837,7 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 	unsigned int cur_entryIndex;
 	uint32_t new_partial_hash;
 
+	unstable_cnt_bucket = 0;
 
 	// printk("PKSM : unstable_hash_search_insert evoked : entryIndex = %u\n", entryIndex);
 
@@ -1864,11 +1869,13 @@ static struct page *unstable_hash_search_insert(struct page_slot *page_slot, str
 			continue;
 		}
 
+		++unstable_cnt_bucket;
 
 		// printk("PKSM : cmp start\n");
 
 		if(partial_hash != unstable_node->page_slot->partial_hash){
 			++partial_hash_skip;
+
 			// if(memcmp_pages(page, hash_page) == 0){
 			// 	printk("PKSM : error partial-hash wrong\n");
 			// }
@@ -1945,6 +1952,7 @@ static struct page *stable_hash_search(struct page *page, unsigned int entryInde
 	// int stale_bucket = 0;
 	// int partial_hash_skip = 0;
 
+	stable_cnt_bucket = 0;
 
 	// printk("PKSM : stable_hash_search evoked : entryIndex = %u\n", entryIndex);
 
@@ -1961,6 +1969,7 @@ static struct page *stable_hash_search(struct page *page, unsigned int entryInde
 		// printk("PKSM : stable_hash_search : stable_node:%p\n", stable_node);
 
 		// printk("PKSM : cmp start\n");
+		++stable_cnt_bucket;
 
 		if(stable_node->page_slot->partial_hash != partial_hash){
 			// printk("PKSM : cmp end partial_hash\n");
@@ -2242,6 +2251,7 @@ static void pksm_cmp_and_merge_page(struct page_slot *cur_page_slot)
 }
 
 static void calc_scan_step(unsigned long cur_stamp){
+	// pksm_cur_scan_step = 1;
 	unsigned long stamp_diff = pksm_scan.seqnr-cur_stamp;
 	if(pksm_new_pages_inlist > 32768){ //128MB
 	// if(pksm_new_pages_inlist > 32768‬){	//128MB
@@ -2536,12 +2546,13 @@ void pksm_new_anon_page(struct page *page, bool high_priority){
 		if (pksm_run & PKSM_RUN_UNMERGE)
 			list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 		else{
-			if(likely(high_priority)){
+			if(high_priority){
 				list_add(&page_slot->page_list, &pksm_page_head.page_list);
 				// list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 				// list_add(&page_slot->page_list, &pksm_scan.page_slot->page_list);
 			}else{
+				pksm_pages_cowed++;
 				list_add(&page_slot->page_list, &pksm_page_head.page_list);
 				// list_add_tail(&page_slot->page_list, &pksm_page_head.page_list);
 				// list_add_tail(&page_slot->page_list, &pksm_scan.page_slot->page_list);
@@ -2999,61 +3010,61 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 PKSM_ATTR(run);
 
 #ifdef CONFIG_NUMA
-static ssize_t merge_across_nodes_show(struct kobject *kobj,
-				struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", ksm_merge_across_nodes);
-}
+// static ssize_t merge_across_nodes_show(struct kobject *kobj,
+// 				struct kobj_attribute *attr, char *buf)
+// {
+// 	return sprintf(buf, "%u\n", ksm_merge_across_nodes);
+// }
 
-static ssize_t merge_across_nodes_store(struct kobject *kobj,
-				   struct kobj_attribute *attr,
-				   const char *buf, size_t count)
-{
-	int err;
-	unsigned long knob;
+// static ssize_t merge_across_nodes_store(struct kobject *kobj,
+// 				   struct kobj_attribute *attr,
+// 				   const char *buf, size_t count)
+// {
+// 	int err;
+// 	unsigned long knob;
 
-	err = kstrtoul(buf, 10, &knob);
-	if (err)
-		return err;
-	if (knob > 1)
-		return -EINVAL;
+// 	err = kstrtoul(buf, 10, &knob);
+// 	if (err)
+// 		return err;
+// 	if (knob > 1)
+// 		return -EINVAL;
 
-	mutex_lock(&pksm_thread_mutex);
-	wait_while_offlining();
-	if (ksm_merge_across_nodes != knob) {
-		if (pksm_pages_shared || remove_all_stable_nodes())
-			err = -EBUSY;
-		else if (root_stable_tree == one_stable_tree) {
-			struct rb_root *buf;
-			/*
-			 * This is the first time that we switch away from the
-			 * default of merging across nodes: must now allocate
-			 * a buffer to hold as many roots as may be needed.
-			 * Allocate stable and unstable together:
-			 * MAXSMP NODES_SHIFT 10 will use 16kB.
-			 */
-			buf = kcalloc(nr_node_ids + nr_node_ids, sizeof(*buf),
-				      GFP_KERNEL);
-			/* Let us assume that RB_ROOT is NULL is zero */
-			if (!buf)
-				err = -ENOMEM;
-			else {
-				root_stable_tree = buf;
-				root_unstable_tree = buf + nr_node_ids;
-				/* Stable tree is empty but not the unstable */
-				root_unstable_tree[0] = one_unstable_tree[0];
-			}
-		}
-		if (!err) {
-			ksm_merge_across_nodes = knob;
-			ksm_nr_node_ids = knob ? 1 : nr_node_ids;
-		}
-	}
-	mutex_unlock(&pksm_thread_mutex);
+// 	mutex_lock(&pksm_thread_mutex);
+// 	wait_while_offlining();
+// 	if (ksm_merge_across_nodes != knob) {
+// 		if (pksm_pages_shared || remove_all_stable_nodes())
+// 			err = -EBUSY;
+// 		else if (root_stable_tree == one_stable_tree) {
+// 			struct rb_root *buf;
+// 			/*
+// 			 * This is the first time that we switch away from the
+// 			 * default of merging across nodes: must now allocate
+// 			 * a buffer to hold as many roots as may be needed.
+// 			 * Allocate stable and unstable together:
+// 			 * MAXSMP NODES_SHIFT 10 will use 16kB.
+// 			 */
+// 			buf = kcalloc(nr_node_ids + nr_node_ids, sizeof(*buf),
+// 				      GFP_KERNEL);
+// 			/* Let us assume that RB_ROOT is NULL is zero */
+// 			if (!buf)
+// 				err = -ENOMEM;
+// 			else {
+// 				root_stable_tree = buf;
+// 				root_unstable_tree = buf + nr_node_ids;
+// 				/* Stable tree is empty but not the unstable */
+// 				root_unstable_tree[0] = one_unstable_tree[0];
+// 			}
+// 		}
+// 		if (!err) {
+// 			ksm_merge_across_nodes = knob;
+// 			ksm_nr_node_ids = knob ? 1 : nr_node_ids;
+// 		}
+// 	}
+// 	mutex_unlock(&pksm_thread_mutex);
 
-	return err ? err : count;
-}
-PKSM_ATTR(merge_across_nodes);
+// 	return err ? err : count;
+// }
+// PKSM_ATTR(merge_across_nodes);
 #endif
 
 static ssize_t pksm_meta_show(struct kobject *kobj,
@@ -3123,6 +3134,13 @@ static ssize_t pages_merged_show(struct kobject *kobj,
 	return sprintf(buf, "%lu\n", pksm_pages_merged);
 }
 PKSM_ATTR_RO(pages_merged);
+
+static ssize_t pages_cowed_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", pksm_pages_cowed);
+}
+PKSM_ATTR_RO(pages_cowed);
 
 static ssize_t sleep_real_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
@@ -3203,13 +3221,14 @@ static struct attribute *pksm_attrs[] = {
 	&pages_sharing_attr.attr,
 	&pages_unshared_attr.attr,
 	&pages_merged_attr.attr,
+	&pages_cowed_attr.attr,
 	&pages_inlist_attr.attr,
 	// &pages_volatile_attr.attr,
 	&full_scans_attr.attr,
 	&scan_step_cnt_attr.attr,
 	&scan_step_pervage_cnt_attr.attr,
 #ifdef CONFIG_NUMA
-	&merge_across_nodes_attr.attr,
+	// &merge_across_nodes_attr.attr,
 #endif
 	NULL,
 };

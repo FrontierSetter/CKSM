@@ -54,6 +54,18 @@ while True:
 
 width = 0.8
 
+firstScanTotal = 0
+nextScanTotal = 0
+
+for i in firstScan:
+    firstScanTotal += i
+
+for i in nextScan:
+    nextScanTotal += i
+
+print(firstScanTotal)
+print(nextScanTotal)
+
 plt.figure(figsize=(9,6))
 
 legendEntryArr = ['First scan', 'Next scans']
@@ -73,6 +85,6 @@ plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 plt.subplots_adjust(left=0.08, right=0.99, top=0.96, bottom=0.11)
 
-plt.savefig('scan_step.pdf')
+# plt.savefig('scan_step.pdf')
 
 plt.show()

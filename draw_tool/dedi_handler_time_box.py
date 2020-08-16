@@ -132,12 +132,12 @@ for box, c in zip(f['boxes'], color):
 # xfmt = ScalarFormatter(useMathText=True)
 # xfmt.set_powerlimits((0, 0))
 # plt.gca().yaxis.set_major_formatter(xfmt)
-plt.title('page allocate overhead',fontsize=16)
+plt.title('page allocate latency',fontsize=16)
 
 # plt.legend(fontsize=16)
 plt.xticks(fontsize=16)
 plt.yticks(fontsize=12)
-plt.ylabel('Overhead(ns)', fontsize=16)
+plt.ylabel('Latency(ns)', fontsize=16)
 
 print('start draw2')
 plt.subplot(122)
@@ -164,12 +164,12 @@ for box, c in zip(f['boxes'], color):
 # xfmt = ScalarFormatter(useMathText=True)
 # xfmt.set_powerlimits((0, 0))
 # plt.gca().yaxis.set_major_formatter(xfmt)
-plt.title('page reclaim overhead',fontsize=16)
+plt.title('page reclaim latency',fontsize=16)
 
 # plt.legend(fontsize=16)
 plt.xticks(fontsize=16)
 plt.yticks(fontsize=12)
-plt.ylabel('Overhead(ns)', fontsize=16)
+# plt.ylabel('Overhead(ns)', fontsize=16)
 
 
 plt.subplots_adjust(left=0.08, right=0.99, top=0.94, bottom=0.11)

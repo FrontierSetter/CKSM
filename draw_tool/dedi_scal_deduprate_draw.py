@@ -61,6 +61,10 @@ for dataDict in oriData:
 
 # print(cksmArr)
 # print(tickArr)
+print(cksmStableArr)
+print(uksmStableArr)
+print(cksmPeakArr)
+print(uksmPeakArr)
 
 x=np.arange(len(tickArr))
 width = 0.4

@@ -89,6 +89,7 @@ for groupIdx in range(groupNum):
                 else:
                     allArr[curEntry].append(oriDict[curName][curEntry]/unitCast/oriDict[curName]['cnt'])
 
+    print(allArr)
 
     ind = np.arange(len(nameArr))
 
@@ -96,7 +97,8 @@ for groupIdx in range(groupNum):
 
     plt.xticks(ind, nameArr, fontsize=16)
 
-    plt.ylabel('time(ns)', fontsize=18)
+    if groupIdx == 0:
+        plt.ylabel('time(ns)', fontsize=18)
     plt.yticks(fontsize=14)
 
 
@@ -112,7 +114,7 @@ for groupIdx in range(groupNum):
         for i in range(len(allArr[curEntry])):
             baseArr[i] += allArr[curEntry][i]
     
-    plt.title(groupName[groupIdx], loc='center', y=-0.12, fontsize=14)
+    plt.title(groupName[groupIdx], loc='center', y=-0.12, fontsize=18)
 
 plt.figlegend(legendArr, legendEntryArr,ncol=len(legendEntryArr), loc="upper center", fontsize=16)
 

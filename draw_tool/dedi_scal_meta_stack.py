@@ -200,6 +200,9 @@ for curStageArr,curEntry in zip(cksmArr,stageNameArr):
     for i in range(len(curStageArr)):
         baseArr[i] += curStageArr[i]
 
+print('cksm all')
+print(baseArr)
+
 baseArr = [0]*len(uksmArr[0])
 
 for curStageArr,curEntry in zip(uksmArr,stageNameArr):
@@ -207,6 +210,9 @@ for curStageArr,curEntry in zip(uksmArr,stageNameArr):
 
     for i in range(len(curStageArr)):
         baseArr[i] += curStageArr[i]
+
+print('uksm all')
+print(baseArr)
 
 axBar.set_ylabel('Meta Data Usage(MB)', fontsize=18)
 axBar.legend(legendArrBar, legendEntryArrBar, fontsize=16)

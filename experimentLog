@@ -600,3 +600,34 @@ docker pull httpd &&
 docker pull bitnami/mongodb &&
 docker pull mysql &&
 docker pull couchbase
+
+-------------------------------------------------------------------------------------
+
+virt-clone --connect qemu:///system --original=test0 --name=test8 --file=//var/lib/libvirt/images/test8.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test9 --file=//var/lib/libvirt/images/test9.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test10 --file=//var/lib/libvirt/images/test10.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test11 --file=//var/lib/libvirt/images/test11.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test12 --file=//var/lib/libvirt/images/test12.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test13 --file=//var/lib/libvirt/images/test13.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test14 --file=//var/lib/libvirt/images/test14.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test15 --file=//var/lib/libvirt/images/test15.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test16 --file=//var/lib/libvirt/images/test16.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test17 --file=//var/lib/libvirt/images/test17.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test18 --file=//var/lib/libvirt/images/test18.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test19 --file=//var/lib/libvirt/images/test19.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test20 --file=//var/lib/libvirt/images/test20.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test21 --file=//var/lib/libvirt/images/test21.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test22 --file=//var/lib/libvirt/images/test22.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test23 --file=//var/lib/libvirt/images/test23.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test24 --file=//var/lib/libvirt/images/test24.qcow2 &&
+virt-clone --connect qemu:///system --original=test0 --name=test25 --file=//var/lib/libvirt/images/test25.qcow2 &&
+
+-------------------------------------------------------------------------------------
+
+python .\draw_mem_line.py '..\log\8-12-2(kvm8_uksm)\out_mem_usage.log' '..\log\8-12-9(kvm8_ksm300)\out_mem_usage.log' '..\log\8-12-6(kvm8_base)\out_mem_usage.log' '..\log\8-12-4(kvm8_pksm)\out_mem_usage.log' '..\log\8-13-1(kvm8_pksm1)\out_mem_usage.log' '..\log\8-13-2(ksm8_pksm1)\out_mem_usage.log' '..\log\8-13-3(ksm8_uksm)\out_mem_usage.log
+
+-------------------------------------------------------------------------------------
+docker volume rm $(docker volume ls -qf dangling=true)
+
+b945f6847c7a2db6246086ab8de523596d326dfcb8fd2f2d8bacde32e51f4bbf
+aa490e6d0291
