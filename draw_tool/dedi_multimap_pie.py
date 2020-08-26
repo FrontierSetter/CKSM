@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
-# python .\dedi_multimap.py '..\log\7-18-10(uksm_nginx64)\out_total_multi.log' '..\log\7-19-1(uksm_scalability4)\out_total.log'
+# python .\dedi_multimap_pie.py '..\log\7-19-1(uksm_scalability4)\out_total.log'
 
 nameArr = []
 entryArr = []
@@ -80,11 +80,12 @@ plt.pie(x=dataArr,
     # labels=labelArr, 
     autopct='%.2f%%',
     startangle=90,
-    wedgeprops = {'linewidth': 2, 'edgecolor':'green'},
+    colors=['#83c5be', '#ffb4a2'],
+    wedgeprops = {'linewidth': 2, 'edgecolor':'black'},
     explode=[0,0.2],
-    textprops = {'fontsize':25, 'color':'black'},
+    textprops = {'fontsize':28, 'color':'black'},
     )
-plt.legend(labels=labelArr, fontsize=19)
+plt.legend(labels=labelArr, fontsize=22)
 plt.subplots_adjust(left=0.09, right=0.98, top=0.99, bottom=0.01)
 
 # plt.title('multi-map proportion in linux-scala')

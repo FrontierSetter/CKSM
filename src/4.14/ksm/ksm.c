@@ -225,10 +225,16 @@ static struct kmem_cache *rmap_item_cache;
 static struct kmem_cache *stable_node_cache;
 static struct kmem_cache *mm_slot_cache;
 
+static unsigned int ksm_cur_merged_pages = 1;
+static unsigned int ksm_cur_unmerged_pages = 1;
+static unsigned int ksm_cur_cont_unmerged_pages = 1;
+
+
 /* The number of nodes in the stable tree */
 static unsigned long ksm_pages_shared;
 static unsigned long ksm_pages_merged;
 static unsigned long ksm_slot_cnt;
+static unsigned long ksm_stable_node;
 
 /* The number of page slots additionally sharing those nodes */
 static unsigned long ksm_pages_sharing;
@@ -252,7 +258,7 @@ static int ksm_stable_node_chains_prune_millisecs = 2000;
 static int ksm_max_page_sharing = 256;
 
 /* Number of pages ksmd should scan in one batch */
-static unsigned int ksm_thread_pages_to_scan = 100;
+static unsigned int ksm_thread_pages_to_scan = 200;
 
 /* Milliseconds ksmd should sleep between batches */
 static unsigned int ksm_thread_sleep_millisecs = 20;
@@ -383,6 +389,7 @@ static inline struct stable_node *alloc_stable_node(void)
 	 * pressure, which may lead to hung task warnings.  Adding __GFP_HIGH
 	 * grants access to memory reserves, helping to avoid this problem.
 	 */
+	 ++ksm_stable_node;
 	return kmem_cache_alloc(stable_node_cache, GFP_KERNEL | __GFP_HIGH);
 }
 
@@ -390,6 +397,7 @@ static inline void free_stable_node(struct stable_node *stable_node)
 {
 	VM_BUG_ON(stable_node->rmap_hlist_len &&
 		  !is_stable_node_chain(stable_node));
+	 --ksm_stable_node;
 	kmem_cache_free(stable_node_cache, stable_node);
 }
 
@@ -511,7 +519,7 @@ static struct vm_area_struct *find_mergeable_vma(struct mm_struct *mm,
 	vma = find_vma(mm, addr);
 	if (!vma || vma->vm_start > addr)
 		return NULL;
-	if (!(vma->vm_flags & VM_MERGEABLE) || !vma->anon_vma)
+	if (!ksm_flags_can_scan(vma->vm_flags) || !vma->anon_vma)
 		return NULL;
 	return vma;
 }
@@ -947,7 +955,7 @@ static int unmerge_and_remove_all_rmap_items(void)
 		for (vma = mm->mmap; vma; vma = vma->vm_next) {
 			if (ksm_test_exit(mm))
 				break;
-			if (!(vma->vm_flags & VM_MERGEABLE) || !vma->anon_vma)
+			if (!ksm_flags_can_scan(vma->vm_flags) || !vma->anon_vma)
 				continue;
 			err = unmerge_ksm_pages(vma,
 						vma->vm_start, vma->vm_end);
@@ -2007,6 +2015,7 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 	int err;
 	bool max_page_sharing_bypass = false;
 
+
 	stable_node = page_stable_node(page);
 	if (stable_node) {
 		if (stable_node->head != &migrate_nodes &&
@@ -2036,6 +2045,8 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 
 	remove_rmap_item_from_tree(rmap_item);
 
+	++ksm_cur_cont_unmerged_pages;
+
 	if (kpage) {
 		err = try_to_merge_with_ksm_page(rmap_item, page, kpage);
 		if (!err) {
@@ -2047,6 +2058,8 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 			stable_tree_append(rmap_item, page_stable_node(kpage),
 					   max_page_sharing_bypass);
 			unlock_page(kpage);
+			ksm_cur_cont_unmerged_pages = 0;
+			++ksm_cur_merged_pages;
 		}
 		put_page(kpage);
 		return;
@@ -2080,8 +2093,11 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 		 * In case of failure, the page was not really empty, so we
 		 * need to continue. Otherwise we're done.
 		 */
-		if (!err)
+		if (!err){
+			ksm_cur_cont_unmerged_pages = 0;
+			++ksm_cur_merged_pages;
 			return;
+		}
 	}
 	tree_rmap_item =
 		unstable_tree_search_insert(rmap_item, page, &tree_page);
@@ -2101,6 +2117,8 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 						   false);
 				stable_tree_append(rmap_item, stable_node,
 						   false);
+				ksm_cur_cont_unmerged_pages = 0;
+				++ksm_cur_merged_pages;
 			}
 			unlock_page(kpage);
 
@@ -2216,7 +2234,7 @@ next_mm:
 		vma = find_vma(mm, ksm_scan.address);
 
 	for (; vma; vma = vma->vm_next) {
-		if (!(vma->vm_flags & VM_MERGEABLE))
+		if (!ksm_flags_can_scan(vma->vm_flags))
 			continue;
 		if (ksm_scan.address < vma->vm_start)
 			ksm_scan.address = vma->vm_start;
@@ -2314,6 +2332,7 @@ static void ksm_do_scan(unsigned int scan_npages)
 	struct page *uninitialized_var(page);
 
 	while (scan_npages-- && likely(!freezing(current))) {
+	// while (ksm_cur_cont_unmerged_pages < scan_npages && likely(!freezing(current))) {
 		cond_resched();
 		rmap_item = scan_get_next_rmap_item(&page);
 		if (!rmap_item){
@@ -2338,8 +2357,12 @@ static int ksm_scan_thread(void *nothing)
 	while (!kthread_should_stop()) {
 		mutex_lock(&ksm_thread_mutex);
 		wait_while_offlining();
-		if (ksmd_should_run())
+		if (ksmd_should_run()){
+			ksm_cur_cont_unmerged_pages = 0;
+			ksm_cur_merged_pages = 1;
+
 			ksm_do_scan(ksm_thread_pages_to_scan);
+		}
 		mutex_unlock(&ksm_thread_mutex);
 
 		try_to_freeze();
@@ -2361,25 +2384,25 @@ static inline int vma_can_enter(struct vm_area_struct *vma)
 	return ksm_flags_can_scan(vma->vm_flags);
 }
 
-void ksm_vma_add_new(struct vm_area_struct *vma)
-{
-	struct mm_struct *mm = vma->vm_mm;
-	int err;
+// void ksm_vma_add_new(struct vm_area_struct *vma)
+// {
+// 	struct mm_struct *mm = vma->vm_mm;
+// 	int err;
 
-	if (!vma_can_enter(vma)) {
-		return;
-	}
+// 	if (!vma_can_enter(vma)) {
+// 		return;
+// 	}
 
-	if (!(ksm_run & KSM_RUN_UNMERGE)){
-		return;
-	}
+// 	if (!(ksm_run & KSM_RUN_MERGE)){
+// 		return;
+// 	}
 
-	err = __ksm_enter(mm);
-	if (err)
-		return ;
+// 	err = __ksm_enter(mm);
+// 	if (err)
+// 		return ;
 
-	vma->vm_flags |= VM_MERGEABLE;
-}
+// 	vma->vm_flags |= VM_MERGEABLE;
+// }
 
 int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
 		unsigned long end, int advice, unsigned long *vm_flags)
@@ -2412,16 +2435,16 @@ int ksm_madvise(struct vm_area_struct *vma, unsigned long start,
 		break;
 
 	case MADV_UNMERGEABLE:
-		if (!(*vm_flags & VM_MERGEABLE))
-			return 0;		/* just ignore the advice */
+		// if (!(*vm_flags & VM_MERGEABLE))
+		// 	return 0;		/* just ignore the advice */
 
-		if (vma->anon_vma) {
-			err = unmerge_ksm_pages(vma, start, end);
-			if (err)
-				return err;
-		}
+		// if (vma->anon_vma) {
+		// 	err = unmerge_ksm_pages(vma, start, end);
+		// 	if (err)
+		// 		return err;
+		// }
 
-		*vm_flags &= ~VM_MERGEABLE;
+		// *vm_flags &= ~VM_MERGEABLE;
 		break;
 	}
 
@@ -3069,18 +3092,18 @@ static ssize_t full_scans_show(struct kobject *kobj,
 }
 KSM_ATTR_RO(full_scans);
 
-static ssize_t slot_cnt_show(struct kobject *kobj,
+static ssize_t ksm_meta_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%lu\n", ksm_slot_cnt);
+	return sprintf(buf, "rmap_item\n%lu\nstable_node\n%lu\nmm_slot\n%lu\n", ksm_rmap_items, ksm_stable_node, ksm_slot_cnt);
 }
-KSM_ATTR_RO(slot_cnt);
+KSM_ATTR_RO(ksm_meta);
 
 static struct attribute *ksm_attrs[] = {
 	&sleep_millisecs_attr.attr,
 	&pages_to_scan_attr.attr,
 	&run_attr.attr,
-	&slot_cnt_attr.attr,
+	&ksm_meta_attr.attr,
 	&pages_shared_attr.attr,
 	&pages_merged_attr.attr,
 	&pages_sharing_attr.attr,
@@ -3112,7 +3135,7 @@ static int __init ksm_init(void)
 	/* The correct value depends on page size and endianness */
 	zero_checksum = calc_checksum(ZERO_PAGE(0));
 	/* Default to false for backwards compatibility */
-	ksm_use_zero_pages = false;
+	ksm_use_zero_pages = true;
 
 	err = ksm_slab_init();
 	if (err)

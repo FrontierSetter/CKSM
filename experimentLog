@@ -595,6 +595,7 @@ ulimit -n 65536
 stap -g ./pksm_meta.stp  --suppress-time-limits > meta.log
 -------------------------------------------------------------------------------------
 
+docker pull tomcat &&
 docker pull postgres &&
 docker pull httpd &&
 docker pull bitnami/mongodb &&

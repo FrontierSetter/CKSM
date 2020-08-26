@@ -5,8 +5,8 @@ import numpy as np
 color1 = 'tab:blue'
 color2 = 'tab:red'
 
-xPosition = [-40, 32, 128, 256, 512, 1024, 2046]
-# xPosition = [32, 64, 128, 256, 512, 1024, 2046]
+# xPosition = [-40, 32, 128, 256, 512, 1024, 2046]
+xPosition = [24, 64, 128, 256, 512, 1024, 2046]
 # xPosition = [0, 1, 2, 3, 4, 5, 6]
 # xtickArr = ['5','6','7','8','9','10','11']
 xtickArr = ['32','64','128','256','512','1024','2048']
@@ -14,7 +14,7 @@ partialRateArr = [88.5968, 91.4175, 91.7633, 98.2856, 93.4616, 93.2143, 93.3089]
 calcOverheadArr = [0.462007, 0.498028, 0.520771, 0.555602, 0.646362, 0.764094, 0.830889]
 skipedCmpArr = [0.738756, 0.793132, 0.793198, 0.813813, 0.878168, 0.701435, 0.731554]
 
-fig = plt.figure(figsize=(12,6)) #定义figure，（1）中的1是什么
+fig = plt.figure(figsize=(15,6)) #定义figure，（1）中的1是什么
 
 axRate = fig.add_subplot(111)
 axOverhead=axRate.twinx()
@@ -29,7 +29,7 @@ for tl in axRate.get_yticklabels():
     tl.set_color(color1)
     tl.set_fontsize(14)
 axRate.set_xticklabels(xtickArr, fontsize=10, rotation=0)
-axRate.set_ylabel('Partial Hash Skip Rate (%)', fontsize=16, color=color1)
+axRate.set_ylabel('Byte-by-byte Comparison Skip Rate (%)', fontsize=16, color=color1)
 axRate.set_xlabel('Partial Hash Length (Bytes)', fontsize=16)
 for tl in axRate.get_xticklabels():
     tl.set_fontsize(14)
@@ -76,7 +76,7 @@ axRate.legend(plots, labs, fontsize=16, handlelength=3)
 # # ax_wear.axis['right4'].line.set_color('blue')
 
 
-plt.subplots_adjust(left=0.1, right=0.9, top=0.96, bottom=0.11)
+plt.subplots_adjust(left=0.05, right=0.95, top=0.96, bottom=0.11)
 
 plt.savefig('partial_hash.pdf')
 plt.show()

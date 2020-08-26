@@ -42,8 +42,8 @@ for dataDict in oriData:
     curCksmMerge = dataDict['cksm'][1]
     curUksmCpu = dataDict['uksm'][0]
     curUksmMerge = dataDict['uksm'][1]
-    cksmArr.append(float(curCksmCpu)/curCksmMerge)
-    uksmArr.append(float(curUksmCpu)/curUksmMerge)
+    cksmArr.append(float(curCksmCpu)/curCksmMerge*100)
+    uksmArr.append(float(curUksmCpu)/curUksmMerge*100)
 
 print(cksmArr)
 # print(tickArr)
@@ -56,7 +56,7 @@ plt.figure(figsize=(9,6))
 plt.bar(x-width/2*1.05, cksmArr, width, color='tab:green', label='CKSM', edgecolor='black', hatch='/')
 plt.bar(x+width/2*1.05, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')
 
-plt.ylabel('CPU Consumption per Merge(core*s) ', fontsize=18)
+plt.ylabel('CPU Consumption per Merge(%core*s) ', fontsize=18)
 plt.yticks(fontsize=16)
 # plt.ylim(0,100)
 

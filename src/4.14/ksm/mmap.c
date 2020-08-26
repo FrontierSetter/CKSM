@@ -963,7 +963,7 @@ again:
 	if (insert && file)
 		uprobe_mmap(insert);
 
-	ksm_vma_add_new(next);
+	// ksm_vma_add_new(next);
 
 	validate_mm(mm);
 
@@ -1720,7 +1720,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 			allow_write_access(file);
 	}
 	file = vma->vm_file;
-	ksm_vma_add_new(vma);
+	// ksm_vma_add_new(vma);
 
 out:
 	perf_event_mmap(vma);
@@ -2936,7 +2936,7 @@ static int do_brk_flags(unsigned long addr, unsigned long request, unsigned long
 	vma->vm_flags = flags;
 	vma->vm_page_prot = vm_get_page_prot(flags);
 	vma_link(mm, vma, prev, rb_link, rb_parent);
-	ksm_vma_add_new(vma);
+	// ksm_vma_add_new(vma);
 out:
 	perf_event_mmap(vma);
 	mm->total_vm += len >> PAGE_SHIFT;
@@ -3149,7 +3149,7 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
 			new_vma->vm_ops->open(new_vma);
 		vma_link(mm, new_vma, prev, rb_link, rb_parent);
 		*need_rmap_locks = false;
-		ksm_vma_add_new(new_vma);
+		// ksm_vma_add_new(new_vma);
 	}
 	return new_vma;
 
@@ -3300,7 +3300,7 @@ static struct vm_area_struct *__install_special_mapping(
 	vm_stat_account(mm, vma->vm_flags, len >> PAGE_SHIFT);
 
 	perf_event_mmap(vma);
-	ksm_vma_add_new(vma);
+	// ksm_vma_add_new(vma);
 
 	return vma;
 

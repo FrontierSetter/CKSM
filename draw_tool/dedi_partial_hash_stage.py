@@ -7,7 +7,7 @@ import sys
 
 hatchDict={'scan': '\\\\', 'hash': '.', 'compare': 'o', 'merge': 'x', 'other': '//'}
 colorDict={'scan': '#577590', 'hash': '#43aa8b', 'compare': '#90be6d', 'merge': '#f9c74f', 'other': '#f94144'}
-groupName = ['Low load(1 item per bucket)', 'Normal load(6 items per bucket)', 'Heavy load(12 items per bucket)']
+groupName = ['Low load (1 collision)', 'Normal load (6 collisions)', 'Heavy load (12 collisions)']
 
 groupNum = int((len(sys.argv)-1)/2)
 print(groupNum)

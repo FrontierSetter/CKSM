@@ -35,13 +35,12 @@ static inline int ksm_fork(struct mm_struct *mm, struct mm_struct *oldmm)
 
 static inline void ksm_exit(struct mm_struct *mm)
 {
-	// if (test_bit(MMF_VM_MERGEABLE, &mm->flags))
+	if (test_bit(MMF_VM_MERGEABLE, &mm->flags))
 	__ksm_exit(mm);
 }
 
 static inline void ksm_enter(struct mm_struct *mm)
 {
-	// if (test_bit(MMF_VM_MERGEABLE, &mm->flags))
 	__ksm_enter(mm);
 }
 
@@ -63,9 +62,9 @@ static inline int ksm_flags_can_scan(unsigned long vm_flags)
 			return 0;
 #endif
 
-	return !(vm_flags & (VM_PFNMAP | VM_IO  | VM_DONTEXPAND |
-			     VM_HUGETLB | VM_MIXEDMAP | VM_SHARED
-			     | VM_MAYSHARE | VM_GROWSUP | VM_GROWSDOWN));
+	return !(vm_flags & (VM_MERGEABLE | VM_SHARED  | VM_MAYSHARE   |
+				 VM_PFNMAP    | VM_IO      | VM_DONTEXPAND |
+				 VM_HUGETLB | VM_MIXEDMAP));
 }
 
 /*

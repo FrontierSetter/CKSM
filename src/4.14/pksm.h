@@ -74,6 +74,18 @@ static inline void set_page_stable_node(struct page *page,
 				(PAGE_MAPPING_ANON | PAGE_MAPPING_KSM);
 }
 
+static inline int pksm_flags_can_scan(unsigned long vm_flags)
+{
+#ifdef VM_SAO
+		if (vm_flags & VM_SAO)
+			return 0;
+#endif
+
+	return !(vm_flags & (VM_MERGEABLE | VM_SHARED  | VM_MAYSHARE   |
+				 VM_PFNMAP    | VM_IO      | VM_DONTEXPAND |
+				 VM_HUGETLB | VM_MIXEDMAP));
+}
+
 /*
  * When do_swap_page() first faults in from swap what used to be a KSM page,
  * no problem, it will be assigned to this vma's anon_vma; but thereafter,

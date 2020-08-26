@@ -15,17 +15,21 @@ tick_label=['PyTorch','Idle','Compile','Docker','KVM']
 plt.figure(figsize=(9,6))
 
 #绘制并列柱状图
-plt.bar(x,y2,bar_width,label='scan')
+bars = plt.bar(x,y2,bar_width,label='scan',color='#5390d9', edgecolor='black', linewidth=1)
 
-plt.ylabel('Scan Amplification Factor', fontsize=20)
+# for b in bars:
+#     h = b.get_height()
+#     plt.text(b.get_x()+b.get_width()/2, h, '%.2f$\\times$' % (h), ha='center', va='bottom', fontsize=22)
 
-plt.yticks(fontsize=18)
+plt.ylabel('Scan Amplification Factor', fontsize=28)
+
+plt.yticks(fontsize=20)
 # plt.legend(fontsize=18)#显示图例，即label
-plt.xticks(x,tick_label, fontsize=20)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
+plt.xticks(x,tick_label, fontsize=28)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
 # plt.xticks([])
 # plt.gca().yaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
-plt.subplots_adjust(left=0.09, right=0.98, top=0.98, bottom=0.09)
-plt.axhline(y=1,ls="--",c="red")#添加水平直线
+plt.subplots_adjust(left=0.1, right=0.98, top=0.99, bottom=0.12)
+plt.axhline(y=1,ls="--",c="red",linewidth=4)#添加水平直线
 # plt.savefig('scan_overhead.pdf')
 
 plt.savefig('sparse_scan.pdf')

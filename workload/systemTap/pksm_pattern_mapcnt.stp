@@ -1,0 +1,29 @@
+global pksm_map_count_normal
+global pksm_zero_merge
+
+probe begin{
+  log("hello world")
+  pksm_map_count_normal <<< 1
+  pksm_zero_merge <<< 1
+}
+
+probe end{
+  printf("now: %d\n", gettimeofday_s())
+  printf("pksm_zero_merge: sum = %d, cnt = %d, avg = %d\n", @sum(pksm_zero_merge), @count(pksm_zero_merge), @avg(pksm_zero_merge))
+  print(@hist_log(pksm_map_count_normal))
+}
+
+probe timer.s(1) {
+  printf("now: %d\n", gettimeofday_s())
+  printf("pksm_zero_merge: sum = %d, cnt = %d, avg = %d\n", @sum(pksm_zero_merge), @count(pksm_zero_merge), @avg(pksm_zero_merge))
+  print(@hist_log(pksm_map_count_normal))
+}
+
+# map_count
+probe kernel.function("try_to_merge_with_pksm_page@mm/ksm.c") {
+  pksm_map_count_normal <<< $kpage->_mapcount->counter
+}
+
+probe kernel.function("pksm_try_to_merge_zero_page@mm/ksm.c") {
+  pksm_zero_merge <<< 1
+}

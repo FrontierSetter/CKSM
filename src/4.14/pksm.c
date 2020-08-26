@@ -45,7 +45,7 @@
 
 #include <asm/barrier.h>
 
-// #define SYST_NOINLINE
+#define SYST_NOINLINE
 // #define SCAN_STEP_CNT
 
 // #define VERBOS_GET_PKSM_PAGE

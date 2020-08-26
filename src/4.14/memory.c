@@ -3668,6 +3668,12 @@ static int do_cow_fault(struct vm_fault *vmf)
 	ret = __do_fault(vmf);
 	if (unlikely(ret & (VM_FAULT_ERROR | VM_FAULT_NOPAGE | VM_FAULT_RETRY)))
 		goto uncharge_out;
+
+	// if(pksm_flags_can_scan(vma->vm_flags)){
+	// 	// printk(KERN_ALERT "PKSM : do_cow\n");
+	// 	pksm_new_anon_page(vmf->cow_page, true);
+	// }
+
 	if (ret & VM_FAULT_DONE_COW)
 		return ret;
 

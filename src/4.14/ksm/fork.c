@@ -709,7 +709,7 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		__vma_link_rb(mm, tmp, rb_link, rb_parent);
 		rb_link = &tmp->vm_rb.rb_right;
 		rb_parent = &tmp->vm_rb;
-		ksm_vma_add_new(tmp);
+		// ksm_vma_add_new(tmp);
 		mm->map_count++;
 		if (!(tmp->vm_flags & VM_WIPEONFORK))
 			retval = copy_page_range(mm, oldmm, mpnt);
@@ -852,7 +852,7 @@ static struct mm_struct *mm_init(struct mm_struct *mm, struct task_struct *p,
 
 	mm->user_ns = get_user_ns(user_ns);
 
-	// ksm_enter(mm);
+	ksm_enter(mm);
 	return mm;
 
 fail_nocontext:
