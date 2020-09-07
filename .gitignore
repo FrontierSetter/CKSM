@@ -20,3 +20,5 @@ venv
 fig
 
 *.pdf
+
+draw_tool/heatmap/partial_hash_cc

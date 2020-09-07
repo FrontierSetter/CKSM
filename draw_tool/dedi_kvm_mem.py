@@ -73,14 +73,14 @@ for i in range(len(sys.argv)-1):
     plt.plot(xArr[i],yArr[i], label=typeArr[i], linewidth=4, marker=markerTable[typeArr[i]], color=colorTable[typeArr[i]], markevery=int(len(xArr[i])/15), markersize=10)
     # plt.annotate('', compArr[i],xytext=(compArr[i][0]-6, compArr[i][1]+0.6), arrowprops=dict(arrowstyle='-|>',connectionstyle='arc3',color='red'))
 
-plt.legend(fontsize=16)
-plt.xticks(fontsize=16)
-plt.yticks(fontsize=16)
-plt.xlabel('Time(s)', fontsize=18)
-plt.ylabel('Memory Usage(GB)', fontsize=18)
-plt.subplots_adjust(left=0.08, right=0.99, top=0.96, bottom=0.11)
+plt.legend(fontsize=20)
+plt.xticks(fontsize=18)
+plt.yticks(fontsize=18)
+plt.xlabel('Time(s)', fontsize=24)
+plt.ylabel('Memory Usage(GB)', fontsize=24)
+plt.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.11)
 
-# plt.savefig('kvm_mem.pdf')
+plt.savefig('kvm_mem.pdf')
 
 plt.show()
 

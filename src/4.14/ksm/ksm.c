@@ -800,6 +800,7 @@ static void remove_rmap_item_from_tree(struct rmap_item *rmap_item)
 	}
 out:
 	cond_resched();		/* we're called from many long loops */
+	return;
 }
 
 static void remove_trailing_rmap_items(struct mm_slot *mm_slot,
@@ -995,7 +996,7 @@ error:
 }
 #endif /* CONFIG_SYSFS */
 
-static u32 calc_checksum(struct page *page)
+static noinline u32 calc_checksum(struct page *page)
 {
 	u32 checksum;
 	void *addr = kmap_atomic(page);
@@ -1245,13 +1246,85 @@ out:
 	return err;
 }
 
+static noinline int try_to_merge_one_page_zero(struct vm_area_struct *vma,
+				 struct page *page, struct page *kpage)
+{
+	pte_t orig_pte = __pte(0);
+	int err = -EFAULT;
+
+	if (page == kpage)			/* ksm page forked */
+		return 0;
+
+	if (!PageAnon(page))
+		goto out;
+
+	/*
+	 * We need the page lock to read a stable PageSwapCache in
+	 * write_protect_page().  We use trylock_page() instead of
+	 * lock_page() because we don't want to wait here - we
+	 * prefer to continue scanning and merging different pages,
+	 * then come back to this page when it is unlocked.
+	 */
+	if (!trylock_page(page))
+		goto out;
+
+	if (PageTransCompound(page)) {
+		if (split_huge_page(page))
+			goto out_unlock;
+	}
+
+	/*
+	 * If this anonymous page is mapped only here, its pte may need
+	 * to be write-protected.  If it's mapped elsewhere, all of its
+	 * ptes are necessarily already write-protected.  But in either
+	 * case, we need to lock and check page_count is not raised.
+	 */
+	if (write_protect_page(vma, page, &orig_pte) == 0) {
+		if (!kpage) {
+			/*
+			 * While we hold page lock, upgrade page from
+			 * PageAnon+anon_vma to PageKsm+NULL stable_node:
+			 * stable_tree_insert() will update stable_node.
+			 */
+			set_page_stable_node(page, NULL);
+			mark_page_accessed(page);
+			/*
+			 * Page reclaim just frees a clean page with no dirty
+			 * ptes: make sure that the ksm page would be swapped.
+			 */
+			if (!PageDirty(page))
+				SetPageDirty(page);
+			err = 0;
+		} else if (pages_identical(page, kpage)){
+			err = replace_page(vma, page, kpage, orig_pte);
+			ksm_pages_merged++;
+		}
+	}
+
+	if ((vma->vm_flags & VM_LOCKED) && kpage && !err) {
+		munlock_vma_page(page);
+		if (!PageMlocked(kpage)) {
+			unlock_page(page);
+			lock_page(kpage);
+			mlock_vma_page(kpage);
+			page = kpage;		/* for final unlock */
+		}
+	}
+
+out_unlock:
+	unlock_page(page);
+out:
+	return err;
+}
+
+
 /*
  * try_to_merge_with_ksm_page - like try_to_merge_two_pages,
  * but no new kernel page is allocated: kpage must already be a ksm page.
  *
  * This function returns 0 if the pages were merged, -EFAULT otherwise.
  */
-static int try_to_merge_with_ksm_page(struct rmap_item *rmap_item,
+static noinline int try_to_merge_with_ksm_page(struct rmap_item *rmap_item,
 				      struct page *page, struct page *kpage)
 {
 	struct mm_struct *mm = rmap_item->mm;
@@ -1527,7 +1600,7 @@ static __always_inline struct page *chain(struct stable_node **s_n_d,
  * This function returns the stable tree node of identical content if found,
  * NULL otherwise.
  */
-static struct page *stable_tree_search(struct page *page)
+static noinline struct page *stable_tree_search(struct page *page)
 {
 	int nid;
 	struct rb_root *root;
@@ -1891,7 +1964,7 @@ again:
  * This function does both searching and inserting, because they share
  * the same walking algorithm in an rbtree.
  */
-static
+static noinline
 struct rmap_item *unstable_tree_search_insert(struct rmap_item *rmap_item,
 					      struct page *page,
 					      struct page **tree_pagep)
@@ -2004,7 +2077,7 @@ static void stable_tree_append(struct rmap_item *rmap_item,
  * @page: the page that we are searching identical page to.
  * @rmap_item: the reverse mapping into the virtual address of this page
  */
-static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
+static noinline void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 {
 	struct mm_struct *mm = rmap_item->mm;
 	struct rmap_item *tree_rmap_item;
@@ -2073,8 +2146,12 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 	 */
 	checksum = calc_checksum(page);
 	if (rmap_item->oldchecksum != checksum) {
-		rmap_item->oldchecksum = checksum;
-		return;
+		if (rmap_item->oldchecksum != 0){
+			rmap_item->oldchecksum = checksum;
+			return;
+		}else{
+			rmap_item->oldchecksum = checksum;
+		}
 	}
 
 	/*
@@ -2086,7 +2163,7 @@ static void cmp_and_merge_page(struct page *page, struct rmap_item *rmap_item)
 
 		down_read(&mm->mmap_sem);
 		vma = find_mergeable_vma(mm, rmap_item->address);
-		err = try_to_merge_one_page(vma, page,
+		err = try_to_merge_one_page_zero(vma, page,
 					    ZERO_PAGE(rmap_item->address));
 		up_read(&mm->mmap_sem);
 		/*
@@ -2164,7 +2241,7 @@ static struct rmap_item *get_next_rmap_item(struct mm_slot *mm_slot,
 	return rmap_item;
 }
 
-static struct rmap_item *scan_get_next_rmap_item(struct page **page)
+static noinline struct rmap_item *scan_get_next_rmap_item(struct page **page)
 {
 	struct mm_struct *mm;
 	struct mm_slot *slot;
@@ -2326,7 +2403,7 @@ next_mm:
  * ksm_do_scan  - the ksm scanner main worker function.
  * @scan_npages - number of pages we want to scan before we return.
  */
-static void ksm_do_scan(unsigned int scan_npages)
+static noinline void ksm_do_scan(unsigned int scan_npages)
 {
 	struct rmap_item *rmap_item;
 	struct page *uninitialized_var(page);

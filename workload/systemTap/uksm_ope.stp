@@ -8,6 +8,7 @@ probe begin{
 }
 
 probe timer.s(10) {
+  printf("now: %d\n", gettimeofday_s())
   printf("total_time: sum = %d, cnt = %d\n", @sum(total_time), @count(total_time))
   
   printf("scan_time: sum = %d, cnt = %d\n", @sum(scan_time), @count(scan_time))
@@ -24,6 +25,7 @@ probe timer.s(10) {
 }
 
 probe end{
+  printf("now: %d\n", gettimeofday_s())
   printf("total_time: sum = %d, cnt = %d\n", @sum(total_time), @count(total_time))
   
   printf("scan_time: sum = %d, cnt = %d\n", @sum(scan_time), @count(scan_time))

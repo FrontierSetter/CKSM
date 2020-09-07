@@ -4,6 +4,7 @@ import random
 
 
 # python .\dedi_pattern_mem_local.py '..\log\7-30-3(nginx32_base)\out_mem_usage.log' '..\log\8-25-3(nginx32_ksm10000)\out_mem_usage.log' '..\log\7-30-2(nginx32_uksm)\out_mem_usage.log' '..\log\8-14-1(nginx32_full)\out_mem_usage.log' '..\log\7-30-1(nginx32_pksm)\out_mem_usage.log'
+# python .\dedi_pattern_mem_local.py '..\log\7-30-3(nginx32_base)\out_mem_usage.log' '..\log\8-25-3(nginx32_ksm10000)\out_mem_usage.log' '..\log\7-30-2(nginx32_uksm)\out_mem_usage.log' '..\log\7-30-1(nginx32_pksm)\out_mem_usage.log'
 
 markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM*':'^', 'CKSM-Full':'d'}
 colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM*':'tab:olive', 'CKSM-Full':'tab:pink'}
@@ -102,7 +103,7 @@ plt.xlabel('Time(s)', fontsize=26)
 plt.ylabel('Memory Usage(GB)', fontsize=26)
 plt.subplots_adjust(left=0.095, right=0.99, top=0.99, bottom=0.12)
 
-left,bottom,width,height = 0.71,0.56,0.25,0.22
+left,bottom,width,height = 0.68,0.45,0.29,0.25
 # left,bottom,width,height = 0.71,0.15,0.25,0.20
 ax1 = fig.add_axes([left,bottom,width,height])
 for i in range(len(sys.argv)-1):

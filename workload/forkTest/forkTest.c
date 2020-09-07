@@ -1,9 +1,3 @@
-/* 
- *  fork_test.c 
- *  version 1 
- *  Created on: 2010-5-29 
- *      Author: wangth 
- */  
 #include <unistd.h>  
 #include <stdio.h>  
 // #include <delay.h>
@@ -15,9 +9,8 @@ int main (int argc,char *argv[])
 {   
 
     int page_num = atoi(argv[1]);
-    int wait_time = atoi(argv[2]);
-    int fork_time = atoi(argv[3]);
-    int group_idx = atoi(argv[4]);
+    int fork_time = atoi(argv[2]);
+    int group_idx = atoi(argv[3]);
 
     // 4KB * 10240 = 40MB
     int* result = (int*)malloc(1024*page_num*sizeof(int));
@@ -47,14 +40,12 @@ int main (int argc,char *argv[])
         }  
     }
 
-    for(int j = 0; j < wait_time; ++j){   
+    while(true){   
         for(int i = 0; i < 1024*page_num; ++i){
             int tem = result[i];
             // mdelay(2);
         }
     }
-
-
 
     return 0;  
 }  

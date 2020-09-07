@@ -1046,6 +1046,7 @@ static inline void remove_rmap_item_from_tree(struct rmap_item *rmap_item)
 
 out:
 	cond_resched();		/* we're called from many long loops */
+	return;
 }
 
 static inline int slot_in_uksm(struct vma_slot *slot)

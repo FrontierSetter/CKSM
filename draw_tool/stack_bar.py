@@ -96,5 +96,5 @@ for curEntry in allArr:
 
 plt.legend(legendArr, legendEntryArr)
 
-plt.show()
+# plt.show()
 

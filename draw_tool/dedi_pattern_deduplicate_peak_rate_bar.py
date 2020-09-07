@@ -75,15 +75,20 @@ for dataDict in oriData:
     ksmArr.append(float(curBase-curKSM)/curBase*100)
 
 x=np.arange(len(tickArr))
-width = 0.16
+width = 0.2
+# width = 0.16
 gap = 0.08*width
 
 plt.figure(figsize=(9,6))
 
-plt.bar(x-width*1.5-1.5*gap, ksmArr, width, color='tab:olive', label='KSM*', edgecolor='black', hatch='x')
-plt.bar(x-width*0.5-0.5*gap, fullArr, width, color='tab:pink', label='CKSM-Full', edgecolor='black', hatch='-')
-plt.bar(x+width*0.5+0.5*gap, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')
-plt.bar(x+width*1.5+1.5*gap, cksmArr, width, color='tab:green', label='CKSM', edgecolor='black', hatch='/')
+plt.bar(x-width*1-1.5*gap, ksmArr, width, color='tab:olive', label='KSM*', edgecolor='black', hatch='x')
+plt.bar(x, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')
+plt.bar(x+width*1+1.5*gap, cksmArr, width, color='tab:green', label='CKSM', edgecolor='black', hatch='/')
+
+# plt.bar(x-width*1.5-1.5*gap, ksmArr, width, color='tab:olive', label='KSM*', edgecolor='black', hatch='x')
+# plt.bar(x-width*0.5-0.5*gap, fullArr, width, color='tab:pink', label='CKSM-Full', edgecolor='black', hatch='-')
+# plt.bar(x+width*0.5+0.5*gap, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')
+# plt.bar(x+width*1.5+1.5*gap, cksmArr, width, color='tab:green', label='CKSM', edgecolor='black', hatch='/')
 
 plt.ylabel('Peak Deduplication Rate(%)', fontsize=26)
 plt.yticks(fontsize=20)

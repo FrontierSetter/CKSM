@@ -5,15 +5,18 @@ import sys
 # python .\dedi_partial_hash_stage.py '..\log\8-6-1(nginx_with_partial)\out_1.log' '..\log\8-6-2(nginx_no_partial)\out_1.log' '..\log\8-6-1(nginx_with_partial)\out_2.log' '..\log\8-6-2(nginx_no_partial)\out_2.log' '..\log\8-6-1(nginx_with_partial)\out_3.log' '..\log\8-6-2(nginx_no_partial)\out_3.log'
 # python .\dedi_partial_hash_stage.py '..\log\8-6-3(nginx_with_partial)\out_1.log' '..\log\8-6-2(nginx_no_partial)\out_1.log' '..\log\8-6-3(nginx_with_partial)\out_2.log' '..\log\8-6-2(nginx_no_partial)\out_2.log' '..\log\8-6-3(nginx_with_partial)\out_3.log' '..\log\8-6-2(nginx_no_partial)\out_3.log'
 
-hatchDict={'scan': '\\\\', 'hash': '.', 'compare': 'o', 'merge': 'x', 'other': '//'}
-colorDict={'scan': '#577590', 'hash': '#43aa8b', 'compare': '#90be6d', 'merge': '#f9c74f', 'other': '#f94144'}
+hatchDict={'scan': '\\\\', 'hash': '-', 'compare': '//', 'merge': 'x', 'maintain': 'o'}
+colorDict={'scan': '#f9c74f', 'hash': '#fe7f2d', 'compare': '#e05780', 'merge': '#43aa8b', 'maintain': '#577590'}
+# colorDict={'scan': '#577590', 'hash': '#43aa8b', 'compare': '#90be6d', 'merge': '#f9c74f', 'other': '#f94144'}
 groupName = ['Low load (1 collision)', 'Normal load (6 collisions)', 'Heavy load (12 collisions)']
+
+stageSeq = ['hash', 'compare', 'maintain', 'scan', 'merge']
 
 groupNum = int((len(sys.argv)-1)/2)
 print(groupNum)
 
 plt.figure(figsize=(9,6))
-plt.subplots_adjust(left=0.08, right=0.98, top=0.90, bottom=0.11)
+plt.subplots_adjust(left=0.08, right=0.98, top=0.88, bottom=0.13)
 width = 0.5
 legendArr = []
 legendEntryArr = []
@@ -70,10 +73,10 @@ for groupIdx in range(groupNum):
         if curEntry == 'cnt':
             continue
         elif curEntry == 'total':
-            allArr['other'] = []
+            allArr['maintain'] = []
             for curName in nameArr:
                 if curEntry not in oriDict[curName]:
-                    allArr['other'].append(0.0)
+                    allArr['maintain'].append(0.0)
                 else:
                     temOther = oriDict[curName][curEntry]
                     for k in oriDict[curName]:
@@ -81,7 +84,7 @@ for groupIdx in range(groupNum):
                             continue
                         else:
                             temOther -= oriDict[curName][k]
-                    allArr['other'].append(temOther/unitCast/oriDict[curName]['cnt'])
+                    allArr['maintain'].append(temOther/unitCast/oriDict[curName]['cnt'])
         else:
             allArr[curEntry] = []
             for curName in nameArr:
@@ -96,29 +99,32 @@ for groupIdx in range(groupNum):
 
     plt.subplot(100+groupNum*10+(groupIdx+1))
 
-    plt.xticks(ind, nameArr, fontsize=16)
+    plt.xticks(ind, nameArr, fontsize=17)
 
     if groupIdx == 0:
-        plt.ylabel('time(ns)', fontsize=18)
-    plt.yticks(fontsize=14)
+        plt.ylabel('Time(ns)', fontsize=22)
+    plt.yticks(fontsize=18)
     plt.ylim(0, 14)
 
 
     baseArr = [0]*len(allArr[entryArr[0]])
 
 
-    for curEntry in allArr:
-        curP = plt.bar(ind, allArr[curEntry], width, bottom=baseArr, color='white', hatch=hatchDict[curEntry], edgecolor=colorDict[curEntry], linewidth=3)
+    for curEntry in stageSeq:
+        curP = plt.bar(ind, allArr[curEntry], width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry], edgecolor='black', linewidth=1)
+        # curP = plt.bar(ind, allArr[curEntry], width, bottom=baseArr, color='white', hatch=hatchDict[curEntry], edgecolor=colorDict[curEntry], linewidth=3)
         if groupIdx == 0:
-            legendArr.insert(0,curP)
-            legendEntryArr.insert(0,curEntry)
+            legendArr.append(curP)
+            legendEntryArr.append(curEntry)
+            # legendArr.insert(0,curP)
+            # legendEntryArr.insert(0,curEntry)
 
         for i in range(len(allArr[curEntry])):
             baseArr[i] += allArr[curEntry][i]
     
-    plt.title(groupName[groupIdx], loc='center', y=-0.12, fontsize=12)
+    plt.title(groupName[groupIdx], loc='center', y=-0.14, fontsize=15)
 
-plt.figlegend(legendArr, legendEntryArr,ncol=len(legendEntryArr), loc="upper center", fontsize=16)
+plt.figlegend(legendArr, legendEntryArr,ncol=len(legendEntryArr), loc="upper center", fontsize=19, columnspacing=0.8, handletextpad=0.3)
 
 plt.savefig('partial_hash_stage.pdf')
 
