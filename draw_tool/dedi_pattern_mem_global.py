@@ -6,8 +6,8 @@ import random
 # python .\dedi_pattern_mem_global.py '..\log\7-30-6(elastic16_base)\out_mem_usage.log' '..\log\8-25-4(elastic16_ksm10000)\out_mem_usage.log' '..\log\7-30-5(elastic16_uksm)\out_mem_usage.log' '..\log\8-14-2(elastic16_full)\out_mem_usage.log' '..\log\7-30-4(elastic16_pksm)\out_mem_usage.log' 
 # python .\dedi_pattern_mem_global.py '..\log\7-30-6(elastic16_base)\out_mem_usage.log' '..\log\8-25-4(elastic16_ksm10000)\out_mem_usage.log' '..\log\7-30-5(elastic16_uksm)\out_mem_usage.log' '..\log\7-30-4(elastic16_pksm)\out_mem_usage.log' 
 
-markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM*':'^', 'CKSM-Full':'d'}
-colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM*':'tab:olive', 'CKSM-Full':'tab:pink'}
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM+':'^', 'CKSM-Full':'d'}
+colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM+':'tab:olive', 'CKSM-Full':'tab:pink'}
 
 
 xArr = []

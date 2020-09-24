@@ -1,7 +1,6 @@
 # 并列柱状图
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-plt.rcParams['font.sans-serif']=['SimHei']#设置字体以便支持中文
 import numpy as np
 
 x=np.arange(5)#柱状图在横坐标上的位置
@@ -25,10 +24,10 @@ plt.ylabel('Scan Amplification Factor', fontsize=28)
 
 plt.yticks(fontsize=20)
 # plt.legend(fontsize=18)#显示图例，即label
-plt.xticks(x,tick_label, fontsize=28)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
+plt.xticks(x,tick_label, fontsize=24)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
 # plt.xticks([])
 # plt.gca().yaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
-plt.subplots_adjust(left=0.1, right=0.98, top=0.99, bottom=0.12)
+plt.subplots_adjust(left=0.11, right=0.98, top=0.99, bottom=0.12)
 plt.axhline(y=1,ls="--",c="red",linewidth=4)#添加水平直线
 # plt.savefig('scan_overhead.pdf')
 

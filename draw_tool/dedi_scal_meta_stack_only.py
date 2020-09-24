@@ -21,6 +21,12 @@ colorDict = {
     'reverse map': '#f25f5c'
 }
 
+# colorDict = {
+#     'waiting candidate': '#30638e', 
+#     'pattern record': '#edae49', 
+#     'reverse map': '#d1495b'
+# }
+
 hatchDict = {
     'waiting candidate': '//', 
     'pattern record': '\\\\', 
@@ -218,32 +224,50 @@ print(ksmPercentArr)
 
 
 x=np.arange(len(tickArr))
-width = 0.2
-gap = 0.08*width
+width = 0.24
+gap = 0.14*width
 
 fig = plt.figure(figsize=(9,6))
-plt.yticks(fontsize=20)
-axBar = fig.add_subplot(111)
-axPlot=axBar.twinx()
 
-axPlot.plot(x-width-gap*1.5,ksmPercentArr, label='KSM+', linewidth=4, marker=markerTable['KSM+'], color=colorTable['KSM+'], markersize=9)
-axPlot.plot(x,uksmPercentArr, label='UKSM', linewidth=4, marker=markerTable['UKSM'], color=colorTable['UKSM'], markersize=9)
-axPlot.plot(x+width+gap*1.5,cksmPercentArr, label='CKSM', linewidth=4, marker=markerTable['CKSM'], color=colorTable['CKSM'], markersize=9)
-# axPlot.set_ylim(0.5, 1.5)
-axPlot.set_ylabel('Meta Data / Total Memory(%)', fontsize=26)
-axPlot.legend(fontsize=22, loc='center right')
+edgeLineWidth = 4
+
+# plt.yticks(fontsize=20)
+# axBar = fig.add_subplot(111)
+# axPlot=axBar.twinx()
+
+# axPlot.plot(x-width-gap*1.5,ksmPercentArr, label='KSM+', linewidth=4, marker=markerTable['KSM+'], color=colorTable['KSM+'], markersize=9)
+# axPlot.plot(x,uksmPercentArr, label='UKSM', linewidth=4, marker=markerTable['UKSM'], color=colorTable['UKSM'], markersize=9)
+# axPlot.plot(x+width+gap*1.5,cksmPercentArr, label='CKSM', linewidth=4, marker=markerTable['CKSM'], color=colorTable['CKSM'], markersize=9)
+# # axPlot.set_ylim(0.5, 1.5)
+# axPlot.set_ylabel('Meta Data / Total Memory(%)', fontsize=26)
+# axPlot.legend(fontsize=22, loc='center right')
 
 
 legendArrBar = []
 legendEntryArrBar = []
 
+legendArrEdge = []
+legendEntryArrEdge = []
+
 baseArr = [0]*len(ksmArr[0])
 
 for curStageArr,curEntry in zip(ksmArr,stageNameArr):
-    curP = axBar.bar(x-width-gap*1.5, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
+    curP = plt.bar(x-width-gap*1.5, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
 
     for i in range(len(curStageArr)):
         baseArr[i] += curStageArr[i]
+
+curEdge = plt.bar(x-width-gap*1.5, baseArr, width, color='none', edgecolor='tab:olive', linewidth=edgeLineWidth, label='KSM+')
+legendArrEdge.append(curEdge)
+legendEntryArrEdge.append('KSM+')
+
+# for i in range(len(baseArr)):
+#     if i == 0:
+#         plt.text(x[i]-width*1.5-gap*1.5, baseArr[i]+0.04, "KSM+", fontsize=12, ha = 'left',va = 'bottom')
+#     else:
+#         plt.text(x[i]-width*1.5-gap*1.5, baseArr[i]+0.04, "KSM+", fontsize=12, ha = 'left',va = 'bottom')
+# for x_, y in zip(x, baseArr) :
+#     plt.text(x_-width*1.5-gap*1.5, y+0.04, "KSM+", fontsize=12, ha = 'left',va = 'bottom')
 
 print('ksm all')
 print(baseArr)
@@ -251,10 +275,22 @@ print(baseArr)
 baseArr = [0]*len(uksmArr[0])
 
 for curStageArr,curEntry in zip(uksmArr,stageNameArr):
-    curP = axBar.bar(x, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
+    curP = plt.bar(x, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
 
     for i in range(len(curStageArr)):
         baseArr[i] += curStageArr[i]
+
+curEdge = plt.bar(x, baseArr, width, color='none', edgecolor='tab:orange', linewidth=edgeLineWidth, label='UKSM')
+legendArrEdge.append(curEdge)
+legendEntryArrEdge.append('UKSM')
+
+# for i in range(len(baseArr)):
+#     if i == 0:
+#         plt.text(x[i]-width*0.5, baseArr[i]+0.08, "UKSM", fontsize=12, ha = 'left',va = 'bottom')
+#     else:
+#         plt.text(x[i]-width*0.5, baseArr[i]+0.04, "UKSM", fontsize=12, ha = 'left',va = 'bottom')
+# for x_, y in zip(x, baseArr) :
+#     plt.text(x_-width*0.5, y+0.04, "UKSM", fontsize=12, ha = 'left',va = 'bottom')
 
 print('uksm all')
 print(baseArr)
@@ -262,25 +298,38 @@ print(baseArr)
 baseArr = [0]*len(cksmArr[0])
 
 for curStageArr,curEntry in zip(cksmArr,stageNameArr):
-    curP = axBar.bar(x+width+gap*1.5, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
+    curP = plt.bar(x+width+gap*1.5, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
     legendArrBar.insert(0,curP)
     legendEntryArrBar.insert(0,curEntry)
 
     for i in range(len(curStageArr)):
         baseArr[i] += curStageArr[i]
 
+curEdge = plt.bar(x+width+gap*1.5, baseArr, width, color='none', edgecolor='tab:green', linewidth=edgeLineWidth, label='CKSM')
+legendArrEdge.append(curEdge)
+legendEntryArrEdge.append('CKSM')
+
+# for i in range(len(baseArr)):
+#     if i == 0:
+#         plt.text(x[i]+width*0.5+gap*1.5, baseArr[i]+0.02, "CKSM", fontsize=12, ha = 'left',va = 'bottom')
+#     else:
+#         plt.text(x[i]+width*0.5+gap*1.5, baseArr[i]+0.04, "CKSM", fontsize=12, ha = 'left',va = 'bottom')
+# for x_, y in zip(x, baseArr) :
+#     plt.text(x_+width*0.5+gap*1.5, y+0.04, "CKSM", fontsize=12, ha = 'left',va = 'bottom')
+
 print('cksm all')
 print(baseArr)
 
 
 
-axBar.set_ylabel('Meta Data Usage(GB)', fontsize=26)
-axBar.legend(legendArrBar, legendEntryArrBar, fontsize=22, loc='center left')
-axBar.set_xticks(x)
-axBar.set_xticklabels(tickArr, fontsize=20)
-axBar.set_xlabel('Main Memory Capacity(GB)', fontsize=26)
+plt.ylabel('Meta Data Usage(GB)', fontsize=26)
+l1 = plt.legend(legendArrBar, legendEntryArrBar, fontsize=22)
+plt.legend(legendArrEdge, legendEntryArrEdge, fontsize=22, loc='center left')
+plt.gca().add_artist(l1)
+plt.xticks(x, tickArr, fontsize=20)
+plt.xlabel('Main Memory Capacity(GB)', fontsize=26)
 
-plt.subplots_adjust(left=0.075, right=0.9, top=0.99, bottom=0.13)
+plt.subplots_adjust(left=0.075, right=0.99, top=0.99, bottom=0.13)
 plt.yticks(fontsize=20)
 
 plt.savefig('scal_meta_stage_bar.pdf')

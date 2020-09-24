@@ -117,28 +117,34 @@ for i in range(1, len(sys.argv)):
 fig = plt.figure(figsize=(9,6))
 
 axMem = fig.add_subplot(311)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
 # axMerge = axMem.twinx()
 axMerge = fig.add_subplot(312)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
 axCow = fig.add_subplot(313)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
 
 # 画mem
 axMem.plot(memX,memY, label='Memory Usage', linewidth=2)
-axMem.set_ylabel('Memory Usage(GB)', fontsize=12)
+axMem.set_ylabel('Memory Usage(GB)', fontsize=13)
 
 # 画merge
 width = 1.0/60/60
 axMerge.bar(mergeX, mergeY, width, color='tab:green')
-axMerge.set_ylabel('Pages Merged($x10^{%d}$)' % (powerScal), fontsize=12)
+axMerge.set_ylabel('Pages Merged($x10^{%d}$)' % (powerScal), fontsize=13)
 # xfmt = ScalarFormatter(useMathText=True)
 # axMerge.yaxis.set_major_formatter(xfmt)
-axMerge.set_ylim(0,1)
+axMerge.set_ylim(0,1.5)
 # axMerge.set_ylim(1e0,1e5)
 # axMerge.set_yscale("log")
 
 # 画cow
 axCow.bar(cowX, cowY, width, color='tab:red')
-axCow.set_ylabel('Pages Cowed($x10^{%d}$)' % (powerScal), fontsize=12)
-axCow.set_ylim(0,1)
+axCow.set_ylabel('Pages Split($x10^{%d}$)' % (powerScal), fontsize=13)
+axCow.set_ylim(0,1.5)
 # xfmt = ScalarFormatter(useMathText=True)
 # axCow.yaxis.set_major_formatter(xfmt)
 # axCow.set_ylim(1e0,1e5)
@@ -149,7 +155,7 @@ plt.subplots_adjust(left=0.08, right=0.95, top=0.96, bottom=0.11)
 # plt.xticks(fontsize=16)
 plt.xlabel('Time(h)', fontsize=18)
 
-plt.savefig('real_server.pdf')
+# plt.savefig('real_server.pdf')
 
 plt.show()
 

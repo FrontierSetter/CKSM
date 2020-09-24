@@ -6,7 +6,7 @@ stageName = ['maintain', 'scan', 'search', 'merge']
 hatchDict={'scan': '\\\\', 'search': '//', 'merge': 'x', 'maintain': 'o'}
 colorDict={'scan': '#f9c74f', 'search': '#e05780', 'merge': '#43aa8b', 'maintain': '#577590'}
 
-nameArr = ['KSM*', 'UKSM', 'CKSM']
+nameArr = ['KSM+', 'UKSM', 'CKSM']
 
 stageDict = {
     'CKSM':{
@@ -21,7 +21,7 @@ stageDict = {
         'merge':6.449164804,
         'maintain':6.955521686,
     },
-    'KSM*':{
+    'KSM+':{
         'scan':5.113913990,
         'search': 79.476011237,
         'merge':4.502308565,

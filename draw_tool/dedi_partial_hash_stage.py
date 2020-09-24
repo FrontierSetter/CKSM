@@ -5,12 +5,13 @@ import sys
 # python .\dedi_partial_hash_stage.py '..\log\8-6-1(nginx_with_partial)\out_1.log' '..\log\8-6-2(nginx_no_partial)\out_1.log' '..\log\8-6-1(nginx_with_partial)\out_2.log' '..\log\8-6-2(nginx_no_partial)\out_2.log' '..\log\8-6-1(nginx_with_partial)\out_3.log' '..\log\8-6-2(nginx_no_partial)\out_3.log'
 # python .\dedi_partial_hash_stage.py '..\log\8-6-3(nginx_with_partial)\out_1.log' '..\log\8-6-2(nginx_no_partial)\out_1.log' '..\log\8-6-3(nginx_with_partial)\out_2.log' '..\log\8-6-2(nginx_no_partial)\out_2.log' '..\log\8-6-3(nginx_with_partial)\out_3.log' '..\log\8-6-2(nginx_no_partial)\out_3.log'
 
-hatchDict={'scan': '\\\\', 'hash': '-', 'compare': '//', 'merge': 'x', 'maintain': 'o'}
+hatchDict={'scan': '\\\\', 'hash': '||', 'compare': '//', 'merge': 'x', 'maintain': 'o'}
 colorDict={'scan': '#f9c74f', 'hash': '#fe7f2d', 'compare': '#e05780', 'merge': '#43aa8b', 'maintain': '#577590'}
 # colorDict={'scan': '#577590', 'hash': '#43aa8b', 'compare': '#90be6d', 'merge': '#f9c74f', 'other': '#f94144'}
-groupName = ['Low load (1 collision)', 'Normal load (6 collisions)', 'Heavy load (12 collisions)']
+groupName = ['Light load (1 collision)', 'Normal load (6 collisions)', 'Heavy load (12 collisions)']
 
-stageSeq = ['hash', 'compare', 'maintain', 'scan', 'merge']
+# stageSeq = ['hash', 'compare', 'maintain', 'scan', 'merge']
+stageSeq = ['maintain', 'scan', 'hash', 'compare', 'merge']
 
 groupNum = int((len(sys.argv)-1)/2)
 print(groupNum)

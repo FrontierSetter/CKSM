@@ -6,8 +6,8 @@ import random
 # python .\dedi_pattern_mem_local.py '..\log\7-30-3(nginx32_base)\out_mem_usage.log' '..\log\8-25-3(nginx32_ksm10000)\out_mem_usage.log' '..\log\7-30-2(nginx32_uksm)\out_mem_usage.log' '..\log\8-14-1(nginx32_full)\out_mem_usage.log' '..\log\7-30-1(nginx32_pksm)\out_mem_usage.log'
 # python .\dedi_pattern_mem_local.py '..\log\7-30-3(nginx32_base)\out_mem_usage.log' '..\log\8-25-3(nginx32_ksm10000)\out_mem_usage.log' '..\log\7-30-2(nginx32_uksm)\out_mem_usage.log' '..\log\7-30-1(nginx32_pksm)\out_mem_usage.log'
 
-markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM*':'^', 'CKSM-Full':'d'}
-colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM*':'tab:olive', 'CKSM-Full':'tab:pink'}
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM+':'^', 'CKSM-Full':'d'}
+colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM+':'tab:olive', 'CKSM-Full':'tab:pink'}
 
 
 xArr = []

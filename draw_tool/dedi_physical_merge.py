@@ -4,8 +4,8 @@ import random
 
 # python .\dedi_physical_merge.py '..\log\8-27-7(fork_1g_4_8_base)\out_mem_usage.log' '..\log\8-27-4(fork_1g_4_8_ksm)\out_mem_usage.log' '..\log\8-27-5(fork_1g_4_8_uksm)\out_mem_usage.log' '..\log\8-27-6(fork_1g_4_8_pksm)\out_mem_usage.log'
 
-markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM*':'^', 'CKSM-Full':'d'}
-colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM*':'tab:olive', 'CKSM-Full':'tab:pink'}
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM+':'^', 'CKSM-Full':'d'}
+colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM+':'tab:olive', 'CKSM-Full':'tab:pink'}
 
 
 xArr = []

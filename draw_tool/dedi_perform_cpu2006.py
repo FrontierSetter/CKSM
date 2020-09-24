@@ -36,7 +36,7 @@ y_cksm = [
     229,
 ]
 
-bar_width=0.22#设置柱状图的宽度
+bar_width=0.26#设置柱状图的宽度
 tick_label=['perlbench','bzip2','gcc','mcf','gobmk','hmmer','sjeng','libquantum','h264ref','omnetpp','astar','xalancbmk']
 x=np.arange(len(tick_label))
 
@@ -52,8 +52,8 @@ print("total: %f" % (totalRatio/len(tick_label)))
 plt.figure(figsize=(9,6))
 
 #绘制并列柱状图
-plt.bar(x-bar_width/2*1.2,y_base,bar_width,label='Base',color="tab:blue",edgecolor='black')
-plt.bar(x+bar_width/2*1.2,y_cksm,bar_width,label='CKSM',color="tab:green",edgecolor='black')
+plt.bar(x-bar_width/2*1.18,y_base,bar_width,label='Base',color="#0496ff",edgecolor='black',hatch='-')
+plt.bar(x+bar_width/2*1.18,y_cksm,bar_width,label='CKSM',color="#47b347",edgecolor='black',hatch='//')
 
 plt.ylabel('Times(s)', fontsize=22)
 plt.xlabel('Benchmark', fontsize=22)

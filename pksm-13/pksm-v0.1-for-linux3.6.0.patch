@@ -2507,7 +2507,7 @@ index 0000000..a9e457d
 +		rmap_item->address = 0;
 +		pksm_free_rmap_item(rmap_item);
 +	} else {
-+		/*rmap_item have add to pksm*/
++		/*rmap_item have add to pKSM+/
 +		rmap_item->address |= DELLIST_FLAG;
 +		list_add_tail(&rmap_item->del_list, &del_anon_page_list);
 +	}

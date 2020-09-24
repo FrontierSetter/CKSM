@@ -63,7 +63,7 @@ gap = 0.08*width
 
 plt.figure(figsize=(9,6))
 
-plt.bar(x-width-gap*1.5, ksmArr, width, color='tab:olive', label='KSM*', edgecolor='black', hatch='x')
+plt.bar(x-width-gap*1.5, ksmArr, width, color='tab:olive', label='KSM+', edgecolor='black', hatch='x')
 plt.bar(x, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')
 plt.bar(x+width+gap*1.5, cksmArr, width, color='tab:green', label='CKSM', edgecolor='black', hatch='/')
 
@@ -75,10 +75,12 @@ xfmt = ScalarFormatter(useMathText=True)
 xfmt.set_powerlimits((0, 0))
 plt.gca().yaxis.set_major_formatter(xfmt)
 
+# plt.text(0, 1.95, r'x 10$^{4}$',fontsize=20)
+
 plt.xticks(x,tickArr, fontsize=20)
 plt.xlabel('Main Memory Capacity(GB)', fontsize=26)
 
-plt.subplots_adjust(left=0.12, right=0.98, top=0.96, bottom=0.13)
+plt.subplots_adjust(left=0.105, right=0.99, top=0.96, bottom=0.13)
 
 plt.legend(fontsize=22, ncol=3, loc='upper left', columnspacing=1)
 

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # python .\dedi_scal_mem.py '..\log\7-29-6(large_64_base)\out_mem_usage.log' '..\log\7-29-5(large_64_uksm)\out_mem_usage.log' '..\log\7-29-4(large_64_pksm)\out_mem_usage.log'
 # python .\dedi_scal_mem.py '..\log\7-29-10(large_32_base)\out_mem_usage.log' '..\log\7-29-9(large_32_uksm)\out_mem_usage.log' '..\log\7-29-8(large_32_pksm)\out_mem_usage.log'
 
-# with KSM*
+# with KSM+
 # python .\dedi_scal_mem.py '..\log\8-4-7(large8_base)\out_mem_usage.log' '..\log\8-29-4(large8_ksm5000)\out_mem_usage.log' '..\log\8-4-11(large8_uksm)\out_mem_usage.log' '..\log\8-4-3(large8_pksm)\out_mem_usage.log'
 # python .\dedi_scal_mem.py '..\log\8-4-6(large16_base)\out_mem_usage.log' '..\log\8-4-2(large16_pksm)\out_mem_usage.log' '..\log\8-4-10(large16_uksm)\out_mem_usage.log' '..\log\8-29-3(large16_ksm5000)\out_mem_usage.log'
 # python .\dedi_scal_mem.py '..\log\7-29-10(large_32_base)\out_mem_usage.log' '..\log\8-29-2(large32_ksm5000)\out_mem_usage.log' '..\log\7-29-9(large_32_uksm)\out_mem_usage.log' '..\log\7-29-8(large_32_pksm)\out_mem_usage.log'
@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 # python .\dedi_scal_mem.py '..\log\7-29-1(large_128_base)\out_mem_usage.log' '..\log\8-29-6(large128_ksm5000)\out_mem_usage.log' '..\log\7-29-2(large_128_uksm)\out_mem_usage.log' '..\log\7-29-3(large_128_pksm)\out_mem_usage.log'
 
 
-markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM*':'^', 'CKSM-Full':'d'}
-colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM*':'tab:olive', 'CKSM-Full':'tab:pink'}
+markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM+':'^', 'CKSM-Full':'d'}
+colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM+':'tab:olive', 'CKSM-Full':'tab:pink'}
 
 
 xArr = []
