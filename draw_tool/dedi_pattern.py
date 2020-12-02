@@ -60,11 +60,17 @@ for i in range(1, len(sys.argv)):
     curArr = []
     for idx in label:
         if idx in dictArr[i-1]:
-            curArr.append(dictArr[i-1][idx])
+            curArr.append(dictArr[i-1][idx]/100000.0)
         else:
             curArr.append(0)
     plt.bar(x[:localThreshold+2], curArr[:localThreshold+2], barWidth, color='#f4a261', label='Local Pattern')
     plt.bar(x[localThreshold+2:], curArr[localThreshold+2:], barWidth, color='#2a9d8f', label='Global Pattern')
+
+    if i == 1:
+        plt.text(-1, 5.77, r'$\times10^{5}$',fontsize=16)
+    else:
+        plt.text(-1, 9.35, r'$\times10^{5}$',fontsize=16)
+
 
 
     # def formatnum(x, pos):

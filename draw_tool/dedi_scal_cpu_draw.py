@@ -50,9 +50,9 @@ for dataDict in oriData:
     curUksmMerge = dataDict['uksm'][1]
     curKsmCpu = dataDict['ksm'][0]
     curKsmMerge = dataDict['ksm'][1]
-    cksmArr.append(float(curCksmCpu)/curCksmMerge*100)
-    uksmArr.append(float(curUksmCpu)/curUksmMerge*100)
-    ksmArr.append(float(curKsmCpu)/curKsmMerge*100)
+    cksmArr.append(float(curCksmCpu)/curCksmMerge*100*100)
+    uksmArr.append(float(curUksmCpu)/curUksmMerge*100*100)
+    ksmArr.append(float(curKsmCpu)/curKsmMerge*100*100)
 
 print(cksmArr)
 # print(tickArr)
@@ -69,13 +69,13 @@ plt.bar(x+width+gap*1.5, cksmArr, width, color='tab:green', label='CKSM', edgeco
 
 plt.ylabel('CPU Consumption(% core*s) ', fontsize=26)
 plt.yticks(fontsize=20)
-plt.ylim(0,0.0125)
+plt.ylim(0,1.25)
 
 xfmt = ScalarFormatter(useMathText=True)
 xfmt.set_powerlimits((0, 0))
 plt.gca().yaxis.set_major_formatter(xfmt)
 
-# plt.text(0, 1.95, r'x 10$^{4}$',fontsize=20)
+plt.text(-0.5, 1.25, r'$\times10^{-2}$',fontsize=16)
 
 plt.xticks(x,tickArr, fontsize=20)
 plt.xlabel('Main Memory Capacity(GB)', fontsize=26)
