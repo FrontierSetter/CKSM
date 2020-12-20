@@ -6,6 +6,7 @@ from math import log
 from matplotlib.ticker import FuncFormatter, ScalarFormatter
 
 # python .\dedi_pattern.py '..\log\7-23-5(64nginx_hlist)\out_total.log' '..\log\7-23-4(10elastic_hlist)\out_total.log'
+# python .\dedi_pattern.py '..\log\8-26-3(nginx32_scan_pattern)\intro_pattern.log' '..\log\7-23-4(10elastic_hlist)\out_total.log'
 
 
 label = []
@@ -51,7 +52,7 @@ for idx in label:
     else:
         lnLabel.append("$2^{%d}$" % (log(numIdx,2)))
 
-plt.figure(figsize=(9,6))
+plt.figure(figsize=(12,6))
 
 for i in range(1, len(sys.argv)):
     plt.subplot(pltIdxBase+i)
@@ -71,10 +72,11 @@ for i in range(1, len(sys.argv)):
     # plt.gca().yaxis.set_major_formatter(formatter)
     # plt.text(0, 1.95, r'x 10$^{%d}$'%(int(log(scale[i-1],10))),fontsize=15)
 
+    matplotlib.rcParams.update({'font.size': 18})#设置左上角标签大小
     xfmt = ScalarFormatter(useMathText=True)
     xfmt.set_powerlimits((0, 0))
-    plt.gca().yaxis.set_major_formatter(xfmt)
-    # matplotlib.rcParams.update({'font.size': 6})#设置左上角标签大小
+    # plt.gca().yaxis.set_major_formatter(xfmt)
+    # plt.gca().yaxis.offsetText.set_visible(False)
 
     plt.xticks(x,lnLabel,fontsize=12)
     plt.yticks(fontsize=12)

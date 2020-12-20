@@ -3,8 +3,11 @@ import numpy as np
 
 stageName = ['maintain', 'scan', 'search', 'merge']
 
-hatchDict={'scan': '\\\\', 'search': '//', 'merge': 'x', 'maintain': 'o'}
-colorDict={'scan': '#f9c74f', 'search': '#e05780', 'merge': '#43aa8b', 'maintain': '#577590'}
+hatchDict={'scan': '\\', 'search': '/', 'merge': 'x', 'maintain': 'o'}
+# colorDict={'scan': '#f9c74f', 'search': '#e05780', 'merge': '#43aa8b', 'maintain': '#577590'}
+# colorDict={'scan': '#00ABA9', 'search': '#F09609', 'merge': '#339933', 'maintain': '#E51400'}
+colorDict={'scan': '#3cb9fc', 'search': '#ffc076', 'merge': '#87e885', 'maintain': '#fa8080'}
+# colorDict={'scan': '#577590', 'search': '#f9c74f', 'merge': '#43aa8b', 'maintain': '#e05780'}
 
 nameArr = ['KSM+', 'UKSM', 'CKSM']
 

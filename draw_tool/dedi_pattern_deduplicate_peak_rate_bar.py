@@ -85,6 +85,12 @@ plt.bar(x-width*1-1.5*gap, ksmArr, width, color='tab:olive', label='KSM+', edgec
 plt.bar(x, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')
 plt.bar(x+width*1+1.5*gap, cksmArr, width, color='tab:green', label='CKSM', edgecolor='black', hatch='/')
 
+# plt.bar(x-width*1-1.5*gap, ksmArr, width, label='KSM+', edgecolor='black', hatch='x')
+# plt.bar(x, uksmArr, width, label='UKSM', edgecolor='black', hatch='\\')
+# plt.bar(x+width*1+1.5*gap, cksmArr, width, label='CKSM', edgecolor='black', hatch='/')
+# plt.bar(x+width*2+1.5*gap, cksmArr, width, label='CKSM', edgecolor='black', hatch='/')
+# plt.bar(x+width*3+1.5*gap, cksmArr, width, label='CKSM', edgecolor='black', hatch='/')
+
 # plt.bar(x-width*1.5-1.5*gap, ksmArr, width, color='tab:olive', label='KSM+', edgecolor='black', hatch='x')
 # plt.bar(x-width*0.5-0.5*gap, fullArr, width, color='tab:pink', label='CKSM-Full', edgecolor='black', hatch='-')
 # plt.bar(x+width*0.5+0.5*gap, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')

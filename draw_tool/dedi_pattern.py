@@ -53,7 +53,7 @@ for idx in label:
     else:
         lnLabel.append("$2^{%d}$" % (log(numIdx,2)))
 
-plt.figure(figsize=(9,6))
+plt.figure(figsize=(12,6))
 
 for i in range(1, len(sys.argv)):
     plt.subplot(pltIdxBase+i)
@@ -67,9 +67,9 @@ for i in range(1, len(sys.argv)):
     plt.bar(x[localThreshold+2:], curArr[localThreshold+2:], barWidth, color='#2a9d8f', label='Global Pattern')
 
     if i == 1:
-        plt.text(-1, 5.77, r'$\times10^{5}$',fontsize=16)
+        plt.text(-1, 5.77, r'$\times10^{5}$',fontsize=18)
     else:
-        plt.text(-1, 9.35, r'$\times10^{5}$',fontsize=16)
+        plt.text(-1, 9.35, r'$\times10^{5}$',fontsize=18)
 
 
 
@@ -80,10 +80,11 @@ for i in range(1, len(sys.argv)):
     # plt.gca().yaxis.set_major_formatter(formatter)
     # plt.text(0, 1.95, r'x 10$^{%d}$'%(int(log(scale[i-1],10))),fontsize=15)
 
-    xfmt = ScalarFormatter(useMathText=True)
-    xfmt.set_powerlimits((0, 0))
-    plt.gca().yaxis.set_major_formatter(xfmt)
-    # matplotlib.rcParams.update({'font.size': 6})#设置左上角标签大小
+    # matplotlib.rcParams.update({'font.size': 16})#设置左上角标签大小
+    # xfmt = ScalarFormatter(useMathText=True)
+    # xfmt.set_powerlimits((0, 0))
+    # plt.gca().yaxis.set_major_formatter(xfmt)
+    
     # if i == 1:
     #     plt.gca().yaxis.set_major_locator(MultipleLocator(5000))
     #     plt.ylim(0,15000)
