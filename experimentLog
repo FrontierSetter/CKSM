@@ -632,3 +632,11 @@ docker volume rm $(docker volume ls -qf dangling=true)
 
 b945f6847c7a2db6246086ab8de523596d326dfcb8fd2f2d8bacde32e51f4bbf
 aa490e6d0291
+
+
+-------------------------------------------------------------------------------------
+设置系统进程数量限制
+
+sysctl -w kernel.pid_max=3000000
+ulimit -u 3000000
+ulimit -n 5000

@@ -3,7 +3,7 @@ import numpy as np
 import sys
 
 # python .\dedi_physical_ope_2.py  '..\log\7-23-1(elastic10)\stage_stack.log' '..\log\7-18-2(uksm_elastic10)\out_total.log' '..\log\7-18-9(pksm_nginx64)\out_total.log' '..\log\7-18-10(uksm_nginx64)\out_total.log'
-# python '..\log\7-18-9(pksm_nginx64)\out_total.log' '..\log\7-18-10(uksm_nginx64)\out_total.log'
+# python .\dedi_physical_ope_2.py '..\log\7-18-9(pksm_nginx64)\out_total.log' '..\log\7-18-10(uksm_nginx64)\out_total.log'
 
 hatchDict={'scan': '\\\\', 'hash': '.', 'compare': 'o', 'merge': 'x', 'other': '//'}
 colorDict={'scan': '#577590', 'hash': '#43aa8b', 'compare': '#90be6d', 'merge': '#f9c74f', 'other': '#f94144'}

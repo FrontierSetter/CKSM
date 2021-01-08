@@ -38,7 +38,7 @@ colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM+'
 
 
 stageNameArr = ['waiting candidate', 'pattern record', 'reverse map']
-tickArr = ['8','16','32','64','128']
+tickArr = ['8','16','32','64','128','256']
 dataScale = float(1024*1024*1024)    # B->GB
 memoryScale = float(1024*1024*1024)       # GB->B
 
@@ -176,10 +176,37 @@ oriData = [
             'reverse map': 64*120704     # stable_node
 
         },
+    },
+    {
+        'name': '256',
+        'memory': 256,
+        'cksm': {
+            # 'waiting candidate': 80*8320752,
+            # 'pattern record': 40*12754488,
+            # 'reverse map': 40*12754590
+            'waiting candidate': 80*17868311,
+            'pattern record': 40*7097216,
+            'reverse map': 40*19911748
+        },
+        'uksm': {
+            # 'waiting candidate': 192*7046615,            
+            # 'pattern record': 64*1001280+72*312704, 
+            # 'reverse map': 80*2483853+40*42344 
+            'waiting candidate': 192*13787415,             # uksm_vma_slot
+            'pattern record': 64*661218+72*5248,  # uksm_tree_node uksm_stable_node
+            'reverse map': 80*7507973+40*49250     # uksm_rmap_item uksm_node_vma
+
+        },
+        'ksm': {
+            'waiting candidate': 48*438405,             # mm_slot
+            'pattern record': 64*138937705,  # rmap_item
+            'reverse map': 64*250564     # stable_node
+
+        },
     }
 ]
 
-print(oriData)
+# print(oriData)
 
 # 获取柱状图数据
 cksmArr = []
