@@ -640,3 +640,10 @@ aa490e6d0291
 sysctl -w kernel.pid_max=3000000
 ulimit -u 3000000
 ulimit -n 5000
+
+-------------------------------------------------------------------------------------
+Docker
+sudo docker run -it --cpus=8 -v /home/l/workload/forkTest:/forkTest --name ubuntu-test ubuntu /bin/bash
+
+kvm
+8核 16 G = 16384 M
