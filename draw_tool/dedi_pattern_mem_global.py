@@ -7,7 +7,7 @@ import random
 # python .\dedi_pattern_mem_global.py '..\log\7-30-6(elastic16_base)\out_mem_usage.log' '..\log\8-25-4(elastic16_ksm10000)\out_mem_usage.log' '..\log\7-30-5(elastic16_uksm)\out_mem_usage.log' '..\log\7-30-4(elastic16_pksm)\out_mem_usage.log' 
 
 markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM+':'^', 'CKSM-Full':'d'}
-colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM+':'tab:olive', 'CKSM-Full':'tab:pink'}
+colorTable = {'UKSM':'#F79646', 'Base':'#00B050', 'CKSM':'#1f497d', 'KSM+':'#C00000'}
 
 
 xArr = []
@@ -90,7 +90,7 @@ print('stable')
 for i in range(len(sys.argv)-1):
     # print(len(xArr[i])/15)
     print(yArr[i][-1])
-    plt.plot(xArr[i][:mainLen],yArr[i][:mainLen], label=typeArr[i], linewidth=4, marker=markerTable[typeArr[i]], color=colorTable[typeArr[i]], markevery=int(len(xArr[i][:mainLen])/15), markersize=9)
+    plt.plot(xArr[i][:mainLen],yArr[i][:mainLen], label=typeArr[i], linewidth=4, marker=markerTable[typeArr[i]], color=colorTable[typeArr[i]], markevery=int(len(xArr[i][:mainLen])/15), markersize=12)
     # plt.annotate('', compArr[i],xytext=(compArr[i][0]-6, compArr[i][1]+0.6), arrowprops=dict(arrowstyle='-|>',connectionstyle='arc3',color='red'))
 
 

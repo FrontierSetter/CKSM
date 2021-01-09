@@ -5,7 +5,7 @@ import random
 # python .\dedi_multimap_uksm.py '..\log\12-6-2(fork_docker_32)\out_mem_usage.log' '..\log\12-6-3(fork_kvm_32)\out_mem_usage.log'
 
 markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM+':'^', 'CKSM-Full':'d','UKSM-KVM':'^','UKSM-Docker':'s'}
-colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM+':'tab:olive', 'CKSM-Full':'tab:pink','UKSM-KVM':'#ffc076','UKSM-Docker':'tab:orange'}
+colorTable = {'UKSM-KVM':'#F79646','UKSM-Docker':'#F79646'}
 lineTable = {'UKSM-KVM':'--','UKSM-Docker':'-'}
 
 
@@ -99,10 +99,10 @@ print('stable')
 for i in range(len(sys.argv)-1):
     # print(len(xArr[i])/15)
     print(yArr[i][-1])
-    plt.plot(xArr[i],yArr[i], label=typeArr[i], linewidth=4, marker=markerTable[typeArr[i]], color=colorTable[typeArr[i]], markevery=int(len(xArr[i])/15), markersize=10, linestyle=lineTable[typeArr[i]])
+    plt.plot(xArr[i],yArr[i], label=typeArr[i], linewidth=4, marker=markerTable[typeArr[i]], color=colorTable[typeArr[i]], markevery=int(len(xArr[i])/15), markersize=12, linestyle=lineTable[typeArr[i]])
     # plt.annotate('', compArr[i],xytext=(compArr[i][0]-6, compArr[i][1]+0.6), arrowprops=dict(arrowstyle='-|>',connectionstyle='arc3',color='red'))
 
-plt.axhline(y=0,ls=":",c="red",linewidth=4)#添加水平直线
+# plt.axhline(y=0,ls=":",c="red",linewidth=4)#添加水平直线
 
 
 plt.legend(fontsize=20, loc="upper left")

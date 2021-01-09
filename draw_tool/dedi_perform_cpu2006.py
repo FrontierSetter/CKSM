@@ -52,8 +52,8 @@ print("total: %f" % (totalRatio/len(tick_label)))
 plt.figure(figsize=(9,6))
 
 #绘制并列柱状图
-plt.bar(x-bar_width/2*1.18,y_base,bar_width,label='Base',color="#0496ff",edgecolor='black',hatch='-')
-plt.bar(x+bar_width/2*1.18,y_cksm,bar_width,label='CKSM',color="#47b347",edgecolor='black',hatch='//')
+plt.bar(x-bar_width/2*1.18,y_base,bar_width,label='Base',edgecolor="#00B050",color='white',hatch='////', linewidth=2)
+plt.bar(x+bar_width/2*1.18,y_cksm,bar_width,label='CKSM',edgecolor="#1f497d",color='white',hatch='\\\\\\\\', linewidth=2)
 
 plt.ylabel('Times(s)', fontsize=22)
 plt.xlabel('Benchmark', fontsize=22)
@@ -61,7 +61,7 @@ plt.xlabel('Benchmark', fontsize=22)
 plt.legend(fontsize=20)#显示图例，即label
 plt.yticks(fontsize=18)
 plt.xticks(x,tick_label, fontsize=14,rotation=25)#显示x坐r标轴的标签,即tick_label,调整位置，使其落在两个直方图中间位置
-plt.subplots_adjust(left=0.102, right=0.98, top=0.99, bottom=0.18)
+plt.subplots_adjust(left=0.11, right=0.98, top=0.99, bottom=0.18)
 
 # plt.savefig('scan_overhead.pdf')
 

@@ -5,8 +5,9 @@ import sys
 # python .\dedi_partial_hash_stage.py '..\log\8-6-1(nginx_with_partial)\out_1.log' '..\log\8-6-2(nginx_no_partial)\out_1.log' '..\log\8-6-1(nginx_with_partial)\out_2.log' '..\log\8-6-2(nginx_no_partial)\out_2.log' '..\log\8-6-1(nginx_with_partial)\out_3.log' '..\log\8-6-2(nginx_no_partial)\out_3.log'
 # python .\dedi_partial_hash_stage.py '..\log\8-6-3(nginx_with_partial)\out_1.log' '..\log\8-6-2(nginx_no_partial)\out_1.log' '..\log\8-6-3(nginx_with_partial)\out_2.log' '..\log\8-6-2(nginx_no_partial)\out_2.log' '..\log\8-6-3(nginx_with_partial)\out_3.log' '..\log\8-6-2(nginx_no_partial)\out_3.log'
 
-hatchDict={'scan': '\\\\', 'hash': '||', 'compare': '//', 'merge': 'x', 'maintain': 'o'}
-colorDict={'scan': '#f9c74f', 'hash': '#fe7f2d', 'compare': '#e05780', 'merge': '#43aa8b', 'maintain': '#577590'}
+hatchDict={'scan': '\\\\\\\\', 'hash': '|||', 'compare': '////', 'merge': 'xxxx', 'maintain': '+++'}
+colorDict={'scan': '#F79646', 'hash': '#4BACC6', 'compare': '#1f497d', 'merge': '#C00000', 'maintain': '#00B050'}
+# colorDict={'scan': '#f9c74f', 'hash': '#fe7f2d', 'compare': '#e05780', 'merge': '#43aa8b', 'maintain': '#577590'}
 # colorDict={'scan': '#577590', 'hash': '#43aa8b', 'compare': '#90be6d', 'merge': '#f9c74f', 'other': '#f94144'}
 groupName = ['Light load (1 collision)', 'Normal load (6 collisions)', 'Heavy load (12 collisions)']
 
@@ -17,7 +18,7 @@ groupNum = int((len(sys.argv)-1)/2)
 print(groupNum)
 
 plt.figure(figsize=(9,6))
-plt.subplots_adjust(left=0.08, right=0.98, top=0.88, bottom=0.13)
+plt.subplots_adjust(left=0.09, right=0.98, top=0.88, bottom=0.13)
 width = 0.5
 legendArr = []
 legendEntryArr = []
@@ -103,7 +104,7 @@ for groupIdx in range(groupNum):
     plt.xticks(ind, nameArr, fontsize=17)
 
     if groupIdx == 0:
-        plt.ylabel('Time(ns)', fontsize=22)
+        plt.ylabel('Time($\mu s$)', fontsize=22)
     plt.yticks(fontsize=18)
     plt.ylim(0, 14)
 
@@ -112,7 +113,7 @@ for groupIdx in range(groupNum):
 
 
     for curEntry in stageSeq:
-        curP = plt.bar(ind, allArr[curEntry], width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry], edgecolor='black', linewidth=1)
+        curP = plt.bar(ind, allArr[curEntry], width, bottom=baseArr, edgecolor=colorDict[curEntry], hatch=hatchDict[curEntry], color='white', linewidth=3)
         # curP = plt.bar(ind, allArr[curEntry], width, bottom=baseArr, color='white', hatch=hatchDict[curEntry], edgecolor=colorDict[curEntry], linewidth=3)
         if groupIdx == 0:
             legendArr.append(curP)

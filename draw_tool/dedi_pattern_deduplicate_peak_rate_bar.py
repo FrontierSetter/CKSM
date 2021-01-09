@@ -81,9 +81,9 @@ gap = 0.08*width
 
 plt.figure(figsize=(9,6))
 
-plt.bar(x-width*1-1.5*gap, ksmArr, width, color='tab:olive', label='KSM+', edgecolor='black', hatch='x')
-plt.bar(x, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')
-plt.bar(x+width*1+1.5*gap, cksmArr, width, color='tab:green', label='CKSM', edgecolor='black', hatch='/')
+plt.bar(x-width*1-1.5*gap, ksmArr, width, edgecolor='#C00000', label='KSM+', color='white', hatch='xxxx', linewidth=2)
+plt.bar(x, uksmArr, width, edgecolor='#F79646', label='UKSM', color='white', hatch='\\\\\\\\', linewidth=2)
+plt.bar(x+width*1+1.5*gap, cksmArr, width, edgecolor='#1f497d', label='CKSM', color='white', hatch='////', linewidth=2)
 
 # plt.bar(x-width*1-1.5*gap, ksmArr, width, label='KSM+', edgecolor='black', hatch='x')
 # plt.bar(x, uksmArr, width, label='UKSM', edgecolor='black', hatch='\\')

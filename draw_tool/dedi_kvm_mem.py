@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # python .\dedi_kvm_mem.py '..\log\8-13-4(kvm25_base)\out_mem_usage.log' '..\log\8-13-7(kvm25_uksm)\out_mem_usage.log' '..\log\8-13-6(kvm25_ksm500)\out_mem_usage.log' '..\log\8-13-8(kvm25_pksm)\out_mem_usage.log'
 
 markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM':'^'}
-colorTable = {'UKSM':'tab:orange', 'Base':'tab:blue', 'CKSM':'tab:green', 'KSM':'tab:olive'}
+colorTable = {'UKSM':'#F79646', 'Base':'#00B050', 'CKSM':'#1f497d', 'KSM':'#C00000'}
 
 
 xArr = []
@@ -70,7 +70,7 @@ print('stable')
 for i in range(len(sys.argv)-1):
     # print(len(xArr[i])/15)
     print(yArr[i][-1])
-    plt.plot(xArr[i],yArr[i], label=typeArr[i], linewidth=4, marker=markerTable[typeArr[i]], color=colorTable[typeArr[i]], markevery=int(len(xArr[i])/15), markersize=10)
+    plt.plot(xArr[i],yArr[i], label=typeArr[i], linewidth=4, marker=markerTable[typeArr[i]], color=colorTable[typeArr[i]], markevery=int(len(xArr[i])/15), markersize=12)
     # plt.annotate('', compArr[i],xytext=(compArr[i][0]-6, compArr[i][1]+0.6), arrowprops=dict(arrowstyle='-|>',connectionstyle='arc3',color='red'))
 
 plt.legend(fontsize=20)

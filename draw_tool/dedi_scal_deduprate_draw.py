@@ -91,13 +91,13 @@ width = 0.4
 
 plt.figure(figsize=(9,6))
 
-plt.plot(range(len(ksmStableArr)), ksmStableArr, color='tab:olive', label="KSM+_stable", linewidth=4, marker='^', markersize=9)
-plt.plot(range(len(uksmStableArr)), uksmStableArr, color='tab:orange', label="UKSM_stable", linewidth=4, marker='s', markersize=9)
-plt.plot(range(len(cksmStableArr)), cksmStableArr, color='tab:green', label="CKSM_stable", linewidth=4, marker='D', markersize=9)
+plt.plot(range(len(ksmStableArr)), ksmStableArr, color='#C00000', label="KSM+_stable", linewidth=4, marker='^', markersize=12)
+plt.plot(range(len(uksmStableArr)), uksmStableArr, color='#F79646', label="UKSM_stable", linewidth=4, marker='s', markersize=12)
+plt.plot(range(len(cksmStableArr)), cksmStableArr, color='#1f497d', label="CKSM_stable", linewidth=4, marker='D', markersize=12)
 
-plt.plot(range(len(ksmPeakArr)), ksmPeakArr, color='tab:olive', label="KSM+_peak", linestyle='--', linewidth=4, marker='^', markersize=9)
-plt.plot(range(len(uksmPeakArr)), uksmPeakArr, color='tab:orange', label="UKSM_peak", linestyle='--', linewidth=4, marker='s', markersize=9)
-plt.plot(range(len(cksmPeakArr)), cksmPeakArr, color='tab:green', label="CKSM_peak", linestyle='--', linewidth=4, marker='D', markersize=9)
+plt.plot(range(len(ksmPeakArr)), ksmPeakArr, color='#C00000', label="KSM+_peak", linestyle='--', linewidth=4, marker='^', markersize=12)
+plt.plot(range(len(uksmPeakArr)), uksmPeakArr, color='#F79646', label="UKSM_peak", linestyle='--', linewidth=4, marker='s', markersize=12)
+plt.plot(range(len(cksmPeakArr)), cksmPeakArr, color='#1f497d', label="CKSM_peak", linestyle='--', linewidth=4, marker='D', markersize=12)
 
 
 plt.ylabel('Deduplication Rate(%)', fontsize=26)

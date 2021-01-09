@@ -114,7 +114,8 @@ for i in range(5, 9):
 
 plt.figure(figsize=(9,6))
 
-color=['tab:blue', 'tab:olive', 'tab:orange', 'tab:green']
+color=['#00B050', '#C00000', '#F79646', '#1f497d',]
+
 
 print('start draw1')
 plt.subplot(121)
@@ -129,9 +130,10 @@ f=plt.boxplot(
     widths=0.65,
     whis=3,
     showfliers=False,
-    meanprops={'marker':'D','markerfacecolor':'#ffd166'},#设置均值点的属性，点的颜色和形状
-    medianprops={"linestyle":'--','color':'#f5cac3','linewidth':2},#设置中位数线的属性，线的类型和颜色
-
+    meanprops={'marker':'D','markerfacecolor':'#FFFF00','markeredgecolor':"#FFFF00"},#设置均值点的属性，点的颜色和形状
+    medianprops={"linestyle":'--','color':'#FFFF00','linewidth':2},#设置中位数线的属性，线的类型和颜色
+    # capprops={'linewidth':2},
+    # whiskerprops={'linewidth':2}
 )
 
 for box, c in zip(f['boxes'], color):
@@ -145,7 +147,7 @@ plt.title('page allocate latency',fontsize=24)
 # plt.legend(fontsize=16)
 plt.xticks(fontsize=20)
 plt.yticks(fontsize=18)
-plt.ylabel('Latency(ns)', fontsize=22)
+plt.ylabel('Latency($\mu s$)', fontsize=22)
 
 print('start draw2')
 plt.subplot(122)
@@ -160,8 +162,8 @@ f=plt.boxplot(
     widths=0.65,
     whis=3,
     showfliers=False,
-    meanprops={'marker':'D','markerfacecolor':'#ffd166','color':'black'},#设置均值点的属性，点的颜色和形状
-    medianprops={"linestyle":'--','color':'#f5cac3','linewidth':2},#设置中位数线的属性，线的类型和颜色
+    meanprops={'marker':'D','markerfacecolor':'#FFFF00','markeredgecolor':"#FFFF00"},#设置均值点的属性，点的颜色和形状
+    medianprops={"linestyle":'--','color':'#FFFF00','linewidth':2},#设置中位数线的属性，线的类型和颜色
 
 )
 

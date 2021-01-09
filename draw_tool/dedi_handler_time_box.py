@@ -106,7 +106,7 @@ for i in range(4, 7):
 
 plt.figure(figsize=(9,6))
 
-color=['tab:green', 'tab:blue', 'tab:orange']
+color=['#00B050', '#1f497d', '#F79646']
 
 print('start draw1')
 plt.subplot(121)
@@ -121,8 +121,8 @@ f=plt.boxplot(
     widths=0.65,
     whis=3,
     showfliers=False,
-    meanprops={'marker':'D','markerfacecolor':'#ffd166','markeredgecolor':"#ffd166"},#设置均值点的属性，点的颜色和形状
-    medianprops={"linestyle":'--','color':'#f5cac3','linewidth':2},#设置中位数线的属性，线的类型和颜色
+    meanprops={'marker':'D','markerfacecolor':'#8064A2','markeredgecolor':"#8064A2"},#设置均值点的属性，点的颜色和形状
+    medianprops={"linestyle":'--','color':'#8064A2','linewidth':2},#设置中位数线的属性，线的类型和颜色
 
 )
 

@@ -14,7 +14,7 @@ tick_label=['PyTorch','Idle','Compile','Docker','KVM']
 plt.figure(figsize=(9,6))
 
 #绘制并列柱状图
-bars = plt.bar(x,y2,bar_width,label='scan',color='#5390d9', edgecolor='black', linewidth=1)
+bars = plt.bar(x,y2,bar_width,label='scan',edgecolor='#F79646', color='white', linewidth=3, hatch='\\\\\\\\')
 
 # for b in bars:
 #     h = b.get_height()
@@ -28,7 +28,7 @@ plt.xticks(x,tick_label, fontsize=24)#显示x坐r标轴的标签,即tick_label,�
 # plt.xticks([])
 # plt.gca().yaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
 plt.subplots_adjust(left=0.11, right=0.98, top=0.99, bottom=0.12)
-plt.axhline(y=1,ls="--",c="red",linewidth=4)#添加水平直线
+plt.axhline(y=1,ls="--",c="#C00000",linewidth=4)#添加水平直线
 # plt.savefig('scan_overhead.pdf')
 
 plt.savefig('sparse_scan.pdf')

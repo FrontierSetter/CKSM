@@ -64,14 +64,14 @@ print(cksmArr)
 # print(tickArr)
 
 x=np.arange(len(tickArr))
-width = 0.2
-gap = 0.08*width
+width = 0.24
+gap = 0.1*width
 
 plt.figure(figsize=(9,6))
 
-plt.bar(x-width-gap*1.5, ksmArr, width, color='tab:olive', label='KSM+', edgecolor='black', hatch='x')
-plt.bar(x, uksmArr, width, color='tab:orange', label='UKSM', edgecolor='black', hatch='\\')
-plt.bar(x+width+gap*1.5, cksmArr, width, color='tab:green', label='CKSM', edgecolor='black', hatch='/')
+plt.bar(x-width-gap*1.5, ksmArr, width, edgecolor='#C00000', label='KSM+', color='white', hatch='xxxx', linewidth=2)
+plt.bar(x, uksmArr, width, edgecolor='#F79646', label='UKSM', color='white', hatch='\\\\\\\\', linewidth=2)
+plt.bar(x+width+gap*1.5, cksmArr, width, edgecolor='#1f497d', label='CKSM', color='white', hatch='////', linewidth=2)
 
 plt.ylabel('CPU Consumption(% core*s) ', fontsize=26)
 plt.yticks(fontsize=20)
@@ -81,12 +81,12 @@ xfmt = ScalarFormatter(useMathText=True)
 xfmt.set_powerlimits((0, 0))
 plt.gca().yaxis.set_major_formatter(xfmt)
 
-plt.text(-0.5, 1.25, r'$\times10^{-2}$',fontsize=16)
+plt.text(-0.5, 1.25, r'$\times10^{-2}$',fontsize=20)
 
 plt.xticks(x,tickArr, fontsize=20)
 plt.xlabel('Main Memory Capacity(GB)', fontsize=26)
 
-plt.subplots_adjust(left=0.105, right=0.99, top=0.96, bottom=0.13)
+plt.subplots_adjust(left=0.105, right=0.99, top=0.95, bottom=0.13)
 
 plt.legend(fontsize=22, ncol=3, loc='upper left', columnspacing=1)
 

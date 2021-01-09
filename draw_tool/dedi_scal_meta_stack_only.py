@@ -15,10 +15,22 @@ from matplotlib.ticker import PercentFormatter
 #     'reverse map': '#43aa8b'
 # }
 
+# colorDict = {
+#     'waiting candidate': '#247ba0', 
+#     'pattern record': '#ffe066', 
+#     'reverse map': '#f25f5c'
+# }
+
+# colorDict = {
+#     'waiting candidate': '#8064A2', 
+#     'pattern record': '#4BACC6', 
+#     'reverse map': '#92D050'
+# }
+
 colorDict = {
-    'waiting candidate': '#247ba0', 
-    'pattern record': '#ffe066', 
-    'reverse map': '#f25f5c'
+    'waiting candidate': '#00B050', 
+    'pattern record': '#C00000', 
+    'reverse map': '#F79646'
 }
 
 # colorDict = {
@@ -28,9 +40,9 @@ colorDict = {
 # }
 
 hatchDict = {
-    'waiting candidate': '//', 
-    'pattern record': '\\\\', 
-    'reverse map': 'x'
+    'waiting candidate': '\\\\\\\\', 
+    'pattern record': '////', 
+    'reverse map': 'xxxx'
 }
 
 markerTable = {'UKSM':'s', 'Base':'o', 'CKSM':'D', 'KSM+':'^', 'CKSM-Full':'d'}
@@ -252,7 +264,7 @@ print(ksmPercentArr)
 
 x=np.arange(len(tickArr))
 width = 0.24
-gap = 0.14*width
+gap = 0.1*width
 
 fig = plt.figure(figsize=(9,6))
 
@@ -279,13 +291,13 @@ legendEntryArrEdge = []
 baseArr = [0]*len(ksmArr[0])
 
 for curStageArr,curEntry in zip(ksmArr,stageNameArr):
-    curP = plt.bar(x-width-gap*1.5, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
+    curP = plt.bar(x-width-gap*1.5, curStageArr, width, bottom=baseArr, edgecolor=colorDict[curEntry], hatch=hatchDict[curEntry], color='white', linewidth=2)
 
     for i in range(len(curStageArr)):
         baseArr[i] += curStageArr[i]
 
-curEdge = plt.bar(x-width-gap*1.5, baseArr, width, color='none', edgecolor='tab:olive', linewidth=edgeLineWidth, label='KSM+')
-legendArrEdge.append(curEdge)
+# curEdge = plt.bar(x-width-gap*1.5, baseArr, width, color='none', edgecolor='tab:olive', linewidth=edgeLineWidth, label='KSM+')
+# legendArrEdge.append(curEdge)
 legendEntryArrEdge.append('KSM+')
 
 # for i in range(len(baseArr)):
@@ -293,8 +305,8 @@ legendEntryArrEdge.append('KSM+')
 #         plt.text(x[i]-width*1.5-gap*1.5, baseArr[i]+0.04, "KSM+", fontsize=12, ha = 'left',va = 'bottom')
 #     else:
 #         plt.text(x[i]-width*1.5-gap*1.5, baseArr[i]+0.04, "KSM+", fontsize=12, ha = 'left',va = 'bottom')
-# for x_, y in zip(x, baseArr) :
-#     plt.text(x_-width*1.5-gap*1.5, y+0.04, "KSM+", fontsize=12, ha = 'left',va = 'bottom')
+for x_, y in zip(x, baseArr) :
+    plt.text(x_-width-gap*1.5, y+0.1, "KSM+", fontsize=16, ha = 'center',va = 'bottom', rotation=90)
 
 print('ksm all')
 print(baseArr)
@@ -302,13 +314,13 @@ print(baseArr)
 baseArr = [0]*len(uksmArr[0])
 
 for curStageArr,curEntry in zip(uksmArr,stageNameArr):
-    curP = plt.bar(x, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
+    curP = plt.bar(x, curStageArr, width, bottom=baseArr, edgecolor=colorDict[curEntry], hatch=hatchDict[curEntry], color='white', linewidth=2)
 
     for i in range(len(curStageArr)):
         baseArr[i] += curStageArr[i]
 
-curEdge = plt.bar(x, baseArr, width, color='none', edgecolor='tab:orange', linewidth=edgeLineWidth, label='UKSM')
-legendArrEdge.append(curEdge)
+# curEdge = plt.bar(x, baseArr, width, color='none', edgecolor='tab:orange', linewidth=edgeLineWidth, label='UKSM')
+# legendArrEdge.append(curEdge)
 legendEntryArrEdge.append('UKSM')
 
 # for i in range(len(baseArr)):
@@ -316,8 +328,8 @@ legendEntryArrEdge.append('UKSM')
 #         plt.text(x[i]-width*0.5, baseArr[i]+0.08, "UKSM", fontsize=12, ha = 'left',va = 'bottom')
 #     else:
 #         plt.text(x[i]-width*0.5, baseArr[i]+0.04, "UKSM", fontsize=12, ha = 'left',va = 'bottom')
-# for x_, y in zip(x, baseArr) :
-#     plt.text(x_-width*0.5, y+0.04, "UKSM", fontsize=12, ha = 'left',va = 'bottom')
+for x_, y in zip(x, baseArr) :
+    plt.text(x_, y+0.1, "UKSM", fontsize=16, ha = 'center',va = 'bottom', rotation=90)
 
 print('uksm all')
 print(baseArr)
@@ -325,15 +337,15 @@ print(baseArr)
 baseArr = [0]*len(cksmArr[0])
 
 for curStageArr,curEntry in zip(cksmArr,stageNameArr):
-    curP = plt.bar(x+width+gap*1.5, curStageArr, width, bottom=baseArr, color=colorDict[curEntry], hatch=hatchDict[curEntry],edgecolor='black', linewidth=1)
+    curP = plt.bar(x+width+gap*1.5, curStageArr, width, bottom=baseArr, edgecolor=colorDict[curEntry], hatch=hatchDict[curEntry], color='white', linewidth=2)
     legendArrBar.insert(0,curP)
     legendEntryArrBar.insert(0,curEntry)
 
     for i in range(len(curStageArr)):
         baseArr[i] += curStageArr[i]
 
-curEdge = plt.bar(x+width+gap*1.5, baseArr, width, color='none', edgecolor='tab:green', linewidth=edgeLineWidth, label='CKSM')
-legendArrEdge.append(curEdge)
+# curEdge = plt.bar(x+width+gap*1.5, baseArr, width, color='none', edgecolor='tab:green', linewidth=edgeLineWidth, label='CKSM')
+# legendArrEdge.append(curEdge)
 legendEntryArrEdge.append('CKSM')
 
 # for i in range(len(baseArr)):
@@ -341,8 +353,8 @@ legendEntryArrEdge.append('CKSM')
 #         plt.text(x[i]+width*0.5+gap*1.5, baseArr[i]+0.02, "CKSM", fontsize=12, ha = 'left',va = 'bottom')
 #     else:
 #         plt.text(x[i]+width*0.5+gap*1.5, baseArr[i]+0.04, "CKSM", fontsize=12, ha = 'left',va = 'bottom')
-# for x_, y in zip(x, baseArr) :
-#     plt.text(x_+width*0.5+gap*1.5, y+0.04, "CKSM", fontsize=12, ha = 'left',va = 'bottom')
+for x_, y in zip(x, baseArr) :
+    plt.text(x_+width+gap*1.5, y+0.1, "CKSM", fontsize=16, ha = 'center',va = 'bottom', rotation=90)
 
 print('cksm all')
 print(baseArr)
@@ -351,13 +363,14 @@ print(baseArr)
 
 plt.ylabel('Meta Data Usage(GB)', fontsize=26)
 l1 = plt.legend(legendArrBar, legendEntryArrBar, fontsize=22)
-plt.legend(legendArrEdge, legendEntryArrEdge, fontsize=22, loc='center left')
+# plt.legend(legendArrEdge, legendEntryArrEdge, fontsize=22, loc='center left')
 plt.gca().add_artist(l1)
 plt.xticks(x, tickArr, fontsize=20)
 plt.xlabel('Main Memory Capacity(GB)', fontsize=26)
 
-plt.subplots_adjust(left=0.075, right=0.99, top=0.99, bottom=0.13)
+plt.subplots_adjust(left=0.1, right=0.99, top=0.99, bottom=0.13)
 plt.yticks(fontsize=20)
+plt.ylim(0,11)
 
 plt.savefig('scal_meta_stage_bar.pdf')
 plt.show()

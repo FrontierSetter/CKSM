@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import make_interp_spline
 
-color1 = 'tab:blue'
-color2 = 'tab:red'
+color1 = '#1f497d'
+color2 = '#C00000'
 
 # xPosition = [-40, 32, 128, 256, 512, 1024, 2046]
 # xPosition = [24, 64, 128, 256, 512, 1024, 2046]

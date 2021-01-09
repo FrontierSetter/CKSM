@@ -1,8 +1,7 @@
 import sys
 import matplotlib.pyplot as plt
 
-# python .\dedi_pattern_mapcnt.py '..\log\8-26-4(elastic16_scan_pattern)\diff_out_total.log'
-# python .\dedi_pattern_mapcnt.py '..\log\8-26-3(nginx32_scan_pattern)\diff_out_total.log'
+# python .\dedi_pattern_mapcnt_elas.py '..\log\8-26-4(elastic16_scan_pattern)\diff_out_total.log'
 
 inputFile = open(sys.argv[1], 'r')
 
@@ -87,10 +86,11 @@ plt.figure(figsize=(9,6))
 
 legendEntryArr = ['Local Pattern', 'Global Pattern']
 legendArr = [
-    plt.bar(timeArr, localArr, width, bottom=globalArr, color='#f4a261'),
-    plt.bar(timeArr, globalArr, width, color='#2a9d8f')
+    plt.bar(timeArr, localArr, width, bottom=globalArr, color='#C00000', label='Local Pattern'),
+    plt.bar(timeArr, globalArr, width, color='#1f497d', label='Global Pattern')
 ]
-plt.legend(legendArr, legendEntryArr, fontsize=22)
+plt.legend( fontsize=22)
+# plt.legend(legendArr, legendEntryArr, fontsize=22)
 
 # xfmt = ScalarFormatter(useMathText=True)
 # xfmt.set_powerlimits((0, 0))
@@ -102,6 +102,6 @@ plt.xticks(fontsize=20)
 plt.yticks(fontsize=20)
 plt.subplots_adjust(left=0.125, right=0.99, top=0.99, bottom=0.12)
 
-plt.savefig('map_count.pdf')
+plt.savefig('map_count_elastic_16.pdf')
 
 plt.show()
