@@ -1,0 +1,1 @@
+date +%s > "dedup_start.log"

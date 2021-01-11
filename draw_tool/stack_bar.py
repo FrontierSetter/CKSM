@@ -46,6 +46,7 @@ for i in range(1, len(sys.argv)):
     curFile.close()
 
 print(oriDict)
+print(entryArr)
 
 allArr = {}
 
@@ -75,6 +76,8 @@ for curEntry in entryArr:
 
 plt.figure(figsize=(9,6))
 
+print(allArr)
+
 ind = np.arange(len(nameArr))
 plt.xticks(ind, nameArr)
 
@@ -96,5 +99,5 @@ for curEntry in allArr:
 
 plt.legend(legendArr, legendEntryArr)
 
-# plt.show()
+plt.show()
 

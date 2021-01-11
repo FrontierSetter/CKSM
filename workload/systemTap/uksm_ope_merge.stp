@@ -1,0 +1,93 @@
+global total_time
+global scan_time
+global hash_time, zero_search_time, stable_search_time, unstable_search_time
+global zero_merge_time, stable_merge_time, unstable_merge_time
+
+global map_count_normal
+
+probe begin{
+  log("hello world")
+}
+
+probe timer.s(10) {
+  printf("now: %d\n", gettimeofday_s())
+  printf("total_time: sum = %d, cnt = %d\n", @sum(total_time), @count(total_time))
+  
+  printf("scan_time: sum = %d, cnt = %d\n", @sum(scan_time), @count(scan_time))
+
+  printf("hash_time: sum = %d, cnt = %d\n", @sum(hash_time), @count(hash_time))
+  printf("zero_search_time: sum = %d, cnt = %d\n", @sum(zero_search_time), @count(zero_search_time))
+  printf("stable_search_time: sum = %d, cnt = %d\n", @sum(stable_search_time), @count(stable_search_time))
+  printf("unstable_search_time: sum = %d, cnt = %d\n", @sum(unstable_search_time), @count(unstable_search_time))
+  
+  printf("zero_merge_time: sum = %d, cnt = %d\n", @sum(zero_merge_time), @count(zero_merge_time))
+  printf("stable_merge_time: sum = %d, cnt = %d\n", @sum(stable_merge_time), @count(stable_merge_time))
+  printf("unstable_merge_time: sum = %d, cnt = %d\n", @sum(unstable_merge_time), @count(unstable_merge_time))
+
+  print(@hist_linear(map_count_normal, 0, 32, 1))
+
+  printf("\n")
+}
+
+probe end{
+  printf("now: %d\n", gettimeofday_s())
+  printf("total_time: sum = %d, cnt = %d\n", @sum(total_time), @count(total_time))
+  
+  printf("scan_time: sum = %d, cnt = %d\n", @sum(scan_time), @count(scan_time))
+
+  printf("hash_time: sum = %d, cnt = %d\n", @sum(hash_time), @count(hash_time))
+  printf("zero_search_time: sum = %d, cnt = %d\n", @sum(zero_search_time), @count(zero_search_time))
+  printf("stable_search_time: sum = %d, cnt = %d\n", @sum(stable_search_time), @count(stable_search_time))
+  printf("unstable_search_time: sum = %d, cnt = %d\n", @sum(unstable_search_time), @count(unstable_search_time))
+  
+  printf("zero_merge_time: sum = %d, cnt = %d\n", @sum(zero_merge_time), @count(zero_merge_time))
+  printf("stable_merge_time: sum = %d, cnt = %d\n", @sum(stable_merge_time), @count(stable_merge_time))
+  printf("unstable_merge_time: sum = %d, cnt = %d\n", @sum(unstable_merge_time), @count(unstable_merge_time))
+
+  print(@hist_linear(map_count_normal, 0, 32, 1))
+
+}
+
+# total
+probe kernel.function("uksm_do_scan@mm/uksm.c").return {
+  total_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+# scan
+probe kernel.function("get_next_rmap_item@mm/uksm.c").return {
+  scan_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+# cmp
+probe kernel.function("page_hash_normal@mm/uksm.c").return {
+  hash_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("find_zero_page_hash@mm/uksm.c").return {
+  zero_search_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("stable_tree_search@mm/uksm.c").return {
+  stable_search_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("unstable_tree_search_insert@mm/uksm.c").return {
+  unstable_search_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+# merge
+probe kernel.function("cmp_and_merge_zero_page@mm/uksm.c").return {
+  zero_merge_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("try_to_merge_with_uksm_page@mm/uksm.c").return {
+  stable_merge_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("try_to_merge_two_pages@mm/uksm.c").return {
+  unstable_merge_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("replace_page@mm/uksm.c") {
+  map_count_normal <<< $page->_mapcount->counter
+}
