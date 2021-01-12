@@ -63,8 +63,8 @@ for i in range(1, len(sys.argv)):
             curArr.append(dictArr[i-1][idx]/100000.0)
         else:
             curArr.append(0)
-    plt.bar(x[:localThreshold+2], curArr[:localThreshold+2], barWidth, color='#1f497d', label='Local Pattern')
-    plt.bar(x[localThreshold+2:], curArr[localThreshold+2:], barWidth, color='#C00000', label='Global Pattern')
+    plt.bar(x[:localThreshold+2], curArr[:localThreshold+2], barWidth, color='#1f497d', label='Minor Pattern')
+    plt.bar(x[localThreshold+2:], curArr[localThreshold+2:], barWidth, color='#C00000', label='Major Pattern')
 
     if i == 1:
         plt.text(-1, 5.77, r'$\times10^{5}$',fontsize=18)
@@ -89,11 +89,16 @@ for i in range(1, len(sys.argv)):
     #     plt.gca().yaxis.set_major_locator(MultipleLocator(5000))
     #     plt.ylim(0,15000)
 
-    plt.legend(fontsize=20, loc='upper left')
+    plt.legend(fontsize=20, loc='center left')
     plt.xticks(x,lnLabel,fontsize=17)
     plt.yticks(fontsize=20)
-    plt.xlabel(x_name[i-1], fontsize=26)
-    plt.ylabel('Number', fontsize=26)
+    plt.xlabel('Number of pages associated with the pattern', fontsize=26)
+    if i == 1:
+        plt.text(-1, 4.70, r'$Nginx_{\times32}$',fontsize=20)
+    else:
+        plt.text(-1, 7.36, r'$Elasticsearch_{\times10}$',fontsize=20)
+    # plt.xlabel(x_name[i-1], fontsize=26)
+    plt.ylabel('Frequancy', fontsize=26)
     plt.subplots_adjust(left=0.07, right=0.99, top=0.96, bottom=0.12, hspace=0.36)
 
 plt.savefig('mem_pattern.pdf')

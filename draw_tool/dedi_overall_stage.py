@@ -32,15 +32,17 @@ stageDict = {
     },
 }
 
-plt.figure(figsize=(9,6))
-plt.subplots_adjust(left=0.11, right=0.98, top=0.99, bottom=0.1)
+plt.figure(figsize=(10,6))
+plt.subplots_adjust(left=0.12, right=0.98, top=0.99, bottom=0.1)
 
 ind = np.arange(len(nameArr))
-plt.xticks(ind, nameArr, fontsize=24)
+plt.xticks(ind, nameArr, fontsize=28)
 width = 0.4
 
-plt.ylabel('Time($\mu s$)', fontsize=26)
-plt.yticks(fontsize=22)
+plt.ylabel('Time($\mu s$)', fontsize=28)
+plt.yticks(fontsize=26)
+
+plt.xlim(-0.5,2.5)
 
 baseArr = [0]*len(nameArr)
 legendArr = []
@@ -61,7 +63,7 @@ for curStage in stageName:
     for i in range(len(curArr)):
         baseArr[i] += curArr[i]
 
-plt.legend(legendArr, legendEntryArr, fontsize=22)
+plt.legend(legendArr, legendEntryArr, fontsize=28)
 
 plt.savefig('overall_stage.pdf')
 plt.show()

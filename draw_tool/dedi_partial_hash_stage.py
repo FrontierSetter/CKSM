@@ -9,7 +9,7 @@ hatchDict={'scan': '\\\\\\\\', 'hash': '|||', 'compare': '////', 'merge': 'xxxx'
 colorDict={'scan': '#F79646', 'hash': '#4BACC6', 'compare': '#1f497d', 'merge': '#C00000', 'maintain': '#00B050'}
 # colorDict={'scan': '#f9c74f', 'hash': '#fe7f2d', 'compare': '#e05780', 'merge': '#43aa8b', 'maintain': '#577590'}
 # colorDict={'scan': '#577590', 'hash': '#43aa8b', 'compare': '#90be6d', 'merge': '#f9c74f', 'other': '#f94144'}
-groupName = ['Light load (1 collision)', 'Normal load (6 collisions)', 'Heavy load (12 collisions)']
+groupName = ['Light load(1 collision)', 'Normal load(6 collisions)', 'Heavy load(12 collisions)']
 
 # stageSeq = ['hash', 'compare', 'maintain', 'scan', 'merge']
 stageSeq = ['maintain', 'scan', 'hash', 'compare', 'merge']
@@ -18,7 +18,7 @@ groupNum = int((len(sys.argv)-1)/2)
 print(groupNum)
 
 plt.figure(figsize=(9,6))
-plt.subplots_adjust(left=0.09, right=0.98, top=0.88, bottom=0.13)
+plt.subplots_adjust(left=0.08, right=0.975, top=0.88, bottom=0.11)
 width = 0.5
 legendArr = []
 legendEntryArr = []
@@ -101,10 +101,10 @@ for groupIdx in range(groupNum):
 
     plt.subplot(100+groupNum*10+(groupIdx+1))
 
-    plt.xticks(ind, nameArr, fontsize=17)
+    plt.xticks(ind, nameArr, fontsize=16)
 
     if groupIdx == 0:
-        plt.ylabel('Time($\mu s$)', fontsize=22)
+        plt.ylabel('Time($\mu s$)', fontsize=16)
     plt.yticks(fontsize=18)
     plt.ylim(0, 14)
 
@@ -118,15 +118,20 @@ for groupIdx in range(groupNum):
         if groupIdx == 0:
             legendArr.append(curP)
             legendEntryArr.append(curEntry)
+            # if curEntry != 'hash':
+            #     legendEntryArr.append(curEntry)
+            # else:
+            #     legendEntryArr.append('calculation')
+
             # legendArr.insert(0,curP)
             # legendEntryArr.insert(0,curEntry)
 
         for i in range(len(allArr[curEntry])):
             baseArr[i] += allArr[curEntry][i]
     
-    plt.title(groupName[groupIdx], loc='center', y=-0.14, fontsize=15)
+    plt.title(groupName[groupIdx], loc='center', y=-0.14, fontsize=16)
 
-plt.figlegend(legendArr, legendEntryArr,ncol=len(legendEntryArr), loc="upper center", fontsize=19, columnspacing=0.8, handletextpad=0.3)
+plt.figlegend(legendArr, legendEntryArr,ncol=len(legendEntryArr), loc="upper center", fontsize=18, columnspacing=0.8, handletextpad=0.3)
 
 plt.savefig('partial_hash_stage.pdf')
 

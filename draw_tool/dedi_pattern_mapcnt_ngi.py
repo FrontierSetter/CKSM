@@ -86,8 +86,8 @@ plt.figure(figsize=(9,6))
 
 legendEntryArr = ['Local Pattern', 'Global Pattern']
 legendArr = [
-    plt.bar(timeArr, localArr, width, bottom=globalArr, color='#C00000', label='Local Pattern'),
-    plt.bar(timeArr, globalArr, width, color='#1f497d', label='Global Pattern')
+    plt.bar(timeArr, localArr, width, bottom=globalArr, color='#C00000', label='Minor Pattern'),
+    plt.bar(timeArr, globalArr, width, color='#1f497d', label='Major Pattern')
 ]
 plt.legend( fontsize=22)
 # plt.legend(legendArr, legendEntryArr, fontsize=22)

@@ -29,8 +29,8 @@ for tl in axRate.get_yticklabels():
     tl.set_color(color1)
     tl.set_fontsize(18)
 axRate.set_xticklabels(xtickArr, fontsize=18, rotation=0)
-axRate.set_ylabel('Byte-by-byte Comparison Skip Rate(%)', fontsize=21, color=color1)
-axRate.set_xlabel('Partial Hash Length(Bytes)', fontsize=21)
+axRate.set_ylabel('Byte-by-byte Comparison\nSkip Rate(%)', fontsize=26, color=color1)
+axRate.set_xlabel('Partial Hash Length(Bytes)', fontsize=26)
 for tl in axRate.get_xticklabels():
     tl.set_fontsize(15)
 # plt.text(0,0,'$2^{x}$', fontsize=14)
@@ -42,7 +42,7 @@ axOverhead.spines['top'].set_color('none')
 for tl in axOverhead.get_yticklabels():
     tl.set_fontsize(18)
 axOverhead.tick_params(axis='y', colors=color2)
-axOverhead.set_ylabel('Partial Hash Calculation Overhead(ns)', fontsize=21, color=color2)
+axOverhead.set_ylabel('Partial Hash\nCalculation Overhead($\mu s$)', fontsize=26, color=color2)
 
 plots = plot1+plot2
 labs = [l.get_label() for l in plots]
@@ -76,7 +76,7 @@ axRate.legend(plots, labs, fontsize=22, handlelength=3)
 # # ax_wear.axis['right4'].line.set_color('blue')
 
 
-plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.11)
+plt.subplots_adjust(left=0.08, right=0.91, top=0.95, bottom=0.11)
 
 plt.savefig('partial_hash.pdf')
 plt.show()
