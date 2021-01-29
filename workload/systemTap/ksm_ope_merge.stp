@@ -1,0 +1,99 @@
+global total_time
+global scan_time
+global hash_time, stable_search_time, unstable_search_time
+global zero_merge_time, ksm_merge_time
+
+global page_get_count, page_unget_count, page_tryget_count
+global map_count_normal
+
+probe begin{
+  log("hello world")
+  page_get_count = 0
+  page_unget_count = 0
+}
+
+probe end{
+  printf("now: %d\n", gettimeofday_s())
+  printf("total_time: sum = %d, cnt = %d, avg = %d\n", @sum(total_time), @count(total_time), @avg(total_time))
+  
+  printf("scan_time: sum = %d, cnt = %d, avg = %d\n", @sum(scan_time), @count(scan_time), @avg(scan_time))
+
+  printf("hash_time: sum = %d, cnt = %d, avg = %d\n", @sum(hash_time), @count(hash_time), @avg(hash_time))
+  printf("stable_search_time: sum = %d, cnt = %d, avg = %d\n", @sum(stable_search_time), @count(stable_search_time), @avg(stable_search_time))
+  printf("unstable_search_time: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_search_time), @count(unstable_search_time), @avg(unstable_search_time))
+  
+  printf("zero_merge_time: sum = %d, cnt = %d, avg = %d\n", @sum(zero_merge_time), @count(zero_merge_time), @avg(zero_merge_time))
+  printf("ksm_merge_time: sum = %d, cnt = %d, avg = %d\n", @sum(ksm_merge_time), @count(ksm_merge_time), @avg(ksm_merge_time))
+
+  printf("page_get_count: %d\n", page_get_count)
+  printf("page_unget_count: %d\n", page_unget_count)
+  printf("page_tryget_count: sum = %d, cnt = %d, avg = %d\n", @sum(page_tryget_count), @count(page_tryget_count), @avg(page_tryget_count))
+
+  print(@hist_linear(map_count_normal, 0, 32, 1))
+
+}
+
+probe timer.s(10) {
+  printf("now: %d\n", gettimeofday_s())
+  printf("total_time: sum = %d, cnt = %d, avg = %d\n", @sum(total_time), @count(total_time), @avg(total_time))
+  
+  printf("scan_time: sum = %d, cnt = %d, avg = %d\n", @sum(scan_time), @count(scan_time), @avg(scan_time))
+
+  printf("hash_time: sum = %d, cnt = %d, avg = %d\n", @sum(hash_time), @count(hash_time), @avg(hash_time))
+  printf("stable_search_time: sum = %d, cnt = %d, avg = %d\n", @sum(stable_search_time), @count(stable_search_time), @avg(stable_search_time))
+  printf("unstable_search_time: sum = %d, cnt = %d, avg = %d\n", @sum(unstable_search_time), @count(unstable_search_time), @avg(unstable_search_time))
+  
+  printf("zero_merge_time: sum = %d, cnt = %d, avg = %d\n", @sum(zero_merge_time), @count(zero_merge_time), @avg(zero_merge_time))
+  printf("ksm_merge_time: sum = %d, cnt = %d, avg = %d\n", @sum(ksm_merge_time), @count(ksm_merge_time), @avg(ksm_merge_time))
+
+  printf("page_get_count: %d\n", page_get_count)
+  printf("page_unget_count: %d\n", page_unget_count)
+  printf("page_tryget_count: sum = %d, cnt = %d, avg = %d\n", @sum(page_tryget_count), @count(page_tryget_count), @avg(page_tryget_count))
+
+  print(@hist_linear(map_count_normal, 0, 32, 1))
+
+  printf("\n")
+}
+
+# total
+probe kernel.function("ksm_do_scan@mm/ksm.c").return {
+  total_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+# scan
+probe kernel.function("scan_get_next_rmap_item@mm/ksm.c").return {
+  # TODO: 返回NULL的scan，计入时间，但不计入cnt
+  scan_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+  if ($return != 0){
+    page_get_count += 1
+    page_tryget_count <<< @var("ksm_tryget_page@mm/ksm.c")
+  }else{
+    page_unget_count += 1
+  }
+}
+
+# cmp
+probe kernel.function("calc_checksum@mm/ksm.c").return {
+  hash_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("stable_tree_search@mm/ksm.c").return {
+  stable_search_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("unstable_tree_search_insert@mm/ksm.c").return {
+  unstable_search_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+# merge
+probe kernel.function("try_to_merge_one_page_zero@mm/ksm.c").return {
+  zero_merge_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("try_to_merge_with_ksm_page@mm/ksm.c").return {
+  ksm_merge_time <<< gettimeofday_us() - @entry(gettimeofday_us())
+}
+
+probe kernel.function("replace_page@mm/ksm.c") {
+  map_count_normal <<< $page->_mapcount->counter
+}

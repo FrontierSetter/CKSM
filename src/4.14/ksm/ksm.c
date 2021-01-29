@@ -236,6 +236,8 @@ static unsigned long ksm_pages_merged;
 static unsigned long ksm_slot_cnt;
 static unsigned long ksm_stable_node;
 
+static unsigned long ksm_tryget_page = 0;
+
 /* The number of page slots additionally sharing those nodes */
 static unsigned long ksm_pages_sharing;
 
@@ -2319,6 +2321,7 @@ next_mm:
 			ksm_scan.address = vma->vm_end;
 
 		while (ksm_scan.address < vma->vm_end) {
+			ksm_tryget_page += 1;
 			if (ksm_test_exit(mm))
 				break;
 			*page = follow_page(vma, ksm_scan.address, FOLL_GET);
@@ -2416,6 +2419,7 @@ static noinline void ksm_do_scan(unsigned int scan_npages)
 			// ++scan_npages;
 			continue;
 		}
+		ksm_tryget_page = 0;
 		cmp_and_merge_page(page, rmap_item);
 		put_page(page);
 	}
